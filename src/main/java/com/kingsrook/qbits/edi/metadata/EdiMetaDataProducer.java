@@ -80,7 +80,7 @@ public class EdiMetaDataProducer extends QBitComponentMetaDataProducer<MetaDataP
       output.add(new com.kingsrook.qqq.backend.core.model.metadata.QBackendMetaData().withName("edi_preview_download")
          .withBackendType(com.kingsrook.qbits.edi.storage.PreviewDownloadBackend.class));
       output.add(new QTableMetaData().withName("edi_preview_download").withLabel("Preview Download").withBackendName("edi_preview_download")
-         .withPrimaryKeyField("id").withField(new com.kingsrook.qqq.backend.core.model.metadata.fields.QFieldMetaData("id", com.kingsrook.qqq.backend.core.model.metadata.fields.QFieldType.INTEGER))
+         .withPrimaryKeyField("id").withField(new com.kingsrook.qqq.backend.core.model.metadata.fields.QFieldMetaData("id", com.kingsrook.qqq.backend.core.model.metadata.fields.QFieldType.INTEGER).withLabel("ID"))
          .withPermissionRules(new com.kingsrook.qqq.backend.core.model.metadata.permissions.QPermissionRules().withPermissionBaseName("edi.map.preview")
             .withLevel(com.kingsrook.qqq.backend.core.model.metadata.permissions.PermissionLevel.HAS_ACCESS_PERMISSION))
          .withoutCapabilities(com.kingsrook.qqq.backend.core.model.metadata.tables.Capability.TABLE_INSERT,

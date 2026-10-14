@@ -24,12 +24,18 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import com.kingsrook.qbits.edi.app.EdiHome;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import com.kingsrook.qbits.edi.EdiRuntime;
+import com.kingsrook.qbits.edi.metadata.EdiTables;
 import com.kingsrook.qbits.edi.storage.EdiRecords;
 import com.kingsrook.qbits.edi.support.SystemWrites;
-import com.kingsrook.qqq.backend.core.context.QContext;
+import com.kingsrook.qqq.backend.core.actions.dashboard.RenderWidgetAction;
 import com.kingsrook.qqq.backend.core.model.actions.tables.query.QQueryFilter;
 import com.kingsrook.qqq.backend.core.model.actions.widgets.RenderWidgetInput;
+import com.kingsrook.qqq.backend.core.model.session.QSystemUserSession;
+import com.kingsrook.qqq.backend.core.utils.JsonUtils;
 import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -38,6 +44,37 @@ import static org.assertj.core.api.Assertions.assertThat;
  *******************************************************************************/
 class EdiDemoServerTest
 {
+   /*******************************************************************************
+    ** The configured runtime is reachable through child-table sourceQBit metadata.
+    *******************************************************************************/
+   @Test
+   void serializesConfigurationWithoutRuntimeServices() throws Exception
+   {
+      try(EdiDemoServer demo = new EdiDemoServer())
+      {
+         var calls = new java.util.concurrent.atomic.AtomicInteger();
+         var config = EdiRuntime.current().config().withServiceSessionSupplier(() ->
+         {
+            calls.incrementAndGet();
+            return (new QSystemUserSession(demo.defineQInstance()));
+         }).withSecretsResolver(name ->
+         {
+            calls.incrementAndGet();
+            return ("synthetic-secret-must-not-serialize");
+         }).withPayloadStore("OBJECT_STORAGE").withClock(java.time.Clock.systemUTC());
+         String json = JsonUtils.toJson(config);
+         assertThat(json).contains("sendAsEdiTables", "appName", "edi").doesNotContain(
+            "clock", "SystemClock", "secretsResolver", "serviceSessionSupplier", "payloadStore", "synthetic-secret", "Lambda", "plugins");
+         Set<String> properties = new HashSet<>();
+         new com.fasterxml.jackson.databind.ObjectMapper().readTree(json).fieldNames().forEachRemaining(properties::add);
+         assertThat(properties).isSubsetOf("sendAsEdiTables", "defaultBackendNameForTables", "backendName", "appName", "appLabel", "parentAppName",
+            "schedulerName", "maxSegmentsPerTransaction", "partnerLocks", "payloadBucketAlias", "esbDestinationName");
+         assertThat(calls.get()).isZero();
+      }
+   }
+
+
+
    /*******************************************************************************
     ** Full seeded application acceptance on an operating-system assigned port.
     *******************************************************************************/
@@ -56,10 +93,9 @@ class EdiDemoServerTest
          assertThat(SystemWrites.call(() -> EdiRecords.query("edi_outbound_message", new QQueryFilter()))).anyMatch(row -> "DEAD_LETTER".equals(row.getValueString("status")));
          assertThat(SystemWrites.call(() -> EdiRecords.query("edi_functional_group", new QQueryFilter()))).anyMatch(row -> row.getValueInstant("ackReceivedAt") != null);
          assertThat(SystemWrites.call(() -> EdiRecords.query("edi_exception", new QQueryFilter()))).anyMatch(row -> "OVERDUE_ACK".equals(row.getValueString("type")));
-         for(var widget : EdiHome.widgets())
-         {
-            assertThat(new EdiHome().render(new RenderWidgetInput().withWidgetMetaData(widget))).isNotNull();
-         }
+         var partners = SystemWrites.call(() -> EdiRecords.query("edi_partner", new QQueryFilter()));
+         assertThat(partners).extracting(row -> row.getValueString("code")).containsExactlyInAnyOrder("NORTHWIND", "HARBOR", "SUMMIT");
+         assertThat(partners).allSatisfy(row -> assertThat(row.getValueString("contactEmail")).endsWith("@example.invalid"));
          int port = demo.start(0);
          assertThat(client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/app/edi")).GET().build(), HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(200);
          for(String table : java.util.List.of("edi_partner", "edi_transaction", "edi_exception"))
@@ -67,7 +103,31 @@ class EdiDemoServerTest
             assertThat(client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/qqq/v1/table/" + table + "/query"))
                .header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString("{}" )).build(), HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(200);
          }
-         assertThat(client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/qqq/v1/widget/edi_home_outbound")).header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString("{}")).build(), HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(200);
+         Set<String> rendered = new HashSet<>();
+         for(var widget : demo.defineQInstance().getWidgets().values())
+         {
+            var join = EdiTables.joins().stream().filter(candidate -> candidate.getName().equals(widget.getName())).findFirst();
+            Map<String, String> params = Map.of();
+            String suffix = "";
+            if(join.isPresent())
+            {
+               String parent = join.get().getLeftTable();
+               var parents = SystemWrites.call(() -> EdiRecords.query(parent, new QQueryFilter()));
+               assertThat(parents).as(parent).isNotEmpty();
+               String id = parents.getFirst().getValueString("id");
+               params = Map.of("tableName", parent, "id", id);
+               suffix = "?tableName=" + parent + "&id=" + id;
+            }
+            var output = new RenderWidgetAction().execute(new RenderWidgetInput().withWidgetMetaData(widget).withUrlParams(new java.util.HashMap<>(params)));
+            assertThat(output.getWidgetData()).as(widget.getName()).isNotNull();
+            assertThat(JsonUtils.toJson(output)).as(widget.getName()).doesNotContain("secretsResolver", "serviceSessionSupplier", "SystemClock", "\"clock\"");
+            var response = client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/qqq/v1/widget/" + widget.getName() + suffix))
+               .header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString("{}")).build(), HttpResponse.BodyHandlers.ofString());
+            assertThat(response.statusCode()).as(widget.getName()).isEqualTo(200);
+            assertThat(response.body()).doesNotContain("secretsResolver", "serviceSessionSupplier", "SystemClock", "\"clock\"");
+            rendered.add(widget.getName());
+         }
+         assertThat(rendered).containsExactlyInAnyOrderElementsOf(demo.defineQInstance().getWidgets().keySet());
          assertThat(client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/qqq/v1/metaData")).GET().build(), HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(200);
       }
    }

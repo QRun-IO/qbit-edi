@@ -7,13 +7,15 @@ From this worktree with Java 21:
 ```
 
 Open http://localhost:8099/app/edi. Stop with Ctrl+C. On Unix use `./mvnw`.
+Next UI table routes are `/app/<tableName>` and record routes are `/app/<tableName>/<id>`.
 Each launch creates a fresh in-memory H2 database, an in-memory synthetic payload key and a
 fully anonymous demo session. No external credentials or services are required. Demo auth is
 in test sources only and must not be installed in a real host.
 
 The seed includes Northwind Retail (gateway), Harbor Logistics (SFTP) and Summit Market (HTTPS),
-identities/agreements, guides/maps, orders with lines, shipments with cartons/items, invoices
-and inventory. Forty synthetic inbound documents go through intake and the real inbox worker:
+with codes NORTHWIND, HARBOR and SUMMIT and synthetic contacts at `example.invalid`.
+It includes identities/agreements, guides/maps, orders with lines, shipments with cartons/items,
+invoices and inventory. Forty synthetic inbound documents go through intake and the real inbox worker:
 850s, 860s, validation errors, an unknown sender and a byte duplicate. Northwind's 855/856/810/846
 pass the outbound worker and an in-memory gateway; incoming 997s reconcile some sent groups.
 An overdue group, an exhausted send and several open exceptions provide operational examples.
@@ -26,6 +28,12 @@ is restored after the intentional dead-letter scenario. Standard Send As EDI, Te
 Resend, Resend As New and Cancel actions are available. The gateway stores bytes in memory;
 it does not expose a separate partner download UI.
 
-Acceptance boots a random-port QApplicationJavalinServer, loads Next UI, renders every typed
-home widget, and requests metadata, table queries and the outbound widget over HTTP.
+Acceptance boots a random-port QApplicationJavalinServer, loads Next UI, renders and serializes
+every registered widget through core RenderWidgetAction/JsonUtils, and POSTs every home and
+child-list widget over HTTP using seeded parent records. It also checks configuration JSON,
+metadata, table queries, labels, field order, foreign-key value sources and PHI-safe record labels.
+Next UI defaults table queries to descending ID (newest records first); activity child lists use
+descending creation date and ID. The home exception queue puts OPEN before IN_PROGRESS, newest
+first within each status. RC.5 has no table-level default-sort metadata to override Next's sort.
+Inbound message labels use external IDs because filenames are classified as PHI.
 Light/dark visual layout and production scheduler/gateway deployment remain host acceptance.

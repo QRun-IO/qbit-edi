@@ -22,6 +22,7 @@ package com.kingsrook.qbits.edi;
 
 
 import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.kingsrook.qqq.backend.core.model.metadata.QInstance;
 import com.kingsrook.qqq.backend.core.model.metadata.qbits.QBitConfig;
 
@@ -230,6 +231,7 @@ public class EdiQBitConfig implements QBitConfig
    /*******************************************************************************
     ** Get payloadStore.
     *******************************************************************************/
+   @JsonIgnore
    public String getPayloadStore()
    {
       return (payloadStore);
@@ -247,6 +249,7 @@ public class EdiQBitConfig implements QBitConfig
    /*******************************************************************************
     ** Get secretsResolver.
     *******************************************************************************/
+   @JsonIgnore
    public com.kingsrook.qbits.edi.security.EdiSecrets getSecretsResolver()
    {
       return (secretsResolver);
@@ -298,6 +301,7 @@ public class EdiQBitConfig implements QBitConfig
    /*******************************************************************************
     ** Get serviceSessionSupplier.
     *******************************************************************************/
+   @JsonIgnore
    public java.util.function.Supplier<com.kingsrook.qqq.backend.core.model.session.QSession> getServiceSessionSupplier()
    {
       return (serviceSessionSupplier);
@@ -315,6 +319,7 @@ public class EdiQBitConfig implements QBitConfig
    /*******************************************************************************
     ** Get clock.
     *******************************************************************************/
+   @JsonIgnore
    public java.time.Clock getClock()
    {
       return (clock);

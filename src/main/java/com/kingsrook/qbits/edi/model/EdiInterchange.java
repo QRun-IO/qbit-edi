@@ -82,7 +82,7 @@ public class EdiInterchange extends QRecordEntity
    @QField(backendName = "inbox_id", possibleValueSourceName = "edi_inbox")
    private Integer inboxId;
 
-   @QField(backendName = "outbound_message_id")
+   @QField(backendName = "outbound_message_id", possibleValueSourceName = "edi_outbound_message")
    private Integer outboundMessageId;
 
    @QField(backendName = "standard", maxLength = 255, possibleValueSourceName = "edi_standard")

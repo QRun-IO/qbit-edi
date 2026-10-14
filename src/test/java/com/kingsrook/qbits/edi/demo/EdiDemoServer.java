@@ -129,9 +129,11 @@ public class EdiDemoServer extends AbstractQQQApplication implements AutoCloseab
          List<QRecord> agreements = new ArrayList<>();
          String[] names = {"Northwind Retail", "Harbor Logistics", "Summit Market"};
          String[] identities = {"SYNTHETIC", "HARBORLOG", "SUMMITMKT"};
+         String[] codes = {"NORTHWIND", "HARBOR", "SUMMIT"};
          for(int i = 0; i < names.length; i++)
          {
-            QRecord partner = SystemWrites.insert("edi_partner", new QRecord().withValue("name", names[i]).withValue("code", identities[i]).withValue("status", "ACTIVE").withValue("defaultTimezone", "America/Chicago"));
+            QRecord partner = SystemWrites.insert("edi_partner", new QRecord().withValue("name", names[i]).withValue("code", codes[i]).withValue("contactName", names[i] + " Demo Contact")
+               .withValue("contactEmail", codes[i].toLowerCase(java.util.Locale.ROOT) + "@example.invalid").withValue("contactPhone", "202-555-010" + i).withValue("status", "ACTIVE").withValue("defaultTimezone", "America/Chicago"));
             QRecord remote = SystemWrites.insert("edi_identity", new QRecord().withValue("partnerId", partner.getValue("id")).withValue("standard", "X12").withValue("interchangeQualifier", "ZZ").withValue("interchangeId", identities[i]).withValue("applicationCode", identities[i]).withValue("isActive", true));
             QRecord settings = new QRecord().withValue("partnerId", partner.getValue("id")).withValue("name", List.of("northwind-gateway", "harbor-sftp", "summit-https").get(i))
                .withValue("type", List.of("GATEWAY", "SFTP", "HTTPS").get(i)).withValue("direction", "BOTH").withValue("isActive", true).withValue("maxAttempts", 1);

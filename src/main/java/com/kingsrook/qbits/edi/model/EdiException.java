@@ -54,7 +54,7 @@ public class EdiException extends QRecordEntity
    @QField(backendName = "transaction_id", possibleValueSourceName = "edi_transaction")
    private Integer transactionId;
 
-   @QField(backendName = "outbound_message_id")
+   @QField(backendName = "outbound_message_id", possibleValueSourceName = "edi_outbound_message")
    private Integer outboundMessageId;
 
    @QField(backendName = "summary", maxLength = 255)

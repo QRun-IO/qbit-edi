@@ -57,17 +57,16 @@ import com.kingsrook.qqq.backend.core.actions.ai.AiTableMetaData;
 import com.kingsrook.qqq.backend.core.actions.customizers.TableCustomizers;
 import com.kingsrook.qqq.backend.core.actions.dashboard.widgets.ChildRecordListRenderer;
 import com.kingsrook.qqq.backend.core.exceptions.QException;
+import com.kingsrook.qqq.backend.core.model.actions.tables.query.QFilterOrderBy;
 import com.kingsrook.qqq.backend.core.model.data.QRecordEntity;
 import com.kingsrook.qqq.backend.core.model.metadata.audits.AuditLevel;
 import com.kingsrook.qqq.backend.core.model.metadata.audits.QAuditRules;
 import com.kingsrook.qqq.backend.core.model.metadata.code.QCodeReference;
 import com.kingsrook.qqq.backend.core.model.metadata.dashboard.QWidgetMetaData;
 import com.kingsrook.qqq.backend.core.model.metadata.fields.QFieldMetaData;
-import com.kingsrook.qqq.backend.core.model.metadata.fields.QFieldType;
 import com.kingsrook.qqq.backend.core.model.metadata.joins.JoinOn;
 import com.kingsrook.qqq.backend.core.model.metadata.joins.JoinType;
 import com.kingsrook.qqq.backend.core.model.metadata.joins.QJoinMetaData;
-import com.kingsrook.qqq.backend.core.model.metadata.layout.QIcon;
 import com.kingsrook.qqq.backend.core.model.metadata.permissions.PermissionLevel;
 import com.kingsrook.qqq.backend.core.model.metadata.permissions.QPermissionRules;
 import com.kingsrook.qqq.backend.core.model.metadata.possiblevalues.QPossibleValue;
@@ -231,15 +230,6 @@ public final class EdiTables
          .withPermissionRules(new QPermissionRules().withPermissionBaseName("edi." + name.substring(4)).withLevel(PermissionLevel.READ_INSERT_EDIT_DELETE_PERMISSIONS))
          .withAuditRules(new QAuditRules().withAuditLevel(readOnly ? AuditLevel.RECORD : AuditLevel.FIELD));
       QRecordEntity.registerTable(entity, table);
-      table.setLabel(switch(name)
-      {
-         case "edi_partner" -> "Trading Partner";
-         case "edi_transaction" -> "Document";
-         case "edi_guide" -> "Implementation Guide";
-         case "edi_transaction_error" -> "Validation Error";
-         case "edi_inbox" -> "Inbound Message";
-         default -> name.substring(4).replace('_', ' ');
-      });
       if(List.of("edi_payload", "edi_certificate", "edi_inbox").contains(name))
       {
          table.withSupplementalMetaData(new AiTableMetaData().withExposure(AiExposure.NONE));
@@ -257,9 +247,6 @@ public final class EdiTables
       {
          table.withRecordSecurityLock(new RecordSecurityLock().withFieldName("partnerId").withSecurityKeyType("edi_partner"));
       }
-      List<String> identity = new ArrayList<>(List.of("id"));
-      List<String> details = new ArrayList<>();
-      List<String> dates = new ArrayList<>();
       for(QFieldMetaData field : table.getFields().values())
       {
          String classification = List.of("phiBusinessKey", "fileName", "ciphertext", "expectedResultJson", "valueExcerpt").contains(field.getName()) ? "PHI"
@@ -269,18 +256,9 @@ public final class EdiTables
          {
             field.withSupplementalMetaData(new AiFieldMetaData().withExposure(AiExposure.NONE));
          }
-         if(field.getType() == QFieldType.DATE_TIME)
-         {
-            dates.add(field.getName());
-         }
-         else if(!field.getName().equals("id"))
-         {
-            (field.getName().equals(label) || field.getName().endsWith("Id") ? identity : details).add(field.getName());
-         }
       }
-      table.withSection(new QFieldSection("identity", new QIcon("badge"), Tier.T1, identity))
-         .withSection(new QFieldSection("details", new QIcon("description"), Tier.T2, details))
-         .withSection(new QFieldSection("dates", new QIcon("schedule"), Tier.T3, dates));
+      EdiTablePresentation.apply(table);
+      EdiRecordLabels.configure(table);
       return (table);
    }
 
@@ -435,7 +413,23 @@ public final class EdiTables
    public static List<QWidgetMetaData> childWidgets()
    {
       return (joins().stream().map(join -> ChildRecordListRenderer.widgetMetaDataBuilder(join).withName(join.getName())
-         .withLabel(joinLabel(join)).withCanAddChildRecord(false).getWidgetMetaData().withGridColumns(12)).toList());
+         .withLabel(joinLabel(join)).withCanAddChildRecord(false)
+         .withOrderBys(childOrder(join.getRightTable())).getWidgetMetaData().withGridColumns(12)).toList());
+   }
+
+   /*******************************************************************************
+    ** Activity is newest first; configuration children retain their logical order.
+    *******************************************************************************/
+   private static List<QFilterOrderBy> childOrder(String table)
+   {
+      return (switch(table)
+      {
+         case "edi_transaction", "edi_interchange", "edi_exception", "edi_inbox", "edi_event", "edi_outbound_request", "edi_outbound_message" ->
+            List.of(new QFilterOrderBy("createDate", false), new QFilterOrderBy("id", false));
+         case "edi_guide_segment", "edi_map_rule" -> List.of(new QFilterOrderBy("sequence"), new QFilterOrderBy("id"));
+         case "edi_guide_element" -> List.of(new QFilterOrderBy("position"), new QFilterOrderBy("componentPosition"), new QFilterOrderBy("id"));
+         default -> List.of(new QFilterOrderBy("id"));
+      });
    }
 
    /*******************************************************************************
@@ -443,7 +437,16 @@ public final class EdiTables
     *******************************************************************************/
    private static String joinLabel(QJoinMetaData join)
    {
-      String role = join.getJoinOns().getFirst().getRightField().replaceAll("([a-z])([A-Z])", "$1 $2").replace(" Id", "");
-      return (join.getRightTable().substring(4).replace('_', ' ') + " (" + role.toLowerCase(java.util.Locale.ROOT) + ")");
+      return (switch(join.getJoinOns().getFirst().getRightField())
+      {
+         case "localIdentityId" -> join.getRightTable().equals("edi_agreement") ? "Local Agreements" : "Control Numbers";
+         case "partnerIdentityId" -> "Partner Agreements";
+         case "inboundTransportId" -> "Inbound Agreements";
+         case "outboundTransportId" -> "Outbound Agreements";
+         case "localCertificateId" -> "Local Certificate Transports";
+         case "partnerCertificateId" -> "Partner Certificate Transports";
+         case "partnerTlsCertificateId" -> "Partner TLS Transports";
+         default -> EdiTablePresentation.pluralLabel(join.getRightTable());
+      });
    }
 }

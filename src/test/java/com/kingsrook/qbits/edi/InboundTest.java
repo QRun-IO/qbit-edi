@@ -498,10 +498,10 @@ class InboundTest
       var lines = new MapPreview().preview(map, new QRecord().withValue("payloadRef", ref.value()));
       assertThat(lines.toString()).doesNotContain("CANARY", "poNumber", "SYNTH-1").contains("suppressed");
       receive(raw(), "counts");
-      var backlog = QContext.getQInstance().getWidget("edi_home_backlog");
-      var data = (com.kingsrook.qqq.backend.core.model.dashboard.widgets.StatisticsData) new EdiHome().render(new RenderWidgetInput().withWidgetMetaData(backlog)).getWidgetData();
-      assertThat(data.getCount()).isEqualTo(1);
-      assertThat(data.getCountURL()).startsWith("/app/edi_inbox?filter=");
+      var backlog = QContext.getQInstance().getWidget("edi_home_system");
+      var data = (com.kingsrook.qqq.backend.core.model.dashboard.widgets.TableData) new EdiHome().render(new RenderWidgetInput().withWidgetMetaData(backlog)).getWidgetData();
+      assertThat(data.getRows()).anySatisfy(row -> assertThat(row).containsEntry("Item", "Inbound backlog").hasEntrySatisfying("Status", status -> assertThat(String.valueOf(status)).startsWith("1")));
+      assertThat(data.getLinkURL()).startsWith("/app/edi_outbound_message?filter=");
       QContext.setQSession(new QSession());
       org.assertj.core.api.Assertions.assertThatThrownBy(() -> new EdiHome().render(new RenderWidgetInput().withWidgetMetaData(backlog))).isInstanceOf(com.kingsrook.qqq.backend.core.exceptions.QException.class);
    }
