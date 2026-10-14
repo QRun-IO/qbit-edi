@@ -25,12 +25,12 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import com.kingsrook.qbits.edi.document.EdiDocument;
 import com.kingsrook.qbits.edi.guide.Guide;
 import com.kingsrook.qbits.edi.guide.GuideValidator;
 import com.kingsrook.qbits.edi.guide.RuleEvaluator;
 import com.kingsrook.qbits.edi.storage.EdiRecords;
 import com.kingsrook.qbits.edi.x12.X12Segment;
-import com.kingsrook.qbits.edi.x12.X12TransactionSet;
 import com.kingsrook.qqq.backend.core.model.data.QRecord;
 
 /*******************************************************************************
@@ -58,7 +58,7 @@ public class InboundMapper
    /*******************************************************************************
     ** Load ordered rules for a persisted map.
     *******************************************************************************/
-   public Result map(X12TransactionSet transaction, Guide guide, QRecord map) throws Exception
+   public Result map(EdiDocument transaction, Guide guide, QRecord map) throws Exception
    {
       List<QRecord> rules = new ArrayList<>(EdiRecords.query("edi_map_rule", EdiRecords.equal("mapId", map.getValue("id"))));
       rules.sort(Comparator.comparing(r -> r.getValueInteger("sequence")));
@@ -68,7 +68,7 @@ public class InboundMapper
    /*******************************************************************************
     ** Map in memory; wildcard rules sharing an association use the same loop scope.
     *******************************************************************************/
-   public Result map(X12TransactionSet transaction, Guide guide, QRecord map, List<QRecord> rules) throws Exception
+   public Result map(EdiDocument transaction, Guide guide, QRecord map, List<QRecord> rules) throws Exception
    {
       Map<String, List<List<X12Segment>>> loops = new GuideValidator().loops(transaction, guide);
       RuleEvaluator evaluator = new RuleEvaluator(transaction.segments(), loops);
@@ -86,7 +86,7 @@ public class InboundMapper
             }
             if(fields.length == 1)
             {
-               apply(rule, evaluator, result, fields[0], path);
+               apply(rule, evaluator, result, fields[0], path, "EDIFACT".equals(guide.standard()));
             }
             else
             {
@@ -117,7 +117,7 @@ public class InboundMapper
                }
                for(int i = 0; i < occurrences.size(); i++)
                {
-                  apply(rule, new RuleEvaluator(occurrences.get(i), loops), children.get(i), fields[1], relative);
+                  apply(rule, new RuleEvaluator(occurrences.get(i), loops), children.get(i), fields[1], relative, "EDIFACT".equals(guide.standard()));
                }
             }
          }
@@ -132,7 +132,7 @@ public class InboundMapper
    /*******************************************************************************
     ** Conditions and defaults are evaluated within the current loop occurrence.
     *******************************************************************************/
-   private void apply(QRecord rule, RuleEvaluator evaluator, QRecord target, String field, String path) throws Exception
+   private void apply(QRecord rule, RuleEvaluator evaluator, QRecord target, String field, String path, boolean edifact) throws Exception
    {
       String condition = rule.getValueString("condition");
       if(condition != null && !condition.isBlank() && !evaluator.test(condition))
@@ -143,6 +143,10 @@ public class InboundMapper
       if(values.isEmpty() && rule.getValueString("defaultValue") != null)
       {
          values = List.of(rule.getValueString("defaultValue"));
+      }
+      if(edifact && List.of("DECIMAL", "UNIT").contains(java.util.Objects.requireNonNullElse(rule.getValueString("transform"), "")))
+      {
+         values = values.stream().map(v -> v.replace(',', '.')).toList();
       }
       Serializable value = transforms.apply(rule.getValueString("transform"), rule.getValueString("transformArgs"), values);
       if(Boolean.TRUE.equals(rule.getValueBoolean("required")) && (value == null || value.toString().isBlank()))

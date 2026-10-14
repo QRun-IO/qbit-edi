@@ -51,8 +51,12 @@ public class MapPreview
          .withCriteria("containsPhi", com.kingsrook.qqq.backend.core.model.actions.tables.query.QCriteriaOperator.EQUALS, true)).isEmpty());
       var guide = new GuideRepository().load(map.getValueInteger("guideId"));
       ArrayList<ProcessSummaryLineInterface> lines = new ArrayList<>();
-      try(InputStream stream = runtime.payloads().open(new PayloadRef(sample.getValueString("payloadRef"), null, 0)))
+      try(var logging = com.kingsrook.qbits.edi.security.PhiLogScope.open(phi); InputStream stream = runtime.payloads().open(new PayloadRef(sample.getValueString("payloadRef"), null, 0)))
       {
+         if("EDIFACT".equals(map.getValueString("standard")))
+         {
+            return (edifact(map, sample, stream, phi));
+         }
          var interchanges = runtime.reader().read(stream);
          lines.add(new ProcessSummaryLine(Status.INFO, interchanges.size(), "interchanges parsed"));
          for(var interchange : interchanges)
@@ -110,6 +114,47 @@ public class MapPreview
                lines.add(new ProcessSummaryLine(Status.INFO, phi ? "Acknowledgement preview suppressed for PHI document"
                   : runtime.writer().write(com.kingsrook.qbits.edi.ack.AckEnvelope.wrap(interchange, group, ack, "1", "1", java.time.LocalDateTime.now(runtime.config().getClock())))));
             }
+         }
+      }
+      return (lines);
+   }
+
+   /*******************************************************************************
+    ** Preview native EDIFACT messages and CONTRL without applying target records.
+    *******************************************************************************/
+   private ArrayList<ProcessSummaryLineInterface> edifact(QRecord map, QRecord sample, InputStream stream, boolean phi) throws Exception
+   {
+      var runtime = EdiRuntime.current();
+      var guide = new GuideRepository().load(map.getValueInteger("guideId"));
+      var rules = EdiRecords.query("edi_map_rule", EdiRecords.equal("mapId", map.getValue("id")));
+      rules.sort(java.util.Comparator.comparing(r -> r.getValueInteger("sequence")));
+      ArrayList<ProcessSummaryLineInterface> lines = new ArrayList<>();
+      for(var interchange : new com.kingsrook.qbits.edi.edifact.EdifactEnvelopeReader(runtime.config().getMaxSegmentsPerTransaction()).read(stream))
+      {
+         Map<String, List<com.kingsrook.qbits.edi.guide.ValidationFinding>> findings = new java.util.LinkedHashMap<>();
+         lines.add(new ProcessSummaryLine(Status.INFO, interchange.findings().size(), "envelope findings"));
+         for(var message : interchange.allMessages())
+         {
+            var result = runtime.validator().validate(message, guide, phi);
+            findings.put(message.reference(), result);
+            lines.add(new ProcessSummaryLine(Status.INFO, result.size(), "validation findings"));
+            var mapped = InboundApplier.asService(runtime.config().getServiceSessionSupplier(), () -> new InboundMapper(runtime.transforms()).map(message, guide, map, rules));
+            if(phi)
+            {
+               lines.add(new ProcessSummaryLine(Status.INFO, "PHI map result suppressed; no target records written"));
+               continue;
+            }
+            String actual = resultJson(mapped.record());
+            lines.add(new ProcessSummaryLine(Status.INFO, actual));
+            if(sample.getValueString("expectedResultJson") != null)
+            {
+               diff(lines, "Expected result", new ObjectMapper().readTree(sample.getValueString("expectedResultJson")), new ObjectMapper().readTree(actual));
+            }
+         }
+         if(interchange.unb() != null && !phi)
+         {
+            var ack = new com.kingsrook.qbits.edi.edifact.ContrlBuilder().build(interchange, findings, AckLevel.ALL_TRANSACTIONS, "1", map.getValueString("version"));
+            lines.add(new ProcessSummaryLine(Status.INFO, new com.kingsrook.qbits.edi.edifact.EdifactWriter().write(ack.segments(), interchange.separators(), "")));
          }
       }
       return (lines);

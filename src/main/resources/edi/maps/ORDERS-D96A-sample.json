@@ -1,0 +1,57 @@
+{
+  "map": {
+    "name": "ORDERS D96A retail sample",
+    "standard": "EDIFACT",
+    "version": "D96A",
+    "transactionSet": "ORDERS",
+    "direction": "INBOUND",
+    "status": "ACTIVE",
+    "revision": 1,
+    "tableName": "sample_order",
+    "businessKeyPath": "BGM02",
+    "businessKeyType": "PO",
+    "matchKeyFields": "poNumber"
+  },
+  "rules": [
+    {
+      "sequence": 1,
+      "ediPath": "BGM02",
+      "qqqPath": "poNumber",
+      "required": true
+    },
+    {
+      "sequence": 2,
+      "ediPath": "DTM[DTM01-1=137]/DTM01-2",
+      "qqqPath": "orderDate",
+      "required": true,
+      "transform": "DATE"
+    },
+    {
+      "sequence": 3,
+      "ediPath": "NAD[NAD01=BY]/NAD02-1",
+      "qqqPath": "buyerId",
+      "required": false
+    },
+    {
+      "sequence": 4,
+      "ediPath": "SG25[*]/LIN/LIN03-1",
+      "qqqPath": "lines.sku",
+      "required": true
+    },
+    {
+      "sequence": 5,
+      "ediPath": "SG25[*]/QTY/QTY01-2",
+      "qqqPath": "lines.quantity",
+      "required": true,
+      "transform": "DECIMAL"
+    },
+    {
+      "sequence": 6,
+      "ediPath": "SG25[*]/PRI/PRI01-2",
+      "qqqPath": "lines.unitPrice",
+      "required": false,
+      "transform": "DECIMAL",
+      "condition": "present(PRI01-2)"
+    }
+  ]
+}

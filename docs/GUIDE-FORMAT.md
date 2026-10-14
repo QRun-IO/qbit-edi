@@ -1,6 +1,6 @@
 # EDI guide JSON
 
-The five files in `src/main/resources/edi/guides/` are original QQQ baseline guides, not licensed
+The files in `src/main/resources/edi/guides/` are original QQQ baseline guides, not licensed
 X12/TR3 documentation or complete code sets. JSON loads into `guide.Guide` with
 `BuiltInGuideLoader.read(InputStream)`. `GuideRepository.load(id)` reconstructs the same model from
 the normalized `edi_guide*` and code-list tables.
@@ -49,3 +49,30 @@ historical rows and their children remain addressable by id. A reverted resource
 new revision. Built-in guide writes require the loader's security key (`edi.guide.loader`), or a
 system service session. Configuration editors can receive `CUSTOM`/`IMPORTED` values of the
 `edi_guide_source` key without receiving permission to edit `BUILT_IN` rows.
+
+## EDIFACT baselines
+
+Set `standard` to `EDIFACT`, `transactionSet` to the UNH message type, and `version` to the
+concatenated UNH version/release (`D96A`, `D01B`). The ten bundled resources are in-house retail
+subsets with short field names and only the code values needed by the maps. They contain no
+copied directory descriptions and are not complete UNECE directories or EANCOM certifications.
+
+UNH and UNT appear as actual guide segments. UNB/UNZ and UNG/UNE are checked by the envelope
+reader. UNH association codes, such as `EAN008`, remain available as component 5 of UNH02.
+EDIFACT mandatory (`M`) maps to `REQUIRED`; conditional (`C`) maps to `SITUATIONAL` with
+`condition` or rules where needed. A component uses the existing `position` plus
+`componentPosition`, for example NAD02 component 1. EDIFACT decimal values accept `.` or `,`;
+DECIMAL/UNIT inbound transforms normalize them and outbound DECIMAL uses the agreement's mark.
+
+Segment groups use the existing loop tree: SG1 starts with RFF, SG2 with NAD, and the retail
+line loop SG25 starts with LIN. These are stable local guide loop labels, not a claim that every
+message/directory assigns the same published group numbers. DESADV uses SG10 (CPS) containing
+SG17 (LIN), matching carton/item associations. Map examples are `NAD[NAD01=BY]/NAD02-1`,
+`SG25/LIN/LIN03-1` and `SG25[*]/QTY/QTY01-2`. Named loops take precedence over element parsing,
+so `SG25` is a loop rather than an element of a hypothetical `SG` segment.
+
+CONTRL baselines include UCI, optional UCF group responses, UCM message responses and nested
+UCS/UCD positional errors. Shared validator diagnostics are translated to EDIFACT 0085 codes;
+submitted erroneous values are not copied into the acknowledgement. `GROUP_ONLY` reports the
+interchange outcome, `ALL_TRANSACTIONS` includes accepted messages, and `ERRORS_ONLY` includes
+rejected message details. A CONTRL is never itself acknowledged. APERAK is deferred.

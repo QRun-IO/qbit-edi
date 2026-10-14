@@ -33,6 +33,15 @@ public class EdiAgreement extends QRecordEntity
 {
    public static final String TABLE_NAME = "edi_agreement";
 
+   @QField(backendName = "release_character", maxLength = 255, defaultValue = "?")
+   private String releaseCharacter;
+
+   @QField(backendName = "decimal_mark", maxLength = 255, defaultValue = ".")
+   private String decimalMark;
+
+   @QField(backendName = "syntax_identifier", maxLength = 255, defaultValue = "UNOC")
+   private String syntaxIdentifier;
+
    @QField(backendName = "id", isPrimaryKey = true, isEditable = false)
    private Integer id;
 
@@ -839,4 +848,79 @@ public class EdiAgreement extends QRecordEntity
       return (this);
    }
 
+
+   /*******************************************************************************
+    ** Get releaseCharacter.
+    *******************************************************************************/
+   public String getReleaseCharacter()
+   {
+      return (releaseCharacter);
+   }
+
+   /*******************************************************************************
+    ** Set releaseCharacter.
+    *******************************************************************************/
+   public void setReleaseCharacter(String releaseCharacter)
+   {
+      this.releaseCharacter = releaseCharacter;
+   }
+
+   /*******************************************************************************
+    ** Set releaseCharacter fluently.
+    *******************************************************************************/
+   public EdiAgreement withReleaseCharacter(String releaseCharacter)
+   {
+      this.releaseCharacter = releaseCharacter;
+      return (this);
+   }
+
+   /*******************************************************************************
+    ** Get decimalMark.
+    *******************************************************************************/
+   public String getDecimalMark()
+   {
+      return (decimalMark);
+   }
+
+   /*******************************************************************************
+    ** Set decimalMark.
+    *******************************************************************************/
+   public void setDecimalMark(String decimalMark)
+   {
+      this.decimalMark = decimalMark;
+   }
+
+   /*******************************************************************************
+    ** Set decimalMark fluently.
+    *******************************************************************************/
+   public EdiAgreement withDecimalMark(String decimalMark)
+   {
+      this.decimalMark = decimalMark;
+      return (this);
+   }
+
+   /*******************************************************************************
+    ** Get syntaxIdentifier.
+    *******************************************************************************/
+   public String getSyntaxIdentifier()
+   {
+      return (syntaxIdentifier);
+   }
+
+   /*******************************************************************************
+    ** Set syntaxIdentifier.
+    *******************************************************************************/
+   public void setSyntaxIdentifier(String syntaxIdentifier)
+   {
+      this.syntaxIdentifier = syntaxIdentifier;
+   }
+
+   /*******************************************************************************
+    ** Set syntaxIdentifier fluently.
+    *******************************************************************************/
+   public EdiAgreement withSyntaxIdentifier(String syntaxIdentifier)
+   {
+      this.syntaxIdentifier = syntaxIdentifier;
+      return (this);
+   }
 }

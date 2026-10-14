@@ -58,7 +58,7 @@ public final class RetailSupport
       {
          var table = new QTableMetaData().withName(name).withLabel(name).withBackendName(backend).withPrimaryKeyField("id")
             .withField(new QFieldMetaData("id", QFieldType.INTEGER).withBackendName("id"));
-         for(String field : List.of("poNumber", "sku", "shipmentNumber", "shipTime", "sscc", "invoiceNumber", "reportNumber"))
+         for(String field : List.of("buyerId", "poNumber", "sku", "shipmentNumber", "shipTime", "sscc", "invoiceNumber", "reportNumber"))
          {
             table.withField(new QFieldMetaData(field, QFieldType.STRING).withBackendName(com.kingsrook.qqq.backend.core.instances.QInstanceEnricher.inferBackendName(field)));
          }

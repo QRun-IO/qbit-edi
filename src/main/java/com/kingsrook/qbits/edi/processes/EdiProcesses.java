@@ -75,6 +75,10 @@ public final class EdiProcesses
       {
          result.add(action(table, "preview", "Preview Map", "edi.map.preview"));
       }
+      for(String table : List.of("edi_inbox", "edi_interchange"))
+      {
+         result.add(action(table, "download", "Download Raw Document", "edi.raw.download").withMaxInputRecords(1));
+      }
       result.add(action("edi_exception", "assign", "Assign", "edi.exception.assign"));
       result.add(action("edi_exception", "ignore", "Ignore", "edi.exception.ignore"));
       result.add(action("edi_exception", "resolve", "Mark Resolved", "edi.exception.resolve"));
@@ -148,6 +152,16 @@ public final class EdiProcesses
             process.getFrontendStep("result").withViewField(new QFieldMetaData(field, QFieldType.STRING));
          }
       }
+      if(operation.equals("download"))
+      {
+         process.getFrontendStep("result").withComponent(new com.kingsrook.qqq.backend.core.model.metadata.processes.QFrontendComponentMetaData()
+            .withType(com.kingsrook.qqq.backend.core.model.metadata.processes.QComponentType.DOWNLOAD_FORM));
+         for(String field : List.of("downloadFileName", "storageTableName", "storageReference"))
+         {
+            process.getBackendStep("execute").getOutputMetaData().withField(new QFieldMetaData(field, QFieldType.STRING));
+            process.getFrontendStep("result").withViewField(new QFieldMetaData(field, QFieldType.STRING));
+         }
+      }
       if(operation.equals("assign"))
       {
          process.getFrontendStep("review").withFormField(new QFieldMetaData("assignedToUserId", QFieldType.STRING).withLabel("Assign to user ID").withIsRequired(true));
@@ -173,7 +187,7 @@ public final class EdiProcesses
       public void runOnePage(RunBackendStepInput input, RunBackendStepOutput output)
       {
          count += input.getRecords().size();
-         output.getRecords().addAll(input.getRecords());
+         input.getRecords().forEach(record -> output.getRecords().add(new QRecord().withValue("id", record.getValue("id"))));
       }
 
       /*******************************************************************************
@@ -217,6 +231,20 @@ public final class EdiProcesses
                if(operation.equals("export"))
                {
                   lines.add(new ProcessSummaryLine(Status.OK, 1, "public certificate exported"));
+               }
+               else if(operation.equals("download"))
+               {
+                  if(!QContext.getQSession().hasPermission("edi.raw.download"))
+                  {
+                     throw new QException("Raw document download is not authorized");
+                  }
+                  var storage = new com.kingsrook.qqq.backend.core.model.actions.tables.storage.StorageInput(com.kingsrook.qbits.edi.storage.PreviewDownloadBackend.TABLE)
+                     .withReference("raw:" + table + ":" + row.getValueInteger("id"));
+                  com.kingsrook.qqq.backend.core.actions.processes.ProcessFileDownload.registerStorage(storage);
+                  output.addValue("downloadFileName", "edi-document.edi");
+                  output.addValue("storageTableName", storage.getTableName());
+                  output.addValue("storageReference", storage.getReference());
+                  lines.add(new ProcessSummaryLine(Status.OK, 1, "Document ready for authorized download"));
                }
                else if(operation.equals("preview"))
                {
@@ -316,7 +344,7 @@ public final class EdiProcesses
                   output.addValue("storageTableName", storage.getTableName());
                   output.addValue("storageReference", ref.value());
                }
-               output.getRecords().add(selected);
+               output.getRecords().add(new QRecord().withValue("id", selected.getValue("id")));
             }
             catch(Exception e)
             {

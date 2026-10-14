@@ -185,7 +185,7 @@ public class InboundProcessor
                if(EdiRecords.query("edi_outbound_message", EdiRecords.equal("ackForGroupId", groupRow.getValue("id"))).isEmpty())
                {
                   AckLevel level = AckLevel.valueOf(Objects.requireNonNullElse(config.getValueString("ackLevel"), "ERRORS_ONLY"));
-                  boolean hipaa = Boolean.TRUE.equals(config.getValueBoolean("containsPhi")) && group.gs().value(8).startsWith("005010X");
+                  boolean hipaa = group.gs().value(8).startsWith("005010X") || "999".equals(config.getValueString("ackExpectation"));
                   var ack = hipaa ? runtime.ack999().build(group, findings, level, "0001") : runtime.ack997().build(group, findings, level, "0001");
                   queue(AckEnvelope.wrap(x12, group, ack, control(agreement, "ISA"), control(agreement, "GS"), LocalDateTime.now(runtime.config().getClock())),
                      agreement, id, groupRow.getValueInteger("id"), hipaa ? "999" : "997");
@@ -261,6 +261,7 @@ public class InboundProcessor
          .withValue("receiverQualifier", x12.isa().value(7)).withValue("receiverId", x12.isa().value(8).trim()).withValue("controlNumber", x12.isa().value(13))
          .withValue("interchangeVersion", x12.isa().value(12)).withValue("usageIndicator", x12.isa().value(15)).withValue("groupCount", x12.groups().size())
          .withValue("payloadRef", inbox.getValue("payloadRef")).withValue("payloadSha256", inbox.getValue("payloadSha256")).withValue("sizeBytes", inbox.getValue("sizeBytes"))
+         .withValue("containsPhi", x12.groups().stream().anyMatch(g -> g.gs().value(8).startsWith("005010X")))
          .withValue("status", duplicate ? "DUPLICATE" : x12.findings().isEmpty() ? "ACCEPTED" : "REJECTED"));
       EdiJournal.event(inbox.getValueInteger("id"), row.getValueInteger("id"), null, "PARSED");
       return (row);
@@ -307,14 +308,14 @@ public class InboundProcessor
       return (SystemWrites.insert("edi_transaction", new QRecord().withValue("inboundPosition", position).withValue("interchangeId", interchange.getValue("id")).withValue("functionalGroupId", group.getValue("id"))
          .withValue("direction", "INBOUND").withValue("partnerId", interchange.getValue("partnerId")).withValue("transactionSet", tx.st().value(1))
          .withValue("version", group.getValue("version")).withValue("controlNumber", tx.st().value(2)).withValue("segmentCount", tx.segments().size())
-         .withValue("agreementDocumentId", document == null ? null : document.getValue("id")).withValue("containsPhi", document != null && Boolean.TRUE.equals(document.getValueBoolean("containsPhi")))
+         .withValue("agreementDocumentId", document == null ? null : document.getValue("id")).withValue("containsPhi", group.getValueString("version").startsWith("005010X") || document != null && Boolean.TRUE.equals(document.getValueBoolean("containsPhi")))
          .withValue("status", "RECEIVED")));
    }
 
    /*******************************************************************************
     ** Replays select original persisted definitions or the currently active revision.
     *******************************************************************************/
-   private QRecord revisions(QRecord document, QRecord transaction) throws Exception
+   protected QRecord revisions(QRecord document, QRecord transaction) throws Exception
    {
       if(document == null)
       {
@@ -352,7 +353,7 @@ public class InboundProcessor
       List<ValidationFinding> findings = new ArrayList<>();
       if(document != null && document.getValueInteger("guideId") != null)
       {
-         findings.addAll(runtime.validator().validate(tx, new GuideRepository().load(document.getValueInteger("guideId")), Boolean.TRUE.equals(document.getValueBoolean("containsPhi"))));
+         findings.addAll(runtime.validator().validate(tx, new GuideRepository().load(document.getValueInteger("guideId")), Boolean.TRUE.equals(document.getValueBoolean("containsPhi")) || group.gs().value(8).startsWith("005010X")));
          int snip = Objects.requireNonNullElse(document.getValueInteger("snipLevel"), 2);
          findings.removeIf(f -> f.snipLevel() > snip);
       }
@@ -382,7 +383,7 @@ public class InboundProcessor
    /*******************************************************************************
     ** Persist findings without repeatedly adding error rows on storage retries.
     *******************************************************************************/
-   private void validation(QRecord tx, List<ValidationFinding> findings, QRecord document) throws Exception
+   protected void validation(QRecord tx, List<ValidationFinding> findings, QRecord document) throws Exception
    {
       boolean rejected = findings.stream().anyMatch(f -> "ERROR".equals(f.severity()) && f.snipLevel() <= 2);
       if(!"APPLIED".equals(tx.getValueString("status")) || Boolean.TRUE.equals(inbox.getValueBoolean("reprocess")))
@@ -420,7 +421,7 @@ public class InboundProcessor
    /*******************************************************************************
     ** A failed target write rolls back only this set, then records an APPLY exception.
     *******************************************************************************/
-   private void apply(X12TransactionSet x12, QRecord tx, QRecord document, QRecord agreement) throws Exception
+   protected void apply(com.kingsrook.qbits.edi.document.EdiDocument x12, QRecord tx, QRecord document, QRecord agreement) throws Exception
    {
       if("APPLIED".equals(tx.getValueString("status")) && !Boolean.TRUE.equals(inbox.getValueBoolean("reprocess")))
       {
@@ -432,7 +433,7 @@ public class InboundProcessor
          return;
       }
       String[] stage = {"MAPPING"};
-      try
+      try(var logging = com.kingsrook.qbits.edi.security.PhiLogScope.open(Boolean.TRUE.equals(tx.getValueBoolean("containsPhi"))))
       {
          InboxWorker.fenced(inbox, lease, () ->
          {
@@ -447,7 +448,7 @@ public class InboundProcessor
             stage[0] = "APPLY";
             QRecord target = InboundApplier.asPartner(runtime.config().getServiceSessionSupplier(), agreement.getValueInteger("partnerId"), () -> new InboundApplier().apply(map, mapped.record()));
             String primaryKey = com.kingsrook.qqq.backend.core.context.QContext.getQInstance().getTable(map.getValueString("tableName")).getPrimaryKeyField();
-            boolean phi = Boolean.TRUE.equals(document.getValueBoolean("containsPhi"));
+            boolean phi = Boolean.TRUE.equals(tx.getValueBoolean("containsPhi"));
             SystemWrites.update("edi_transaction", new QRecord().withValue("id", tx.getValue("id")).withValue("status", "APPLIED")
                .withValue("mapId", map.getValue("id")).withValue("mapRevision", map.getValue("revision")).withValue("businessKeyType", map.getValue("businessKeyType"))
                .withValue(phi ? "phiBusinessKey" : "businessKey", mapped.businessKey()).withValue("secondaryKey", phi ? null : mapped.secondaryKey())

@@ -1,0 +1,143 @@
+{
+  "map": {
+    "name": "INVOIC D96A retail sample",
+    "standard": "EDIFACT",
+    "version": "D96A",
+    "transactionSet": "INVOIC",
+    "direction": "OUTBOUND",
+    "status": "ACTIVE",
+    "revision": 1,
+    "tableName": "sample_invoice",
+    "businessKeyPath": "BGM02",
+    "businessKeyType": "INVOICE"
+  },
+  "rules": [
+    {
+      "sequence": 1,
+      "ediPath": "BGM01-1",
+      "qqqPath": null,
+      "required": true,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"380\"}"
+    },
+    {
+      "sequence": 2,
+      "ediPath": "BGM02",
+      "qqqPath": "invoiceNumber",
+      "required": true
+    },
+    {
+      "sequence": 3,
+      "ediPath": "BGM03",
+      "qqqPath": null,
+      "required": true,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"9\"}"
+    },
+    {
+      "sequence": 4,
+      "ediPath": "DTM01-1",
+      "qqqPath": null,
+      "required": true,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"137\"}"
+    },
+    {
+      "sequence": 5,
+      "ediPath": "DTM01-2",
+      "qqqPath": "invoiceDate",
+      "required": true,
+      "transform": "DATE"
+    },
+    {
+      "sequence": 6,
+      "ediPath": "DTM01-3",
+      "qqqPath": null,
+      "required": true,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"102\"}"
+    },
+    {
+      "sequence": 7,
+      "ediPath": "SG25/LIN01",
+      "qqqPath": "lines.sku",
+      "required": true,
+      "transform": "SEQUENCE"
+    },
+    {
+      "sequence": 8,
+      "ediPath": "SG25/LIN03-1",
+      "qqqPath": "lines.sku",
+      "required": true
+    },
+    {
+      "sequence": 9,
+      "ediPath": "SG25/LIN03-2",
+      "qqqPath": "lines.sku",
+      "required": true,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"SA\"}"
+    },
+    {
+      "sequence": 10,
+      "ediPath": "SG25/QTY01-1",
+      "qqqPath": "lines.quantity",
+      "required": true,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"47\"}"
+    },
+    {
+      "sequence": 11,
+      "ediPath": "SG25/QTY01-2",
+      "qqqPath": "lines.quantity",
+      "required": true,
+      "transform": "DECIMAL"
+    },
+    {
+      "sequence": 12,
+      "ediPath": "SG25/QTY01-3",
+      "qqqPath": "lines.quantity",
+      "required": true,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"PCE\"}"
+    },
+    {
+      "sequence": 13,
+      "ediPath": "SG25/PRI01-1",
+      "qqqPath": "lines.unitPrice",
+      "required": true,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"AAA\"}"
+    },
+    {
+      "sequence": 14,
+      "ediPath": "SG25/PRI01-2",
+      "qqqPath": "lines.unitPrice",
+      "required": true,
+      "transform": "DECIMAL"
+    },
+    {
+      "sequence": 15,
+      "ediPath": "UNS01",
+      "qqqPath": null,
+      "required": true,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"S\"}"
+    },
+    {
+      "sequence": 16,
+      "ediPath": "MOA01-1",
+      "qqqPath": null,
+      "required": true,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"77\"}"
+    },
+    {
+      "sequence": 17,
+      "ediPath": "MOA01-2",
+      "qqqPath": "total",
+      "required": true,
+      "transform": "DECIMAL"
+    }
+  ]
+}

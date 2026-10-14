@@ -1,16 +1,36 @@
 # QBit EDI
 
-EDI for QQQ: trading partners, agreements, X12 validation, encrypted payloads, inbound mapping
-and application, and TA1/997/999 acknowledgements. See [the design](docs/DESIGN.md).
+EDI for QQQ: trading partners, agreements, X12 and EDIFACT validation, encrypted payloads, inbound mapping
+and application, and TA1/997/999/CONTRL acknowledgements. See [the design](docs/DESIGN.md).
 
 ## Status
 
-Phases a1, a2, b and c implement inbound/outbound retail EDI over gateway, SFTP, HTTPS and AS2. Original baseline guides cover
+Phases a1 to e and g implement inbound/outbound retail, logistics and healthcare EDI (X12 and EDIFACT) over gateway, SFTP, HTTPS and AS2. Original baseline guides cover
 850, 855, 856, 810, 846 and 860 in 004010/005010, plus 997/999. Source records and associations
 produce validated, encrypted outbound interchanges, with control-number tracking, retries,
 acknowledgement monitoring and operator resend/cancel actions. AS2 (signed, encrypted, compressed, synchronous and
 asynchronous MDN, certificate rollover) is built in; email sending remains disabled until the qbit-email API ships.
 A runnable synthetic [demo](docs/DEMO.md) includes Next UI and needs no external services.
+
+EDIFACT syntax versions 3 and 4 support UNA/UNB, optional UNG groups, UNH messages and their
+trailers, release-character escaping, mixed-standard payloads, and CONTRL syntax responses.
+Original D96A/D01B baselines cover ORDERS, ORDRSP, DESADV, INVOIC and CONTRL. ORDERS maps to
+sample orders and lines; the other three retail documents map outbound. APERAK remains future work.
+
+Configure `standard=EDIFACT` on identities and agreements. `interchangeId` and
+`interchangeQualifier` carry the UNB party identifiers and qualifiers. Set `interchangeVersion`
+to `3` or `4`, `syntaxIdentifier` to `UNOC`, and outbound separators explicitly: element `+`,
+component `:`, segment `'`, release `?`, decimal `.` (or `,`); syntax 4 also uses the configured
+repetition separator. Document versions are `D96A` or `D01B`, with `ackExpectation=CONTRL`.
+UNB11=`1` uses a test agreement and respects `applyTestDocuments`.
+
+Existing schemas need these additional nullable agreement columns before using this version:
+
+```sql
+ALTER TABLE edi_agreement ADD COLUMN release_character VARCHAR(255);
+ALTER TABLE edi_agreement ADD COLUMN decimal_mark VARCHAR(255);
+ALTER TABLE edi_agreement ADD COLUMN syntax_identifier VARCHAR(255);
+```
 
 ## Requirements and installation
 
@@ -66,10 +86,10 @@ Storage failure requests retry in one minute.
 
 `InboxWorker.runOnce()` processes up to 20 messages with compare-and-set claims, fenced database
 checkpoints and five-minute stale-claim recovery. Retry delays are 1m, 5m, 15m, 1h and 6h; the next
-failure becomes DEAD_LETTER. Each mapped accepted ST applies in its own transaction through QQQ
-actions with explicit permission enforcement. ISA15=T applies only with `applyTestDocuments`.
+failure becomes DEAD_LETTER. Each mapped accepted ST or UNH applies in its own transaction through QQQ
+actions with explicit permission enforcement. ISA15=T or UNB11=1 applies only with `applyTestDocuments`.
 
-Routing checks ISA identities, qualifiers, standard and usage. Linked gateway usernames must match
+Routing checks ISA or UNB identities, qualifiers, standard and usage. Linked gateway usernames must match
 the routed partner. Findings and failures become exceptions with occurrence counts and value-free
 timeline events. Replies allocate controls and remain QUEUED, recording `ACK_QUEUED`. Incoming
 acknowledgements reconcile outbound groups and resolve overdue alerts.
@@ -255,6 +275,52 @@ the agreement document `ackDueMinutes` (60 when unset).
 
 Existing databases need the new `edi_as2_mdn` table, `edi_outbound_message.transport_mic` and
 `edi_transport.weak_crypto` (see `docs/ddl/edi-postgres.sql`).
+
+## HIPAA and PHI
+
+Original **QQQ baseline guides** cover 837P (005010X222A1), 837I (005010X223A2),
+835 (005010X221A1), 270/271 (005010X279A1), 276/277 (005010X212), 834 (005010X220A1)
+and 999 (005010X231A1). These are in-house structure and usage baselines, not licensed TR3s.
+No TR3 text or full licensed code lists ship. Hosts may import their licensed guides.
+
+SNIP 1–2 covers envelopes and the active guide. SNIP 3 uses exact decimals for claim charges,
+claim/line CAS adjustments and payments less signed PLB adjustments (zero tolerance). SNIP 4
+rules run per loop occurrence, including dependent patients, claim/line dates, diagnoses,
+subscriber demographics and benefits-or-rejection responses. SNIP 3+ findings produce `E` and
+an exception; SNIP 1–2 errors produce `R`. HIPAA replies use 999 when acknowledgement is enabled.
+SNIP 5 includes ICD-10 diagnosis shape, NPI Luhn with the 80840 prefix, and US ZIP shape.
+`ExternalCodeSetProvider.isValid(codeSet, code, asOf)` supplies licensed membership checks for
+EXTERNAL code lists; without it, only formats are checked. The System widget reports that state.
+
+Healthcare agreement documents default to PHI and SNIP 4. Clinical keys go only to
+`edi_transaction.phiBusinessKey`; validation excerpts, acknowledgements, events, exceptions,
+alerts and process summaries contain no submitted clinical values. Healthcare sample maps and
+host tables live **only in test sources/resources** and use seeded synthetic patients and claims.
+Their NPI `1234567893` is a checksum test fixture, not an asserted provider identity.
+
+**The host must encrypt the database at rest and should install qbit-secured-data.** Payloads
+are always AES-GCM encrypted; PHI columns rely on host database encryption. RC.5's
+`EdiClassifications` stand-in marks PHI/PII/CONFIDENTIAL and denies PHI AI exposure, but does not
+mask values. Without secured-data policies, a user with table access can read PHI columns.
+The home explicitly reports this limitation. Use record-level audits on host PHI target tables
+until core classified-value audit protection is available.
+
+RC.5 also logs query criteria verbatim. The marked `PhiLogScope` bridge suppresses synchronous
+logger diagnostics during PHI mapping/application and preview; ordinary value-free EDI events
+remain persisted. It changes no logger levels and does not suppress other threads. Replace both
+bridges with core secured-data support at 4.1.0-RC.6. Map samples use record-level audits to avoid
+copying expected-result PHI into audit details. Host code outside these scopes must protect its
+own logging, audits and asynchronous work.
+
+Download Raw Document uses a session-bound process grant, rechecks `edi.raw.download` and record
+read/partner access at download time, streams decrypted bytes without local files, and records
+`RAW_DOWNLOADED` with the user and row references, never content. Download filenames are generic.
+
+`PhiCanaryTest` scans every five-character marker window through gateway/HTTPS intake, forced
+SNIP 2/3/4 errors, mapping/apply, 999, replay/resend, Review/Result, alerts, DEBUG logs, all EDI
+query exports and all home/child widgets. FULL exports exempt only PHI-classified columns;
+RC.5 HIDDEN field-lock exports have no exemptions. MASKED tiers and the optional Quick Search
+qbit require the newer secured-data integration and are not claimed by these RC.5 tests.
 
 ## Build and verification
 

@@ -88,11 +88,22 @@ public class InboxWorker
             }
             try(InputStream stream = store.open(new PayloadRef(row.getValueString("payloadRef"), row.getValueString("payloadSha256"), row.getValueLong("sizeBytes"))))
             {
-               var interchanges = EdiRuntime.current().reader().read(stream);
+               var framing = new com.kingsrook.qbits.edi.document.EnvelopeReader();
+               byte[] envelope;
                int position = 0;
-               for(var interchange : interchanges)
+               while((envelope = framing.next(stream)) != null)
                {
-                  new InboundProcessor(row, lease, store).process(interchange, ++position);
+                  position++;
+                  if(envelope[0] == 'U')
+                  {
+                     var parsed = new com.kingsrook.qbits.edi.edifact.EdifactEnvelopeReader(EdiRuntime.current().config().getMaxSegmentsPerTransaction()).read(new java.io.ByteArrayInputStream(envelope)).getFirst();
+                     new com.kingsrook.qbits.edi.edifact.EdifactInbound(row, lease, store).process(parsed, position);
+                  }
+                  else
+                  {
+                     var parsed = EdiRuntime.current().reader().read(new java.io.ByteArrayInputStream(envelope)).getFirst();
+                     new InboundProcessor(row, lease, store).process(parsed, position);
+                  }
                }
                fenced(row, lease, () ->
                {

@@ -87,6 +87,7 @@ public class EdiDemoServer extends AbstractQQQApplication implements AutoCloseab
       EdiRuntime.current().config().withSecretsResolver(name -> secrets.getOrDefault(name, Base64.getEncoder().encodeToString(new byte[32])));
       RetailSupport.tables();
       LogisticsSupport.tables();
+      com.kingsrook.qbits.edi.HealthcareSupport.tables();
       instance.setHomeAppName("edi");
       for(String table : List.of("sample_order", "sample_shipment", "sample_invoice", "sample_inventory", "sample_wms_shipment", "sample_load"))
       {
@@ -245,8 +246,72 @@ public class EdiDemoServer extends AbstractQQQApplication implements AutoCloseab
          }
          logistics(local, agreements.get(1));
          seedAs2(local);
+         healthcare();
+         edifact();
          return (null);
       });
+   }
+
+   /*******************************************************************************
+    ** Synthetic Swedish retailer exchanges ORDERS, three responses and CONTRL.
+    *******************************************************************************/
+   private void edifact() throws Exception
+   {
+      var agreement = com.kingsrook.qbits.edi.EdifactSupport.install("D96A");
+      for(int i = 0; i < 3; i++)
+      {
+         com.kingsrook.qbits.edi.EdifactSupport.receive(com.kingsrook.qbits.edi.EdifactSupport.orders("L" + i, "D96A"), "lindqvist-orders-" + i);
+      }
+      new InboxWorker().runOnce();
+      for(String table : List.of("sample_order", "sample_shipment", "sample_invoice"))
+      {
+         enqueue(table, RetailSupport.source().withValue("poNumber", "LINDQVIST-DEMO"));
+      }
+      new OutboundWorker().runOnce();
+      new SendWorker().runOnce();
+      var messages = EdiRecords.query("edi_outbound_message", EdiRecords.equal("agreementId", agreement.getValue("id")));
+      for(var message : messages)
+      {
+         try(var stream = EdiRuntime.current().payloads().open(new PayloadRef(message.getValueString("payloadRef"), null, 0)))
+         {
+            var original = new com.kingsrook.qbits.edi.edifact.EdifactEnvelopeReader(10000).read(stream).getFirst();
+            if(original.allMessages().stream().anyMatch(m -> "CONTRL".equals(m.type())))
+            {
+               continue;
+            }
+            var ack = new com.kingsrook.qbits.edi.edifact.ContrlBuilder().build(original, Map.of(), com.kingsrook.qbits.edi.ack.AckLevel.ALL_TRANSACTIONS, "ACK1", "D96A");
+            var reply = com.kingsrook.qbits.edi.edifact.EdifactOutbound.wrap(agreement,
+               OutboundWorker.row("edi_identity", agreement.getValue("partnerIdentityId")), OutboundWorker.row("edi_identity", agreement.getValue("localIdentityId")), List.of(ack),
+               "REPLY" + message.getValue("id"), java.time.LocalDateTime.now(ZoneOffset.UTC));
+            receive(new com.kingsrook.qbits.edi.edifact.EdifactWriter().write(reply), "lindqvist-contrl-" + message.getValue("id"));
+         }
+      }
+      new InboxWorker().runOnce();
+   }
+
+
+
+   /*******************************************************************************
+    ** Synthetic clearinghouse claims, remittance and batch eligibility exchange.
+    *******************************************************************************/
+   private void healthcare() throws Exception
+   {
+      var agreement = com.kingsrook.qbits.edi.HealthcareSupport.configure();
+      int control = 500;
+      for(String key : List.of("837P", "837I", "835"))
+      {
+         com.kingsrook.qbits.edi.HealthcareSupport.receive(key, ++control, com.kingsrook.qbits.edi.HealthcareSupport.body(key, control));
+      }
+      com.kingsrook.qbits.edi.HealthcareSupport.receive("837P", ++control, com.kingsrook.qbits.edi.HealthcareSupport.body("837P", control).replace("*150***", "*151***"));
+      com.kingsrook.qbits.edi.HealthcareSupport.receive("837P", ++control, com.kingsrook.qbits.edi.HealthcareSupport.body("837P", control).replace("SBR*P*18", "SBR*P*19"));
+      QRecord source = SystemWrites.insert("sample_eligibility_request", new QRecord().withValue("trace", "SYNTRACE506").withValue("memberId", "SYN000123").withValue("patientName", "Testpatient Alpha"));
+      com.kingsrook.qbits.edi.flow.OutboundEnqueue.enqueue("sample_eligibility_request", source, "MANUAL", null);
+      new OutboundWorker().runOnce();
+      com.kingsrook.qbits.edi.HealthcareSupport.receive("271", ++control, com.kingsrook.qbits.edi.HealthcareSupport.body("271", control));
+      while(new SendWorker().runOnce() > 0)
+      {
+         // Drain only the configured in-memory outboxes.
+      }
    }
 
    /*******************************************************************************
