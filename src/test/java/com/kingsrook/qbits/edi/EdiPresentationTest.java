@@ -26,9 +26,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import com.kingsrook.qbits.edi.metadata.EdiTables;
-import com.kingsrook.qbits.edi.security.EdiClassifications;
 import com.kingsrook.qbits.edi.storage.EdiRecords;
 import com.kingsrook.qbits.edi.support.SystemWrites;
+import com.kingsrook.qqq.backend.core.actions.ai.AiFieldMetaData;
+import com.kingsrook.qqq.backend.core.actions.ai.DataClassification;
 import com.kingsrook.qqq.backend.core.actions.dashboard.RenderWidgetAction;
 import com.kingsrook.qqq.backend.core.actions.tables.GetAction;
 import com.kingsrook.qqq.backend.core.actions.values.QValueFormatter;
@@ -52,6 +53,34 @@ import static org.assertj.core.api.Assertions.assertThat;
  *******************************************************************************/
 class EdiPresentationTest
 {
+   /*******************************************************************************
+    ** Core classification resolution preserves PHI/PII and the confidential default.
+    *******************************************************************************/
+   @Test
+   void coreClassifications() throws Exception
+   {
+      var instance = H2Support.create();
+      for(var table : EdiTables.tables(new EdiQBitConfig().withBackendName("edi")))
+      {
+         assertThat(com.kingsrook.qqq.backend.core.actions.ai.AiDataClassifications.ofTable(table)).isEqualTo(DataClassification.CONFIDENTIAL);
+      }
+      for(String[] pair : List.of(new String[] {"edi_transaction", "phiBusinessKey"}, new String[] {"edi_transaction_error", "valueExcerpt"},
+         new String[] {"edi_map_sample", "expectedResultJson"}, new String[] {"edi_inbox", "fileName"}, new String[] {"edi_payload", "ciphertext"}))
+      {
+         var table = instance.getTable(pair[0]);
+         assertThat(com.kingsrook.qqq.backend.core.actions.ai.AiDataClassifications.ofField(table, pair[1])).isEqualTo(DataClassification.PHI);
+         assertThat(AiFieldMetaData.of(table.getField(pair[1])).getExposure()).isEqualTo(com.kingsrook.qqq.backend.core.actions.ai.AiExposure.NONE);
+      }
+      for(String field : List.of("contactName", "contactEmail", "contactPhone"))
+      {
+         assertThat(com.kingsrook.qqq.backend.core.actions.ai.AiDataClassifications.ofField(instance.getTable("edi_partner"), field)).isEqualTo(DataClassification.PII);
+      }
+      assertThat(com.kingsrook.qqq.backend.core.actions.ai.AiDataClassifications.ofField(instance.getTable("edi_partner"), "code")).isEqualTo(DataClassification.CONFIDENTIAL);
+      HealthcareSupport.tables();
+      assertThat(com.kingsrook.qqq.backend.core.actions.ai.AiDataClassifications.ofField(instance.getTable("sample_claim"), "patientName")).isEqualTo(DataClassification.PHI);
+      assertThat(com.kingsrook.qqq.backend.core.actions.ai.AiDataClassifications.ofField(instance.getTable("sample_claim_line"), "parentId")).isEqualTo(DataClassification.CONFIDENTIAL);
+   }
+
    /*******************************************************************************
     ** All registered tables have readable labels and linked internal references.
     *******************************************************************************/
@@ -79,8 +108,8 @@ class EdiPresentationTest
          }
          for(String name : table.getRecordLabelFields() == null ? List.<String>of() : table.getRecordLabelFields())
          {
-            var classification = (EdiClassifications) table.getField(name).getSupplementalMetaData().get("edi.classification");
-            assertThat(classification.getClassification()).as(table.getName() + "." + name).isNotEqualTo("PHI");
+            var classification = AiFieldMetaData.of(table.getField(name));
+            assertThat(classification.getClassification()).as(table.getName() + "." + name).isNotEqualTo(DataClassification.PHI);
          }
       }
       assertThat(instance.getTable("edi_exception").getField("assignedToUserId").getLabel()).isEqualTo("Assigned To");

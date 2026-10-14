@@ -27,7 +27,7 @@ import com.kingsrook.qqq.backend.core.model.actions.tables.query.QQueryFilter;
 import com.kingsrook.qqq.backend.core.model.metadata.tables.QTableMetaData;
 
 /*******************************************************************************
- ** RC.5 form filters; no dependency on later dependency-behavior metadata.
+ ** RC.6 form filters; no dependency on later dependency-behavior metadata.
  *******************************************************************************/
 public final class EdiContingencies
 {
@@ -75,7 +75,9 @@ public final class EdiContingencies
             }
             if(filter != null)
             {
-               field.withPossibleValueSourceFilter(filter);
+               // Core appends its search criteria to the root; keep them ANDed with partner scope.
+               field.withPossibleValueSourceFilter(filter.getBooleanOperator() == QQueryFilter.BooleanOperator.OR
+                  ? new QQueryFilter().withSubFilter(filter) : filter);
             }
          }
       }

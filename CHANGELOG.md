@@ -45,7 +45,19 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic
 - Repository scaffold to the QRun qbit repository standard: `qbit-build-parent` 2.0.0, QQQ 4.1.0-RC.5, Maven wrapper, Checkstyle, JaCoCo gate, CircleCI qqq-orb 0.6.8, release-candidate workflow, Dependabot, community files.
 - `EdiQBitProducer` and `EdiQBitConfig` (table prefix `edi_`, permission base `edi`).
 
+### Changed
+
+- QQQ baseline is now 4.1.0-RC.6. EDI tables/fields and healthcare test fixtures use core `DataClassification` through `AiTableMetaData`/`AiFieldMetaData`, preserving PHI, PII, CONFIDENTIAL and PHI AI-exposure restrictions.
+- Exception Assign and new/reopened partner rejection/dead-letter exceptions send value-free core notifications after commit, with capturing-sink and PHI canary coverage.
+- Retain `PhiLogScope` for core #1147 until RC.7: RC.6 still logs RDBMS query filters and has no redaction hook or `FieldAccessHelper`. Contingent dependency-behavior APIs are also absent; shared-choice filters remain tested.
+
+### Removed
+
+- Reflective `EdiClassifications` RC.5 stand-in. File-gateway stand-ins remain until its API is published; the object-storage API integration is unchanged.
+
 ### Fixed
+
+- Shared-choice filters group partner-or-shared alternatives beneath an AND root, so core search criteria cannot admit another partner's transports.
 
 - 999 now accepts SNIP 3+ findings with `E` instead of rejecting every ERROR. HIPAA acknowledgement selection follows the implementation version and enabled agreement expectation; outbound HIPAA ST carries its implementation identifier.
 - Qualified HL/NM1 anchors distinguish healthcare hierarchy levels; repeated loop names under different parents retain separate occurrences. Situational rules inherit direct ancestor segments without borrowing values from sibling occurrences.

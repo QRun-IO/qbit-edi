@@ -32,6 +32,9 @@ import com.kingsrook.qbits.edi.map.MapPreview;
 import com.kingsrook.qbits.edi.storage.EdiRecords;
 import com.kingsrook.qbits.edi.support.SystemWrites;
 import com.kingsrook.qqq.backend.core.actions.processes.BackendStep;
+import com.kingsrook.qqq.backend.core.alerts.NotificationAudience;
+import com.kingsrook.qqq.backend.core.alerts.NotificationSignal;
+import com.kingsrook.qqq.backend.core.alerts.QAlerts;
 import com.kingsrook.qqq.backend.core.context.QContext;
 import com.kingsrook.qqq.backend.core.exceptions.QException;
 import com.kingsrook.qqq.backend.core.model.actions.processes.ProcessSummaryLine;
@@ -316,13 +319,25 @@ public final class EdiProcesses
                         QRecord update = new QRecord().withValue("id", row.getValue("id")).withValue("status", operation.equals("assign") ? "IN_PROGRESS" : operation.equals("ignore") ? "IGNORED" : "RESOLVED");
                         if(operation.equals("assign"))
                         {
-                           update.withValue("assignedToUserId", input.getValue("assignedToUserId"));
+                           String assignee = input.getValueString("assignedToUserId");
+                           if(assignee == null || assignee.isBlank())
+                           {
+                              throw new IllegalArgumentException("An assignee is required");
+                           }
+                           update.withValue("assignedToUserId", assignee);
                         }
                         else
                         {
                            update.withValue("resolvedBy", user).withValue("resolvedAt", EdiRuntime.current().config().getClock().instant());
                         }
                         SystemWrites.update(table, update);
+                        if(operation.equals("assign"))
+                        {
+                           QAlerts.notify(new NotificationSignal("EDI exception assigned")
+                              .withBody("An EDI exception has been assigned to you.")
+                              .withAudience(NotificationAudience.user(update.getValueString("assignedToUserId")))
+                              .withSourceName("edi").withSourceTableName(table).withSourceRecordId(row.getValueString("id")));
+                        }
                      }
                      else
                      {
