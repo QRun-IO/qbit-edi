@@ -329,4 +329,20 @@ class OutboundTest
    {
       return (SystemWrites.call(() -> EdiRecords.query(table, new QQueryFilter())));
    }
+
+
+   /*******************************************************************************
+    ** Repeat-seconds worker schedules carry no cron time zone (core instance
+    ** validation refuses one on a non-cron schedule); cron schedules use UTC.
+    *******************************************************************************/
+   @Test
+   void repeatSchedulesHaveNoCronTimeZone()
+   {
+      com.kingsrook.qbits.edi.EdiQBitConfig config = new com.kingsrook.qbits.edi.EdiQBitConfig().withSchedulerName("scheduler");
+      var repeat = com.kingsrook.qbits.edi.processes.OutboundProcesses.process("edi_test_repeat", config, 15, null).getSchedule();
+      assertThat(repeat.getRepeatSeconds()).isEqualTo(15);
+      assertThat(repeat.getCronTimeZoneId()).isNull();
+      var cron = com.kingsrook.qbits.edi.processes.OutboundProcesses.process("edi_test_cron", config, null, "0 0 * * * ?").getSchedule();
+      assertThat(cron.getCronTimeZoneId()).isEqualTo("UTC");
+   }
 }
