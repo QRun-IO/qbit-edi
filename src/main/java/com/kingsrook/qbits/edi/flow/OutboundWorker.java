@@ -87,6 +87,15 @@ public class OutboundWorker
          {
             return (0);
          }
+         QRecord localIdentity   = row("edi_identity", agreement.getValueInteger("localIdentityId"));
+         QRecord partnerIdentity = row("edi_identity", agreement.getValueInteger("partnerIdentityId"));
+         if(localIdentity == null || partnerIdentity == null || Boolean.FALSE.equals(localIdentity.getValueBoolean("isActive")) || Boolean.FALSE.equals(partnerIdentity.getValueBoolean("isActive")))
+         {
+            ///////////////////////////////////////////////////////////////////////////
+            // an inactive identity stops sending, as it stops routing; requests wait //
+            ///////////////////////////////////////////////////////////////////////////
+            return (0);
+         }
          var requests = EdiRecords.query("edi_outbound_request", EdiRecords.equal("agreementDocumentId", id).withCriteria("status", QCriteriaOperator.EQUALS, "PENDING").withLimit(100));
          if(requests.isEmpty())
          {

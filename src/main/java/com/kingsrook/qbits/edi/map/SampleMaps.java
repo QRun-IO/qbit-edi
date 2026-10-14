@@ -127,7 +127,9 @@ public final class SampleMaps
 
    /*******************************************************************************
     ** Insert one sample and its ordered rules. Skips (returns null) a sample
-    ** whose map name now exists, so a repeated or concurrent run adds nothing.
+    ** whose map name now exists, so a repeated run adds nothing. It is an
+    ** administrator action; two people running it at the same moment is not
+    ** guarded against (edi_map has no unique name, since revisions share one).
     *******************************************************************************/
    public static Integer install(String resource) throws Exception
    {

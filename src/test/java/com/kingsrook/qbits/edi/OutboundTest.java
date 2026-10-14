@@ -345,4 +345,44 @@ class OutboundTest
       var cron = com.kingsrook.qbits.edi.processes.OutboundProcesses.process("edi_test_cron", config, null, "0 0 * * * ?").getSchedule();
       assertThat(cron.getCronTimeZoneId()).isEqualTo("UTC");
    }
+
+   /*******************************************************************************
+    ** A draft map bound to an outbound document is never used: the request fails
+    ** as a mapping error and nothing is queued. An inactive identity stops the
+    ** document from being built at all; its requests wait.
+    *******************************************************************************/
+   @Test
+   void draftMapAndInactiveIdentityStopSending() throws Exception
+   {
+      setup();
+      SystemWrites.call(() ->
+      {
+         SystemWrites.update("edi_map", new QRecord().withValue("id", document.getValue("mapId")).withValue("status", "DRAFT"));
+         return (null);
+      });
+      SystemWrites.call(() -> SystemWrites.transaction(() -> RetailSupport.saveSource("sample_order", RetailSupport.source())));
+      new OutboundWorker().runOnce();
+      assertThat(rows("edi_outbound_message")).isEmpty();
+      assertThat(rows("edi_outbound_request")).extracting(r -> r.getValueString("status")).containsExactly("FAILED");
+      assertThat(rows("edi_exception")).extracting(r -> r.getValueString("type")).contains("MAPPING");
+
+      SystemWrites.call(() ->
+      {
+         SystemWrites.update("edi_map", new QRecord().withValue("id", document.getValue("mapId")).withValue("status", "ACTIVE"));
+         SystemWrites.update("edi_identity", new QRecord().withValue("id", agreement.getValue("partnerIdentityId")).withValue("isActive", false));
+         return (null);
+      });
+      SystemWrites.call(() -> SystemWrites.transaction(() -> RetailSupport.saveSource("sample_order", RetailSupport.source().withValue("poNumber", "DEMO-1002"))));
+      assertThat(new OutboundWorker().runOnce()).isZero();
+      assertThat(rows("edi_outbound_message")).isEmpty();
+      assertThat(rows("edi_outbound_request")).extracting(r -> r.getValueString("status")).contains("PENDING");
+
+      SystemWrites.call(() ->
+      {
+         SystemWrites.update("edi_identity", new QRecord().withValue("id", agreement.getValue("partnerIdentityId")).withValue("isActive", true));
+         return (null);
+      });
+      new OutboundWorker().runOnce();
+      assertThat(rows("edi_outbound_message")).hasSize(1);
+   }
 }

@@ -4,6 +4,10 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic
 
 ## [Unreleased]
 
+### Changed
+
+- X12 routing and sending honor identity `isActive`, matching EDIFACT.
+
 ### Added
 
 - Help bundle `help/qbit-edi.yaml` (stand-in for qqq#1198): every table and the app say what they are for and how rows get created, including the setup order, so an empty table explains itself.

@@ -187,6 +187,23 @@ class EdiTablesGuardrailTest
    }
 
    /*******************************************************************************
+    ** Help a host put in the slot first is never replaced by the bundle.
+    *******************************************************************************/
+   @Test
+   void hostHelpIsKept() throws Exception
+   {
+      QInstance instance = H2Support.create();
+      String    appName  = EdiRuntime.current().config().getAppName();
+      QHelpContent host  = new QHelpContent().withContentAsMarkdown("Host help for partners");
+      instance.getTable("edi_partner").getHelpContent().put(EdiHelp.SLOT, new ArrayList<>(List.of(host)));
+      instance.getApp(appName).getHelpContent().put(EdiHelp.SLOT, new ArrayList<>(List.of(host)));
+      EdiHelp.apply(instance, appName);
+      assertThat(instance.getTable("edi_partner").getHelpContent().get(EdiHelp.SLOT)).containsExactly(host);
+      assertThat(instance.getApp(appName).getHelpContent().get(EdiHelp.SLOT)).containsExactly(host);
+      assertThat(instance.getTable("edi_identity").getHelpContent().get(EdiHelp.SLOT).get(0).getContent()).contains("How rows get created");
+   }
+
+   /*******************************************************************************
     ** Row counts of the seeded tables.
     *******************************************************************************/
    private Map<String, Integer> counts() throws Exception
