@@ -74,6 +74,7 @@ public class TransportValidation implements TableCustomizerInterface
                errors.add("maxAttempts must be positive");
             }
             errors.forEach(error -> record.addError(new BadInputStatusMessage(error)));
+            record.setValue("weakCrypto", "AS2".equals(merged.getValueString("type")) && com.kingsrook.qbits.edi.as2.As2Crypto.isWeak(merged.getValueString("signAlgorithm"), merged.getValueString("encryptAlgorithm")));
          }
          catch(Exception e)
          {

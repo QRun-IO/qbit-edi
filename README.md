@@ -5,10 +5,11 @@ and application, and TA1/997/999 acknowledgements. See [the design](docs/DESIGN.
 
 ## Status
 
-Phases a1, a2 and b implement inbound/outbound retail EDI. Original baseline guides cover
+Phases a1, a2, b and c implement inbound/outbound retail EDI over gateway, SFTP, HTTPS and AS2. Original baseline guides cover
 850, 855, 856, 810, 846 and 860 in 004010/005010, plus 997/999. Source records and associations
 produce validated, encrypted outbound interchanges, with control-number tracking, retries,
-acknowledgement monitoring and operator resend/cancel actions. AS2 and email sending remain disabled.
+acknowledgement monitoring and operator resend/cancel actions. AS2 (signed, encrypted, compressed, synchronous and
+asynchronous MDN, certificate rollover) is built in; email sending remains disabled until the qbit-email API ships.
 A runnable synthetic [demo](docs/DEMO.md) includes Next UI and needs no external services.
 
 ## Requirements and installation
@@ -112,6 +113,8 @@ Full table permissions include `edi.partner.read|insert|edit|delete`, `edi.map.*
 | Resend / Resend As New | `edi.resend` |
 | Cancel | `edi.cancel` |
 | Test Connection | `edi.transport.test` |
+| Promote Certificate | `edi.certificate.promote` |
+| Export Public Certificate | `edi.certificate.read` |
 | Scheduled workers / ESB enqueue | `edi.admin` |
 
 Partner locks use `edi_partner` with `edi.admin` all-access. Home queries explicitly enforce
@@ -131,6 +134,7 @@ the viewing user's permissions. Processes are table/record actions, never naviga
 | `payloadStore` | `DATABASE` or `OBJECT_STORAGE` |
 | `payloadBucketAlias` | `edi` |
 | `secretsResolver` | Environment-variable lookup |
+| `publicBaseUrl` | Null; the deployment base URL (for example `https://edi.example.com`), required for ASYNC AS2 receipts |
 | `clock` | UTC system clock |
 | `esbDestinationName` | Null; optional core ESB destination |
 
@@ -146,7 +150,7 @@ alias and select `OBJECT_STORAGE`. EDI uses only its public API and system acces
 Optional `qqq-esb` publishes setup/activity events after commit. Document events contain only ID
 and status because RC.5's standard factory otherwise copies PHI fields. Alert names are
 `edi.inbox.dead-letter`, `edi.ack.overdue`, `edi.ack.rejected`, `edi.send.failed`,
-`edi.certificate.expiring` and `edi.certificate.expired` (RC.5 requires dotted names).
+`edi.certificate.expiring`, `edi.certificate.expired` and `edi.mdn.overdue` (RC.5 requires dotted names).
 
 RC.5 lacks the planned core `DataClassification` API. `EdiClassifications` marks PHI/PII/confidential
 fields and PHI fields deny AI exposure. Hosts must supply secured-data protection, database
@@ -180,7 +184,8 @@ TRANSPORT exception and raise `edi.send.failed`.
 | GATEWAY | `gatewayEndpointName`; marked `FileGatewayOutbox` stand-in with a provider registration hook. Put is SENT; `EdiFileGatewayConsumer.onDownloaded` is DELIVERED. |
 | SFTP | MINA client from core's filesystem module; required `sftpHostKeyFingerprint` in MINA SHA256 format, username and password/private-key env name. Streams upload to `.tmp`, then rename. `sftpPollCron` schedules remote pickup; `sftpFilePattern` is a Java regex (default `.*\.x12`). DELETE/MOVE occurs only after durable inbox commit. |
 | HTTPS | POST with NONE/BASIC/BEARER/HMAC; TLS required except loopback. BASIC's secret is `user:password`; BEARER's is the token; HMAC uses core Standard Webhooks `whsec_` format. `httpsHeadersJson` holds nonsecret headers only. Redirects are refused; 2xx is DELIVERED, 429/5xx retry. |
-| AS2 / EMAIL | Settings validation only. Sending returns a permanent unavailable result until phase c / the email API. |
+| AS2 | See [AS2](#as2). |
+| EMAIL | Settings validation only. Sending returns a permanent unavailable result until the qbit-email API ships. |
 
 Optional Javalin registers `POST /qqq/hooks/edi/https/{transport}`. `httpsInboundAuth` must be
 BASIC, BEARER or HMAC with `httpsSecretEnvVar`. It authenticates exact bytes, caps intake at
@@ -199,6 +204,57 @@ without re-running its map and links `originalInterchangeId`. Cancel accepts QUE
 
 Existing a2 databases need `edi_interchange.original_interchange_id INTEGER` and a unique index
 on `edi_outbound_request(agreement_document_id, event_id)` in addition to their prior schema.
+
+## AS2
+
+`As2Transport` (type `AS2`) sends and receives AS2 (RFC 4130) with S/MIME signing and encryption
+(SHA-256/384/512, AES-128/256 CBC or GCM; SHA1 and 3DES only when set explicitly and flagged by
+the read-only `weakCrypto` field), optional zlib compression, and synchronous or asynchronous
+signed MDNs. Everything is in memory: no keystore, key or temporary file is ever written.
+
+**Transport settings** (`edi_transport`, type AS2): `as2LocalId`, `as2PartnerId`, `as2Url` (HTTPS;
+plain HTTP only on loopback), `as2Subject`, `signAlgorithm` (blank = unsigned), `encryptAlgorithm`
+(blank = unencrypted), `compress`, `mdnMode` (`SYNC` default, `ASYNC`, `NONE`), `mdnSigned`,
+`localCertificateId` (ours), `partnerCertificateId`, optional `partnerTlsCertificateId` (pins the
+partner TLS certificate), and optional `httpAuthUserEnvVar` / `httpAuthPasswordEnvVar` for HTTP
+Basic. For inbound, a set `signAlgorithm` / `encryptAlgorithm` means signed / encrypted messages are
+required (otherwise `insufficient-message-security`). A VAN is an AS2 transport with `isVan` true
+and no `partnerId`; its partner certificate belongs to the VAN operator's partner record, and
+routing to trading partners stays by ISA identity.
+
+**Certificates** (`edi_certificate`): paste the public PEM only; subject, issuer, serial,
+SHA-256 fingerprint and validity are parsed on save, and a pasted private key is refused. Our private
+key is never stored: `privateKeyEnvVar` names an environment variable holding a PEM PKCS#8 key or a
+base64 PKCS#12 store (with `privateKeyPasswordEnvVar` for its password). A missing or mismatched
+variable fails plainly, naming only the variable. Status `ACTIVE` signs and encrypts outbound;
+inbound accepts `ACTIVE` and `NEXT` (ours for decryption, the partner's for verification), so a
+rollover is: add the new certificate as `NEXT`, tell the partner, then run **Promote Certificate**
+(`NEXT` becomes `ACTIVE`, the previous `ACTIVE` of the same partner and usage becomes `RETIRED`).
+**Export Public Certificate** downloads the PEM to send to a partner. The monitor alerts at 30, 14
+and 7 days before expiry and at expiry for `ACTIVE` and `NEXT` certificates.
+
+**Hook URLs** (outside `/qqq/v1`, authenticated per transport by AS2 identity, signature and
+certificate; give your partner the first, and the second is sent in `Receipt-Delivery-Option`):
+
+| URL | Purpose |
+| --- | --- |
+| `POST {base}/qqq/hooks/edi/as2/{transport}` | Receive messages; answers with the MDN, or 200 and a queued asynchronous MDN |
+| `POST {base}/qqq/hooks/edi/as2/{transport}/mdn` | Receive asynchronous MDNs for messages we sent |
+
+`{transport}` is the transport `name`. Set `EdiQBitConfig.withPublicBaseUrl(...)` so `ASYNC`
+transports can announce the second URL. Bodies are limited by the largest `maxInterchangeBytes` of
+the agreements on the transport (50 MB default). A retransmitted Message-ID is answered with the
+original MDN and is not reprocessed; a bad signature, decryption or MIC returns an MDN with
+`processed/error: authentication-failed`, `decryption-failed` or `integrity-check-failed` and creates
+no inbox row; a storage failure returns `unexpected-processing-error` so the partner retries. Every MDN
+sent or received is kept in the read-only `edi_as2_mdn` table (AS2 MDNs child lists on the
+outbound message and the inbound message) with the raw MDN in the encrypted payload store.
+`ASYNC` messages stay SENT until the MDN arrives; the `edi_as2_mdn_sender` step delivers the MDNs we
+owe, retrying with the send backoff, and `edi.mdn.overdue` warns when an `ASYNC` MDN is later than
+the agreement document `ackDueMinutes` (60 when unset).
+
+Existing databases need the new `edi_as2_mdn` table, `edi_outbound_message.transport_mic` and
+`edi_transport.weak_crypto` (see `docs/ddl/edi-postgres.sql`).
 
 ## Build and verification
 

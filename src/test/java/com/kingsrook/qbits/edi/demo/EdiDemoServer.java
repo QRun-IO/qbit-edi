@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import com.kingsrook.qbits.edi.As2Support;
 import com.kingsrook.qbits.edi.EdiRuntime;
 import com.kingsrook.qbits.edi.H2Support;
 import com.kingsrook.qbits.edi.LogisticsSupport;
@@ -73,6 +74,9 @@ public class EdiDemoServer extends AbstractQQQApplication implements AutoCloseab
    private Map<String, String> authenticationModules;
    private String previousAuthentication;
    private final Map<String, byte[]> outbox = new java.util.concurrent.ConcurrentHashMap<>();
+   private final Map<String, String> secrets = new java.util.concurrent.ConcurrentHashMap<>();
+   private As2Support.PeerServer peer;
+   private Javalin hooks;
 
    /*******************************************************************************
     ** Allocate a fresh database; payload keys and certificate keys stay in memory.
@@ -80,6 +84,7 @@ public class EdiDemoServer extends AbstractQQQApplication implements AutoCloseab
    public EdiDemoServer() throws Exception
    {
       instance = H2Support.create();
+      EdiRuntime.current().config().withSecretsResolver(name -> secrets.getOrDefault(name, Base64.getEncoder().encodeToString(new byte[32])));
       RetailSupport.tables();
       LogisticsSupport.tables();
       instance.setHomeAppName("edi");
@@ -239,6 +244,7 @@ public class EdiDemoServer extends AbstractQQQApplication implements AutoCloseab
             installOutbox();
          }
          logistics(local, agreements.get(1));
+         seedAs2(local);
          return (null);
       });
    }
@@ -319,6 +325,111 @@ public class EdiDemoServer extends AbstractQQQApplication implements AutoCloseab
       SystemWrites.insert("edi_agreement_document", document);
    }
 
+
+
+   /*******************************************************************************
+    ** Pacific Wholesale over AS2: an in-process BouncyCastle peer on a random port,
+    ** synthetic certificates generated in memory (keys only in the demo secrets map,
+    ** never written anywhere), three 850s received over AS2, an 855 sent with a
+    ** synchronous MDN and one asynchronous MDN example.
+    *******************************************************************************/
+   private void seedAs2(QRecord local) throws Exception
+   {
+      var ours = As2Support.party("demo-qqq", 365);
+      var oursNext = As2Support.party("demo-qqq-next", 400);
+      var pacific = As2Support.party("demo-pacific", 365);
+      secrets.put("DEMO_AS2_KEY", ours.keyPem());
+      secrets.put("DEMO_AS2_KEY_NEXT", oursNext.keyPem());
+      peer = new As2Support.PeerServer(pacific, ours.certificate());
+      var provider = new com.kingsrook.qbits.edi.as2.As2RouteProvider();
+      provider.setQInstance(instance);
+      hooks = Javalin.create(provider::acceptJavalinConfig).start(0);
+      EdiRuntime.current().config().withPublicBaseUrl("http://127.0.0.1:" + hooks.port());
+      QRecord partner = SystemWrites.insert("edi_partner", new QRecord().withValue("name", "Pacific Wholesale").withValue("code", "PACIFIC").withValue("contactName", "Pacific Wholesale Demo Contact")
+         .withValue("contactEmail", "pacific@example.invalid").withValue("contactPhone", "202-555-0150").withValue("status", "ACTIVE").withValue("defaultTimezone", "America/Los_Angeles"));
+      QRecord remote = SystemWrites.insert("edi_identity", new QRecord().withValue("partnerId", partner.getValue("id")).withValue("standard", "X12").withValue("interchangeQualifier", "ZZ")
+         .withValue("interchangeId", "PACIFICWS").withValue("applicationCode", "PACIFICWS").withValue("isActive", true));
+      QRecord oursActive = as2Certificate("demo-as2-active", ours, null, "ACTIVE", "DEMO_AS2_KEY");
+      as2Certificate("demo-as2-next", oursNext, null, "NEXT", "DEMO_AS2_KEY_NEXT");
+      QRecord theirs = as2Certificate("demo-pacific", pacific, partner.getValueInteger("id"), "ACTIVE", null);
+      QRecord sync = as2Transport("pacific-as2", "BOTH", partner, oursActive, theirs, "SYNC");
+      QRecord async = as2Transport("pacific-as2-async", "OUTBOUND", partner, oursActive, theirs, "ASYNC");
+      QRecord agreement = SystemWrites.insert("edi_agreement", new QRecord().withValue("partnerId", partner.getValue("id")).withValue("localIdentityId", local.getValue("id"))
+         .withValue("partnerIdentityId", remote.getValue("id")).withValue("standard", "X12").withValue("usageIndicator", "T").withValue("interchangeVersion", "00401")
+         .withValue("isActive", true).withValue("applyTestDocuments", true).withValue("inboundTransportId", sync.getValue("id")).withValue("outboundTransportId", sync.getValue("id")));
+      for(String document : List.of("850", "997"))
+      {
+         QRecord map = document.equals("997") ? null : RetailSupport.installMap(document, "004010");
+         QRecord guide = EdiRecords.query("edi_guide", EdiRecords.equal("transactionSet", document).withCriteria("version", com.kingsrook.qqq.backend.core.model.actions.tables.query.QCriteriaOperator.EQUALS, "004010")).getFirst();
+         SystemWrites.insert("edi_agreement_document", new QRecord().withValue("agreementId", agreement.getValue("id")).withValue("direction", "INBOUND")
+            .withValue("transactionSet", document).withValue("version", "004010").withValue("guideId", guide.getValue("id")).withValue("mapId", map == null ? null : map.getValue("id"))
+            .withValue("ackExpectation", document.equals("997") ? "NONE" : "997").withValue("ackLevel", "ALL_TRANSACTIONS").withValue("isActive", true));
+      }
+      QRecord map855 = RetailSupport.installMap("855", "004010");
+      SystemWrites.insert("edi_agreement_document", new QRecord().withValue("agreementId", agreement.getValue("id")).withValue("direction", "OUTBOUND").withValue("transactionSet", "855")
+         .withValue("functionalIdCode", EdiRuntime.current().guides().resource("855-004010").functionalIdCode()).withValue("version", "004010").withValue("guideId", map855.getValue("guideId"))
+         .withValue("mapId", map855.getValue("id")).withValue("sourceTableName", map855.getValueString("tableName")).withValue("outboundTrigger", "MANUAL").withValue("batchMode", "IMMEDIATE")
+         .withValue("ackExpectation", "997").withValue("ackDueMinutes", 1440).withValue("isActive", true));
+      String hook = "http://127.0.0.1:" + hooks.port() + "/qqq/hooks/edi/as2/pacific-as2";
+      for(int i = 0; i < 3; i++)
+      {
+         String text = Synthetic850.generate(50 + i, "004010", X12Separators.DEFAULT).replace("SYNTHETIC", "PACIFICWS")
+            .replace("000000001", String.format("%09d", 300 + i)).replace("*1200*1*X*", "*1200*" + (300 + i) + "*X*").replace("GE*1*1~", "GE*1*" + (300 + i) + "~");
+         As2Support.peerSend(hook, Map.of("AS2-From", "PACIFIC-WS", "AS2-To", "QQQ-DEMO"), "demo-as2-" + i + "@pacific", text.getBytes(StandardCharsets.US_ASCII), pacific, ours.certificate(), i != 1, true, true, null);
+      }
+      while(new InboxWorker().runOnce() > 0)
+      {
+         // Drain the bounded inbox in the demo setup only.
+      }
+      QRecord order = SystemWrites.transaction(() -> RetailSupport.saveSource("sample_order", RetailSupport.source().withValue("poNumber", "PACIFIC-2001")));
+      OutboundEnqueue.enqueue("sample_order", order, "MANUAL", null);
+      new OutboundWorker().runOnce();
+      while(new SendWorker().runOnce() > 0)
+      {
+         // Deliver the 855 over AS2; its MDN is verified and recorded.
+      }
+      QRecord delivered = EdiRecords.query("edi_outbound_message", EdiRecords.equal("transportId", sync.getValue("id"))).getFirst();
+      peer.async.set(true);
+      PayloadRef copy = EdiRuntime.current().payloads().put(com.kingsrook.qbits.edi.storage.PayloadKind.OUTBOUND,
+         EdiRuntime.current().payloads().open(new PayloadRef(delivered.getValueString("payloadRef"), null, 0)));
+      QRecord example = SystemWrites.insert("edi_outbound_message", new QRecord().withValue("agreementId", agreement.getValue("id")).withValue("partnerId", partner.getValue("id"))
+         .withValue("transportId", async.getValue("id")).withValue("payloadRef", copy.value()).withValue("payloadSha256", copy.sha256()).withValue("sizeBytes", copy.sizeBytes())
+         .withValue("status", "QUEUED").withValue("attempts", 0));
+      new SendWorker().runOnce();
+      for(int i = 0; i < 100 && peer.asyncResult.get() == null; i++)
+      {
+         Thread.sleep(50);
+      }
+      peer.async.set(false);
+      hooks.stop();
+      hooks = null;
+      EdiRuntime.current().config().withPublicBaseUrl(null);
+      if(!"DELIVERED".equals(EdiRecords.query("edi_outbound_message", EdiRecords.equal("id", example.getValue("id"))).getFirst().getValueString("status")))
+      {
+         throw new IllegalStateException("The asynchronous AS2 example was not delivered");
+      }
+   }
+
+   /*******************************************************************************
+    ** An AS2 certificate row; the qbit parses the public certificate on save.
+    *******************************************************************************/
+   private static QRecord as2Certificate(String alias, As2Support.Party party, Integer partnerId, String status, String keyVariable) throws Exception
+   {
+      return (SystemWrites.insert("edi_certificate", new QRecord().withValue("alias", alias).withValue("partnerId", partnerId).withValue("usage", "SIGNING_AND_ENCRYPTION")
+         .withValue("certificatePem", party.certificatePem()).withValue("privateKeyEnvVar", keyVariable).withValue("status", status)));
+   }
+
+   /*******************************************************************************
+    ** An AS2 transport to the in-process peer: signed, encrypted, signed MDN.
+    *******************************************************************************/
+   private QRecord as2Transport(String name, String direction, QRecord partner, QRecord local, QRecord theirs, String mdnMode) throws Exception
+   {
+      return (SystemWrites.insert("edi_transport", new QRecord().withValue("partnerId", partner.getValue("id")).withValue("name", name).withValue("type", "AS2").withValue("direction", direction)
+         .withValue("isActive", true).withValue("as2LocalId", "QQQ-DEMO").withValue("as2PartnerId", "PACIFIC-WS").withValue("as2Url", peer.url()).withValue("signAlgorithm", "SHA256")
+         .withValue("encryptAlgorithm", "AES256_CBC").withValue("mdnMode", mdnMode).withValue("mdnSigned", true).withValue("localCertificateId", local.getValue("id"))
+         .withValue("partnerCertificateId", theirs.getValue("id")).withValue("maxAttempts", 3)));
+   }
+
    /*******************************************************************************
     ** Synthetic change order retains a valid envelope and guide-compatible details.
     *******************************************************************************/
@@ -391,6 +502,7 @@ public class EdiDemoServer extends AbstractQQQApplication implements AutoCloseab
       new QInstanceValidator().validate(instance);
       server = new QApplicationJavalinServer(this).withPort(port).withServeFrontendNext(true).withJavalinConfigurationCustomizer(app -> javalin = app);
       server.start();
+      EdiRuntime.current().config().withPublicBaseUrl("http://localhost:" + javalin.port());
       return (javalin.port());
    }
 
@@ -409,6 +521,14 @@ public class EdiDemoServer extends AbstractQQQApplication implements AutoCloseab
          authenticationModules.put(QAuthenticationType.FULLY_ANONYMOUS.getName(), previousAuthentication);
       }
       FileGatewayOutbox.register(null);
+      if(hooks != null)
+      {
+         hooks.stop();
+      }
+      if(peer != null)
+      {
+         peer.close();
+      }
       QContext.clear();
    }
 

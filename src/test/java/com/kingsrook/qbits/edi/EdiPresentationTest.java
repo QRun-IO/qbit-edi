@@ -60,14 +60,14 @@ class EdiPresentationTest
    {
       var instance = H2Support.create();
       Set<String> externalIds = Set.of("interchangeId", "senderId", "receiverId", "elementId", "segmentId", "loopId", "parentLoopId",
-         "as2LocalId", "as2PartnerId", "externalId", "transportMessageId", "eventId", "sourceRecordId", "targetRecordId", "keyId", "gatewayUserId", "assignedToUserId");
+         "as2LocalId", "as2PartnerId", "messageId", "originalMessageId", "externalId", "transportMessageId", "eventId", "sourceRecordId", "targetRecordId", "keyId", "gatewayUserId", "assignedToUserId");
       for(var table : instance.getTables().values())
       {
          assertThat(table.getLabel()).as(table.getName()).matches("[A-Z][A-Za-z0-9]*( [A-Z][A-Za-z0-9]*)*");
          for(var field : table.getFields().values())
          {
             assertThat(field.getLabel()).as(table.getName() + "." + field.getName())
-               .doesNotContainPattern("\\b(Id|Phi|Pii|Url|Isa|Gs|St|As2|Sftp|Https|Http|Mdn|Tls|Ta1|Edi|Upc|Npi|Qqq|Json|Pem|Snip|Van)\\b");
+               .doesNotContainPattern("\\b(Id|Phi|Pii|Url|Isa|Gs|St|As2|Sftp|Https|Http|Mdn|Mic|Tls|Ta1|Edi|Upc|Npi|Qqq|Json|Pem|Snip|Van)\\b");
             if(field.getName().endsWith("Id") && !(field.getType() == QFieldType.STRING && externalIds.contains(field.getName())))
             {
                assertThat(field.getPossibleValueSourceName()).as(table.getName() + "." + field.getName()).isNotBlank();
@@ -85,6 +85,9 @@ class EdiPresentationTest
       }
       assertThat(instance.getTable("edi_exception").getField("assignedToUserId").getLabel()).isEqualTo("Assigned To");
       assertThat(instance.getTable("edi_exception").getField("outboundMessageId").getPossibleValueSourceName()).isEqualTo("edi_outbound_message");
+      assertThat(EdiTables.childWidgets()).extracting(widget -> widget.getLabel()).contains("AS2 MDNs");
+      assertThat(instance.getTable("edi_as2_mdn").getLabel()).isEqualTo("AS2 MDN");
+      assertThat(instance.getTable("edi_as2_mdn").getField("micValue").getLabel()).isEqualTo("MIC Value");
       assertThat(EdiTables.childWidgets()).allSatisfy(widget -> assertThat(widget.getLabel()).doesNotContain("(", "_", "transaction", "identity"));
    }
 
@@ -215,13 +218,15 @@ class EdiPresentationTest
             case "edi_inbox" -> "SFTP demo-message";
             case "edi_outbound_message" -> "Demo SFTP SENT";
             case "edi_map", "edi_guide" -> "Retail r2";
+            case "edi_as2_mdn" -> "INBOUND MDN <synthetic-message@peer>";
             default -> null;
          };
          if(expected != null)
          {
             QRecord row = new QRecord().withValue("direction", "INBOUND").withValue("controlNumber", "000001").withValue("type", "VALIDATION")
                .withValue("summary", "Synthetic summary").withValue("transportType", "SFTP").withValue("externalId", "demo-message")
-               .withValue("fileName", "SYNTHETIC-PRIVATE-FILENAME").withValue("transportId", 1).withValue("status", "SENT").withValue("name", "Retail").withValue("revision", 2);
+               .withValue("fileName", "SYNTHETIC-PRIVATE-FILENAME").withValue("transportId", 1).withValue("status", "SENT").withValue("name", "Retail").withValue("revision", 2)
+               .withValue("originalMessageId", "<synthetic-message@peer>");
             row.setDisplayValue("transportId", "Demo SFTP");
             assertThat(QValueFormatter.formatRecordLabel(table, row)).as(table.getName()).isEqualTo(expected);
          }

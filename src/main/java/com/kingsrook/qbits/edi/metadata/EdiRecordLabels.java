@@ -80,6 +80,7 @@ public class EdiRecordLabels implements TableCustomizerInterface, QSupplementalI
          case "edi_exception" -> table.withRecordLabelFormatAndFields("%s: %s", "type", "summary");
          case "edi_inbox" -> table.withRecordLabelFormatAndFields("%s %s", "transportType", "externalId");
          case "edi_outbound_message" -> table.withRecordLabelFormatAndFields("%s %s", "transportId", "status");
+         case "edi_as2_mdn" -> table.withRecordLabelFormatAndFields("%s MDN %s", "direction", "originalMessageId");
          case "edi_outbound_request" -> table.withRecordLabelFormatAndFields("%s %s %s", "sourceTableName", "sourceRecordId", "status");
          case "edi_transaction_error" -> table.withRecordLabelFormatAndFields("%s: %s", "severity", "message");
          case "edi_event" -> table.withRecordLabelFormatAndFields("%s %s", "type", "at");

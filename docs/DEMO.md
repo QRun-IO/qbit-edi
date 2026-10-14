@@ -19,7 +19,20 @@ invoices and inventory. Forty synthetic inbound documents go through intake and 
 850s, 860s, validation errors, an unknown sender and a byte duplicate. Northwind's 855/856/810/846
 pass the outbound worker and an in-memory gateway; incoming 997s reconcile some sent groups.
 An overdue group, an exhausted send and several open exceptions provide operational examples.
-Two public self-signed certificates are generated in memory; private keys are never persisted.
+Public self-signed certificates are generated in memory (two for expiry alerts, three for AS2); private keys are never persisted.
+
+Pacific Wholesale (code PACIFIC) is the AS2 partner. An in-process BouncyCastle peer listens on a
+random loopback port and the seed generates synthetic RSA certificates in memory (our ACTIVE and NEXT
+certificates and the partner's; the private keys live only in the demo secrets map and are never
+written to disk). The seed sends three 850s to the application's own AS2 hook (signed, encrypted;
+two with base64 transfer encoding), which answers with signed MDNs (`edi_as2_mdn` rows, shown as
+"AS2 MDNs" on the inbound message); the 997s go back over AS2 as well. An 855 built from a source record is sent
+over AS2 to the peer, which verifies the signature and MIC and returns a signed synchronous MDN
+(the outbound message becomes DELIVERED with its `transport_mic`). One more message goes to the
+asynchronous transport `pacific-as2-async`: it stays SENT until the peer posts the MDN to
+`/qqq/hooks/edi/as2/pacific-as2-async/mdn`. The running demo serves
+`POST /qqq/hooks/edi/as2/pacific-as2` (and `.../mdn`) on the same port; Test Connection,
+Export Public Certificate and Promote Certificate (on `demo-as2-next`) work on the AS2 records.
 
 Phase d adds warehouse and logistics traffic, seeded last so the retail scenarios above are
 unchanged. Harbor Logistics (the 3PL) gets a gateway OUTBOX transport (the partner pulls over SFTP)

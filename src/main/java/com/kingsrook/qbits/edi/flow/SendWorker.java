@@ -101,7 +101,7 @@ public class SendWorker
          boolean sent = List.of("SENT", "DELIVERED").contains(result.status());
          String status = sent ? result.status() : "FAILED".equals(result.status()) ? "FAILED" : attempts >= maximum ? "DEAD_LETTER" : "RETRY_WAIT";
          QRecord update = new QRecord().withValue("id", message.getValue("id")).withValue("status", status).withValue("attempts", attempts)
-            .withValue("claimedAt", null).withValue("lastError", sent ? null : "Transport delivery failed")
+            .withValue("claimedAt", null).withValue("lastError", sent ? null : failureText(result))
             .withValue("nextAttemptAt", "RETRY_WAIT".equals(status) ? now().plusSeconds(BACKOFF.get(Math.min(attempts - 1, BACKOFF.size() - 1))) : null);
          if(sent)
          {
@@ -143,6 +143,17 @@ public class SendWorker
          EdiJournal.event(null, interchangeId, null, status);
          return (1);
       }));
+   }
+
+   /*******************************************************************************
+    ** The recorded failure: the transport reason (value-free by contract, for
+    ** example an HTTP status, an AS2 disposition or a missing variable name), or a
+    ** generic text.
+    *******************************************************************************/
+   private static String failureText(EdiSendResult result)
+   {
+      String reason = result.reason();
+      return (reason == null || reason.isBlank() ? "Transport delivery failed" : reason.length() <= 255 ? reason : reason.substring(0, 255));
    }
 
    /*******************************************************************************

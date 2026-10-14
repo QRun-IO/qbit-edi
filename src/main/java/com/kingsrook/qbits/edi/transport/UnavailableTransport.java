@@ -26,7 +26,8 @@ import com.kingsrook.qbits.edi.model.EdiTransport;
 import com.kingsrook.qbits.edi.storage.PayloadRef;
 
 /*******************************************************************************
- ** Explicit phase boundaries for AS2 and the unpublished email API.
+ ** Explicit boundary for the unpublished qbit-email API; AS2 is implemented by
+ ** As2Transport.
  *******************************************************************************/
 public record UnavailableTransport(String type) implements EdiTransportPlugin
 {
@@ -43,7 +44,7 @@ public record UnavailableTransport(String type) implements EdiTransportPlugin
     *******************************************************************************/
    public void validate(EdiTransport transport, List<String> errors)
    {
-      if("AS2".equals(type) ? transport.getAs2Url() == null : transport.getEmailTo() == null)
+      if(transport.getEmailTo() == null)
       {
          errors.add("Transport destination is required");
       }
@@ -54,6 +55,6 @@ public record UnavailableTransport(String type) implements EdiTransportPlugin
     *******************************************************************************/
    public EdiSendResult send(EdiOutboundMessage message, PayloadRef payload, EdiTransport transport)
    {
-      return (new EdiSendResult("FAILED", null, "Not available until phase c / qbit-email API"));
+      return (new EdiSendResult("FAILED", null, "Not available until the qbit-email API ships"));
    }
 }
