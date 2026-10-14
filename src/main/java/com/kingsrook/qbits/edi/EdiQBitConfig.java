@@ -22,6 +22,7 @@ package com.kingsrook.qbits.edi;
 
 
 import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.kingsrook.qqq.backend.core.model.metadata.QInstance;
 import com.kingsrook.qqq.backend.core.model.metadata.qbits.QBitConfig;
 
@@ -34,6 +35,25 @@ public class EdiQBitConfig implements QBitConfig
 {
    public static final String TABLE_NAME_PREFIX    = "edi_";
    public static final String PERMISSION_BASE_NAME = "edi";
+
+   private final java.util.Set<String> sendAsEdiTables = new java.util.LinkedHashSet<>();
+
+   /*******************************************************************************
+    ** Opt a source table into the manual Send As EDI action.
+    *******************************************************************************/
+   public EdiQBitConfig withSendAsEdiTable(String tableName)
+   {
+      sendAsEdiTables.add(tableName);
+      return (this);
+   }
+
+   /*******************************************************************************
+    ** Explicitly opted-in manual source tables.
+    *******************************************************************************/
+   public java.util.Set<String> getSendAsEdiTables()
+   {
+      return (java.util.Set.copyOf(sendAsEdiTables));
+   }
 
    private String payloadBucketAlias = "edi";
    private java.util.function.Supplier<com.kingsrook.qqq.backend.core.model.session.QSession> serviceSessionSupplier = null;
@@ -211,6 +231,7 @@ public class EdiQBitConfig implements QBitConfig
    /*******************************************************************************
     ** Get payloadStore.
     *******************************************************************************/
+   @JsonIgnore
    public String getPayloadStore()
    {
       return (payloadStore);
@@ -228,6 +249,7 @@ public class EdiQBitConfig implements QBitConfig
    /*******************************************************************************
     ** Get secretsResolver.
     *******************************************************************************/
+   @JsonIgnore
    public com.kingsrook.qbits.edi.security.EdiSecrets getSecretsResolver()
    {
       return (secretsResolver);
@@ -279,6 +301,7 @@ public class EdiQBitConfig implements QBitConfig
    /*******************************************************************************
     ** Get serviceSessionSupplier.
     *******************************************************************************/
+   @JsonIgnore
    public java.util.function.Supplier<com.kingsrook.qqq.backend.core.model.session.QSession> getServiceSessionSupplier()
    {
       return (serviceSessionSupplier);
@@ -296,6 +319,7 @@ public class EdiQBitConfig implements QBitConfig
    /*******************************************************************************
     ** Get clock.
     *******************************************************************************/
+   @JsonIgnore
    public java.time.Clock getClock()
    {
       return (clock);

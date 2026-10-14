@@ -241,11 +241,11 @@ One row per document, version and direction that the agreement carries.
 - Each outbound functional group whose agreement document expects a 997 or 999 gets `ackDueAt`
   (sent time + `ackDueMinutes`).
 - The overdue monitor (a scheduled process, every 5 minutes) calls `QAlerts.raise(AlertSignal)`
-  with alert type `edi_ack_overdue`, severity WARNING, dedup key `edi_functional_group:<id>`, a
+  with alert type `edi.ack.overdue`, severity WARNING, dedup key `edi_functional_group:<id>`, a
   record reference to the group and a link to the interchange. qbit-alerts delivers it (inbox,
   channels, quiet hours); without qbit-alerts, core's logging sink records it.
-- When the ack arrives, `QAlerts.resolve("edi_ack_overdue", dedupKey, note)`.
-- A rejecting ack (AK9/IK9 `R`, or partial `P`) raises `edi_ack_rejected` (ERROR) and opens a
+- When the ack arrives, `QAlerts.resolve("edi.ack.overdue", dedupKey, note)`.
+- A rejecting ack (AK9/IK9 `R`, or partial `P`) raises `edi.ack.rejected` (ERROR) and opens a
   `REJECTED_ACK` exception.
 - From RC.6, assignees of exceptions also get a `QAlerts.notify` notification.
 
@@ -284,8 +284,8 @@ Transports are data. **`edi_transport`** [Transport] (main, nav):
   `privateKeyEnvVar` (ours only: the env var holding a PEM or base64 PKCS#12),
   `privateKeyPasswordEnvVar`, `status` (ACTIVE, NEXT, RETIRED). `NEXT` supports rollover: inbound
   accepts either key, outbound switches when "Promote Certificate" runs.
-- Expiry: the monitor raises `edi_certificate_expiring` at 30, 14 and 7 days (dedup per
-  certificate and threshold), and `edi_certificate_expired` at expiry.
+- Expiry: the monitor raises `edi.certificate.expiring` at 30, 14 and 7 days (dedup per
+  certificate and threshold), and `edi.certificate.expired` at expiry.
 - Record actions: "Promote Certificate", "Export Public Certificate" (download the PEM to send to a
   partner). Private keys never enter a table, a log or a response.
 
@@ -603,7 +603,7 @@ so one bad document does not block the others):
   `status` (QUEUED, SENDING, SENT, DELIVERED, RETRY_WAIT, FAILED, DEAD_LETTER, CANCELLED),
   `attempts`, `nextAttemptAt`, `transportMessageId`, `sentAt`, `deliveredAt`, `lastError`. The
   sender claims rows the same way and retries per the transport's policy; DEAD_LETTER raises
-  `edi_send_failed` and opens a `TRANSPORT` exception.
+  `edi.send.failed` and opens a `TRANSPORT` exception.
 - **Reconcile:** an MDN or delivery confirmation sets DELIVERED; the expected 997/999 sets the
   functional group's `ackStatus` (4.4); the home and the timeline show both.
 
@@ -803,6 +803,10 @@ All counts run as the viewing user, so permissions and partner record locks appl
 
 ## 15. Demo
 
+Phase b includes a test-scope `EdiDemoServer` with the Next UI and synthetic H2 seed;
+see [DEMO.md](DEMO.md) for launch and acceptance details. The broader host demo below remains
+a deployment example.
+
 No kof22 adoption. The demo is a module in `qqq-sample-project` (in QRun-IO/qqq): a small orders,
 shipments and invoices schema; a retailer partner over the file gateway or SFTP and a 3PL over AS2
 against a local as2-lib peer; seeded synthetic documents; and a healthcare clearinghouse partner with
@@ -897,3 +901,16 @@ storage failures, original/current replay, 997/999, ack reconciliation, previews
 The object-storage facade is final with restricted constructors: key/encryption metadata are tested
 without provider internals. Live S3, deployed gateway/scheduler and light/dark browser layout remain
 deployment validation. Outbound messages intentionally stay QUEUED.
+
+
+## Phase b implementation notes (2026-10-13)
+
+RC.5 adaptations implemented in this worktree:
+
+- Record-change listeners are registered in instance metadata and receive the source writer's transaction. Successful enqueues participate in that transaction (rollback is tested). RC.5 catches listener exceptions, so a failed enqueue cannot veto a source write; hosts requiring strict delivery guarantees must use the explicit enqueue boundary in their transaction.
+- RC.5 ESB consumption requires JMS. `edi_outbound_enqueue` accepts `sourceTableName`, `sourceRecordId`, and `eventId`; a host EsbTrigger can invoke that process. Tests exercise that boundary without a broker.
+- The filesystem module supplies Apache MINA SSHD. SFTP uses its streaming client directly with mandatory pinned host-key verification, remote temporary upload/rename, and durable inbox receipt before remote cleanup. No runtime local files are created.
+- HTTPS uses core `WebhookSigner`/`WebhookVerifier` for Standard Webhooks HMAC. The optional Javalin provider exposes the non-UI `/qqq/hooks/edi/https/{transport}` endpoint with a 50 MiB limit.
+- Worker claims use database row locks within the processing transaction. A crashed worker rolls back its claim; remote-send ambiguity remains at-least-once. Batch schedules are installed from active agreement documents during runtime initialization, with up to 100 transactions from one agreement document per envelope. Schedule changes require host scheduler refresh/restart. SFTP poll schedules are installed the same way.
+- Acknowledgement deadlines start on the first successful send. Resend reuses the archived bytes; Resend As New re-envelopes the archive with new ISA/GS controls and linked tracking snapshots, without remapping changed source records.
+- The test-scope demo uses `QApplicationJavalinServer`, Next UI 1.0.0-RC.14, fresh in-memory H2, anonymous demo authentication, synthetic certificates generated in memory, and an in-memory gateway OUTBOX provider. See `DEMO.md`. A host scheduler and production transport credentials remain host responsibilities.

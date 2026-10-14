@@ -69,7 +69,7 @@ public class EdiMetaDataProducer extends QBitComponentMetaDataProducer<MetaDataP
       }
       output.add(com.kingsrook.qbits.edi.app.EdiHome.app(getQBitConfig(), tables));
       com.kingsrook.qbits.edi.app.EdiHome.widgets().forEach(output::add);
-      for(String name : java.util.List.of("edi.inbox.dead-letter", "edi.ack.overdue", "edi.ack.rejected"))
+      for(String name : java.util.List.of("edi.inbox.dead-letter", "edi.ack.overdue", "edi.ack.rejected", "edi.send.failed", "edi.certificate.expiring", "edi.certificate.expired"))
       {
          output.add(new com.kingsrook.qqq.backend.core.alerts.QAlertTypeMetaData().withName(name).withLabel(name)
             .withSourceName("edi").withDefaultSeverity(com.kingsrook.qqq.backend.core.alerts.AlertSeverity.ERROR)
@@ -80,7 +80,7 @@ public class EdiMetaDataProducer extends QBitComponentMetaDataProducer<MetaDataP
       output.add(new com.kingsrook.qqq.backend.core.model.metadata.QBackendMetaData().withName("edi_preview_download")
          .withBackendType(com.kingsrook.qbits.edi.storage.PreviewDownloadBackend.class));
       output.add(new QTableMetaData().withName("edi_preview_download").withLabel("Preview Download").withBackendName("edi_preview_download")
-         .withPrimaryKeyField("id").withField(new com.kingsrook.qqq.backend.core.model.metadata.fields.QFieldMetaData("id", com.kingsrook.qqq.backend.core.model.metadata.fields.QFieldType.INTEGER))
+         .withPrimaryKeyField("id").withField(new com.kingsrook.qqq.backend.core.model.metadata.fields.QFieldMetaData("id", com.kingsrook.qqq.backend.core.model.metadata.fields.QFieldType.INTEGER).withLabel("ID"))
          .withPermissionRules(new com.kingsrook.qqq.backend.core.model.metadata.permissions.QPermissionRules().withPermissionBaseName("edi.map.preview")
             .withLevel(com.kingsrook.qqq.backend.core.model.metadata.permissions.PermissionLevel.HAS_ACCESS_PERMISSION))
          .withoutCapabilities(com.kingsrook.qqq.backend.core.model.metadata.tables.Capability.TABLE_INSERT,

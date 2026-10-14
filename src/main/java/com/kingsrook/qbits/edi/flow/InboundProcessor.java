@@ -526,6 +526,11 @@ public class InboundProcessor
             {
                continue;
             }
+            if(ta1)
+            {
+               SystemWrites.update("edi_interchange", new QRecord().withValue("id", interchange.getValue("id")).withValue("ta1Status", ack.status()));
+               continue;
+            }
             for(QRecord group : EdiRecords.query("edi_functional_group", EdiRecords.equal("interchangeId", interchange.getValue("id"))))
             {
                if(!ta1 && !ack.controlNumber().equals(group.getValueString("controlNumber")))
@@ -539,7 +544,13 @@ public class InboundProcessor
                   SystemWrites.update("edi_transaction", new QRecord().withValue("id", transaction.getValue("id")).withValue("ackStatus", status)
                      .withValue("status", "R".equals(status) ? "REJECTED" : "ACKNOWLEDGED"));
                }
-               QAlerts.resolve("edi.ack.overdue", group.getValueString("id"), "Acknowledgement received");
+               QAlerts.resolve("edi.ack.overdue", "edi_functional_group:" + group.getValue("id"), "Acknowledgement received");
+               for(QRecord exception : EdiRecords.query("edi_exception", EdiRecords.equal("interchangeId", interchange.getValue("id"))
+                  .withCriteria("type", QCriteriaOperator.EQUALS, "OVERDUE_ACK").withCriteria("status", QCriteriaOperator.IN, "OPEN", "IN_PROGRESS")))
+               {
+                  SystemWrites.update("edi_exception", new QRecord().withValue("id", exception.getValue("id")).withValue("status", "RESOLVED")
+                     .withValue("resolvedAt", runtime.config().getClock().instant()).withValue("resolution", "Acknowledgement received"));
+               }
                if(List.of("R", "P").contains(ack.status()))
                {
                   EdiJournal.exception(inbox.getValueInteger("id"), received, null, agreement.getValueInteger("partnerId"), "REJECTED_ACK", "Partner rejected an outbound group");

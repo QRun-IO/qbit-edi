@@ -88,6 +88,21 @@ public final class EdiProcesses
          scheduled.withSchedule(new QScheduleMetaData().withSchedulerName(config.getSchedulerName()).withRepeatSeconds(15).withInitialDelaySeconds(15));
       }
       result.add(scheduled);
+      for(String table : List.of("edi_outbound_message", "edi_interchange"))
+      {
+         result.add(action(table, "resend", "Resend", "edi.resend"));
+         result.add(action(table, "new", "Resend As New", "edi.resend"));
+         result.add(action(table, "cancel", "Cancel", "edi.cancel"));
+      }
+      result.add(action("edi_transport", "test", "Test Connection", "edi.transport.test"));
+      for(String table : config.getSendAsEdiTables())
+      {
+         result.add(action(table, "send", "Send As EDI", "edi.send"));
+      }
+      for(String name : List.of("edi_outbound_worker", "edi_send_worker", "edi_ack_monitor", "edi_outbound_enqueue"))
+      {
+         result.add(OutboundProcesses.process(name, config, name.equals("edi_outbound_enqueue") ? null : name.equals("edi_ack_monitor") ? 300 : 15, null));
+      }
       return (result);
    }
 
@@ -235,6 +250,20 @@ public final class EdiProcesses
                      if(operation.equals("reprocess"))
                      {
                         reprocess(table, row, Boolean.TRUE.equals(input.getValueBoolean("useCurrentRevisions")));
+                     }
+                     else if(List.of("resend", "new", "cancel").contains(operation))
+                     {
+                        com.kingsrook.qbits.edi.flow.OutboundActions.execute(table, row, operation);
+                     }
+                     else if(operation.equals("send"))
+                     {
+                        com.kingsrook.qbits.edi.flow.OutboundEnqueue.enqueue(table, row, "MANUAL", null);
+                     }
+                     else if(operation.equals("test"))
+                     {
+                        var test = com.kingsrook.qbits.edi.transport.EdiTransportPluginsMetaData.current().get(row.getValueString("type"))
+                           .test(row.toEntity(com.kingsrook.qbits.edi.model.EdiTransport.class));
+                        lines.add(new ProcessSummaryLine(Boolean.TRUE.equals(test.success()) ? Status.OK : Status.ERROR, 1, test.summary()));
                      }
                      else if(List.of("assign", "ignore", "resolve").contains(operation))
                      {

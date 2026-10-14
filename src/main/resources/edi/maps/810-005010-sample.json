@@ -1,0 +1,86 @@
+{
+  "map": {
+    "name": "Sample 810 005010",
+    "direction": "OUTBOUND",
+    "standard": "X12",
+    "version": "005010",
+    "transactionSet": "810",
+    "tableName": "sample_invoice",
+    "businessKeyPath": "BIG02",
+    "businessKeyType": "RETAIL",
+    "revision": 1,
+    "status": "ACTIVE"
+  },
+  "rules": [
+    {
+      "ediPath": "BIG01",
+      "qqqPath": "invoiceDate",
+      "required": false,
+      "transform": "DATE",
+      "sequence": 1
+    },
+    {
+      "ediPath": "BIG02",
+      "qqqPath": "invoiceNumber",
+      "required": true,
+      "sequence": 2
+    },
+    {
+      "ediPath": "BIG04",
+      "qqqPath": "poNumber",
+      "required": false,
+      "sequence": 3
+    },
+    {
+      "ediPath": "IT1[*]/IT101",
+      "qqqPath": "lines.sku",
+      "required": false,
+      "transform": "SEQUENCE",
+      "sequence": 4
+    },
+    {
+      "ediPath": "IT1[*]/IT102",
+      "qqqPath": "lines.quantity",
+      "required": false,
+      "transform": "DECIMAL",
+      "sequence": 5
+    },
+    {
+      "ediPath": "IT1[*]/IT103",
+      "qqqPath": "lines.sku",
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"EA\"}",
+      "sequence": 6
+    },
+    {
+      "ediPath": "IT1[*]/IT104",
+      "qqqPath": "lines.unitPrice",
+      "required": false,
+      "transform": "DECIMAL",
+      "sequence": 7
+    },
+    {
+      "ediPath": "IT1[*]/IT106",
+      "qqqPath": "lines.sku",
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"VP\"}",
+      "sequence": 8
+    },
+    {
+      "ediPath": "IT1[*]/IT107",
+      "qqqPath": "lines.sku",
+      "required": false,
+      "sequence": 9
+    },
+    {
+      "ediPath": "TDS01",
+      "qqqPath": "total",
+      "required": false,
+      "transform": "DECIMAL",
+      "transformArgs": "{\"scale\": \"2\"}",
+      "sequence": 10
+    }
+  ]
+}

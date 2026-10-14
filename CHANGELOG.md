@@ -6,6 +6,12 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic
 
 ### Added
 
+- Phase b retail baseline guides for 855/856/810/846/860 in 004010 and 005010; inbound/outbound sample maps and nested outbound associations with SEQUENCE/HL transforms.
+- Transactional RECORD_CHANGE and manual enqueue, host-wired ESB process, batch schedules, validated encrypted envelopes, send workers, retries and dead-letter alerts.
+- Instance transport registry, MINA SFTP streaming push/poll with pinned host keys, gateway OUTBOX stand-in/download delivery, and authenticated HTTPS ingress/egress using core Standard Webhooks.
+- Ack and certificate monitoring, functional-ack exception resolution, resend/re-envelope/cancel actions, transport tests and outbound queue home statistics.
+- Test-scope H2/Next UI demo with synthetic retail traffic, in-memory gateway and public self-signed certificates; local HTTP/SFTP and application acceptance tests.
+
 - Phase a2 inbound vertical slice: gateway intake, fenced inbox claims/retries, dead letters and core alerts; routing, validation, duplicates, safe events and exception occurrence counts.
 - Versioned inbound maps, wildcard associations, transforms, permission-enforced transactional upsert and original/current revision replay.
 - Queued enveloped TA1/997/999 and inbound acknowledgement reconciliation; outbound request/message tables for phase b.

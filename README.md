@@ -5,10 +5,11 @@ and application, and TA1/997/999 acknowledgements. See [the design](docs/DESIGN.
 
 ## Status
 
-Phases a1/a2 implement the inbound vertical slice. A gateway 850 (004010 or 005010) becomes
-a durable inbox record, validated document, permission-enforced target record with children,
-and an enveloped 997 queued for delivery. HIPAA 005010X uses 999. Outbound sending, outbound
-business-document building and real transport servers remain phase b and later.
+Phases a1, a2 and b implement inbound/outbound retail EDI. Original baseline guides cover
+850, 855, 856, 810, 846 and 860 in 004010/005010, plus 997/999. Source records and associations
+produce validated, encrypted outbound interchanges, with control-number tracking, retries,
+acknowledgement monitoring and operator resend/cancel actions. AS2 and email sending remain disabled.
+A runnable synthetic [demo](docs/DEMO.md) includes Next UI and needs no external services.
 
 ## Requirements and installation
 
@@ -21,12 +22,15 @@ new EdiQBitProducer()
    .withQBitConfig(new EdiQBitConfig()
       .withBackendName("rdbms")
       .withSchedulerName("scheduler") // optional
+      .withSendAsEdiTable("sample_order") // host-defined table, optional manual action
       .withServiceSessionSupplier(() -> makeEdiServiceSession()))
    .produce(qInstance);
 ```
 
 Call `EdiRuntime.current().initialize()` in the host's authorized startup context to install
-baseline guides. Define partners, identities, active agreements, inbound agreement documents
+baseline guides and data-driven schedules. After defining batch/poll settings, call
+`OutboundProcesses.installSchedules()` before starting the host scheduler; rebuild/restart scheduling
+after changing those settings. Define partners, identities, active agreements, inbound agreement documents
 and active maps as normal QQQ records. `makeEdiServiceSession()` is a host function returning
 a least-privilege `QSession` with target and association permissions. Applying without a supplier
 produces an APPLY exception: `no service session configured`.
@@ -79,8 +83,9 @@ EDI paths reuse the guide rule language. Targets support `field` and `associatio
 wildcards such as `PO1[*]/PO107` produce child records. `matchKeyFields` controls upsert, with
 `onMatch` UPDATE/SKIP/EXCEPTION. [MAPS.md](docs/MAPS.md) documents transform arguments.
 
-The two `/edi/maps/850-*-sample.json` resources map onto `sample_order` and `sample_order_line`;
-those tables exist **only in test sources**, never in host installations.
+Resources under `/edi/maps` include inbound 850/860 and outbound 855/856/810/846 maps.
+The order, shipment/carton/item, invoice/line and inventory schemas exist **only in test sources**.
+Outbound maps support nested association paths; inbound target paths retain the one-association limit.
 
 Preview shows parse counts, SNIP findings, the would-be ack, mapped JSON, expected-result and
 previous-revision comparisons. It writes no target records. PHI previews suppress document values.
@@ -103,7 +108,11 @@ Full table permissions include `edi.partner.read|insert|edit|delete`, `edi.map.*
 | Assign / Ignore / Mark Resolved | `edi.exception.assign` / `edi.exception.ignore` / `edi.exception.resolve` |
 | Create Partner Override / Activate Guide | `edi.guide.override` / `edi.guide.activate` |
 | Activate Map | `edi.map.activate` |
-| Scheduled worker | `edi.admin` |
+| Send As EDI | `edi.send` |
+| Resend / Resend As New | `edi.resend` |
+| Cancel | `edi.cancel` |
+| Test Connection | `edi.transport.test` |
+| Scheduled workers / ESB enqueue | `edi.admin` |
 
 Partner locks use `edi_partner` with `edi.admin` all-access. Home queries explicitly enforce
 the viewing user's permissions. Processes are table/record actions, never navigation entries.
@@ -115,7 +124,8 @@ the viewing user's permissions. Processes are table/record actions, never naviga
 | `backendName` | Required host RDBMS backend |
 | `appName`, `appLabel`, `parentAppName` | `edi`, `EDI`, no parent |
 | `schedulerName` | Null; configure for 15-second polling |
-| `serviceSessionSupplier` | Null; required when a map actually applies |
+| `serviceSessionSupplier` | Null; required for inbound application and outbound source reads/mapping |
+| `withSendAsEdiTable(name)` | Opt a host table into Send As EDI |
 | `partnerLocks` | `false` |
 | `maxSegmentsPerTransaction` | 100000 |
 | `payloadStore` | `DATABASE` or `OBJECT_STORAGE` |
@@ -135,12 +145,60 @@ alias and select `OBJECT_STORAGE`. EDI uses only its public API and system acces
 
 Optional `qqq-esb` publishes setup/activity events after commit. Document events contain only ID
 and status because RC.5's standard factory otherwise copies PHI fields. Alert names are
-`edi.inbox.dead-letter`, `edi.ack.overdue` and `edi.ack.rejected` (RC.5 requires dotted names).
+`edi.inbox.dead-letter`, `edi.ack.overdue`, `edi.ack.rejected`, `edi.send.failed`,
+`edi.certificate.expiring` and `edi.certificate.expired` (RC.5 requires dotted names).
 
 RC.5 lacks the planned core `DataClassification` API. `EdiClassifications` marks PHI/PII/confidential
 fields and PHI fields deny AI exposure. Hosts must supply secured-data protection, database
 encryption at rest and access policies for PHI columns; markers alone do not mask fields.
 The home reports installed integration and storage state.
+
+## Outbound and transports
+
+Active OUTBOUND agreement documents select the source table, map, guide and trigger. RECORD_CHANGE
+uses core's instance listener and the writer's transaction. Source and EDI tables must share the
+backend. `triggerFilter` is a serialized QQQ `QQueryFilter`; MANUAL also honors that filter.
+RC.5 catches listener errors without failing the source write: successful enqueues roll back with
+the source transaction, but hosts must monitor failed listener execution.
+
+`edi_outbound_enqueue` is the ESB boundary. Configure an RC.5 `EsbTrigger` to invoke it with
+`sourceTableName`, `sourceRecordId` and `eventId`; broker setup belongs to the host. Event IDs are
+unique per agreement document. RC.5's consumer runner uses JMS, so broker-free acceptance calls
+this process directly.
+
+`edi_outbound_worker` and `edi_send_worker` run every 15 seconds when a scheduler is configured.
+IMMEDIATE produces one interchange per request. BATCH cuts up to 100 requests for one agreement
+document at its UTC `batchSchedule` into one group/interchange. Mapping/enveloping and sending
+use database row locks to fence replicas; crashes release the lock. Remote delivery is at least
+once: a lost connection after remote acceptance can resend the same bytes and control numbers.
+Retry waits are 1m, 5m, 15m, 1h, 3h, 6h, 12h, 24h, capped at the last delay; `maxAttempts` defaults
+to 8. Permanent transport rejection is FAILED; retry exhaustion is DEAD_LETTER. Both open a
+TRANSPORT exception and raise `edi.send.failed`.
+
+| Transport | Behavior and settings |
+| --- | --- |
+| GATEWAY | `gatewayEndpointName`; marked `FileGatewayOutbox` stand-in with a provider registration hook. Put is SENT; `EdiFileGatewayConsumer.onDownloaded` is DELIVERED. |
+| SFTP | MINA client from core's filesystem module; required `sftpHostKeyFingerprint` in MINA SHA256 format, username and password/private-key env name. Streams upload to `.tmp`, then rename. `sftpPollCron` schedules remote pickup; `sftpFilePattern` is a Java regex (default `.*\.x12`). DELETE/MOVE occurs only after durable inbox commit. |
+| HTTPS | POST with NONE/BASIC/BEARER/HMAC; TLS required except loopback. BASIC's secret is `user:password`; BEARER's is the token; HMAC uses core Standard Webhooks `whsec_` format. `httpsHeadersJson` holds nonsecret headers only. Redirects are refused; 2xx is DELIVERED, 429/5xx retry. |
+| AS2 / EMAIL | Settings validation only. Sending returns a permanent unavailable result until phase c / the email API. |
+
+Optional Javalin registers `POST /qqq/hooks/edi/https/{transport}`. `httpsInboundAuth` must be
+BASIC, BEARER or HMAC with `httpsSecretEnvVar`. It authenticates exact bytes, caps intake at
+50 MiB and returns 202 only after durable storage. HMAC verifies timestamps and deduplicates by
+transport plus webhook ID. TLS terminates at the host ingress.
+
+The transport registry is `EdiTransportPluginsMetaData`, attached to `QInstance`. Hosts can
+register/replace implementations with `withPlugin`. All transports open encrypted PayloadStore
+streams; production code never writes local files.
+
+Ack deadlines start on the first successful send. `edi_ack_monitor` runs every five minutes,
+raises overdue alerts and exceptions, and checks certificate expiry at 30/14/7 days and expiry.
+A functional ack resolves its alert and exception; TA1 updates interchange acknowledgement only.
+Resend retains archived bytes/control numbers. Resend As New re-envelopes the archived document
+without re-running its map and links `originalInterchangeId`. Cancel accepts QUEUED/RETRY_WAIT only.
+
+Existing a2 databases need `edi_interchange.original_interchange_id INTEGER` and a unique index
+on `edi_outbound_request(agreement_document_id, event_id)` in addition to their prior schema.
 
 ## Build and verification
 

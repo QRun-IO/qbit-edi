@@ -1,0 +1,82 @@
+{
+  "map": {
+    "name": "Sample 846 004010",
+    "direction": "OUTBOUND",
+    "standard": "X12",
+    "version": "004010",
+    "transactionSet": "846",
+    "tableName": "sample_inventory",
+    "businessKeyPath": "BIA03",
+    "businessKeyType": "RETAIL",
+    "revision": 1,
+    "status": "ACTIVE"
+  },
+  "rules": [
+    {
+      "ediPath": "BIA01",
+      "qqqPath": null,
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"00\"}",
+      "sequence": 1
+    },
+    {
+      "ediPath": "BIA02",
+      "qqqPath": null,
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"SI\"}",
+      "sequence": 2
+    },
+    {
+      "ediPath": "BIA03",
+      "qqqPath": "reportNumber",
+      "required": true,
+      "sequence": 3
+    },
+    {
+      "ediPath": "BIA04",
+      "qqqPath": "reportDate",
+      "required": false,
+      "transform": "DATE",
+      "sequence": 4
+    },
+    {
+      "ediPath": "LIN/LIN02",
+      "qqqPath": null,
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"VP\"}",
+      "sequence": 5
+    },
+    {
+      "ediPath": "LIN/LIN03",
+      "qqqPath": "sku",
+      "required": false,
+      "sequence": 6
+    },
+    {
+      "ediPath": "LIN/QTY01",
+      "qqqPath": null,
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"33\"}",
+      "sequence": 7
+    },
+    {
+      "ediPath": "LIN/QTY02",
+      "qqqPath": "quantity",
+      "required": false,
+      "transform": "DECIMAL",
+      "sequence": 8
+    },
+    {
+      "ediPath": "LIN/QTY03",
+      "qqqPath": null,
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"EA\"}",
+      "sequence": 9
+    }
+  ]
+}

@@ -31,6 +31,34 @@ import com.kingsrook.qqq.backend.core.model.data.QRecordEntity;
  *******************************************************************************/
 public class EdiInterchange extends QRecordEntity
 {
+   @QField(backendName = "original_interchange_id", possibleValueSourceName = "edi_interchange")
+   private Integer originalInterchangeId;
+
+   /*******************************************************************************
+    ** Original interchange for re-enveloped resends.
+    *******************************************************************************/
+   public Integer getOriginalInterchangeId()
+   {
+      return (originalInterchangeId);
+   }
+
+   /*******************************************************************************
+    ** Set the original interchange reference.
+    *******************************************************************************/
+   public void setOriginalInterchangeId(Integer value)
+   {
+      originalInterchangeId = value;
+   }
+
+   /*******************************************************************************
+    ** Fluent original interchange reference.
+    *******************************************************************************/
+   public EdiInterchange withOriginalInterchangeId(Integer value)
+   {
+      originalInterchangeId = value;
+      return (this);
+   }
+
    public static final String TABLE_NAME = "edi_interchange";
 
    @QField(backendName = "inbound_position")
@@ -54,7 +82,7 @@ public class EdiInterchange extends QRecordEntity
    @QField(backendName = "inbox_id", possibleValueSourceName = "edi_inbox")
    private Integer inboxId;
 
-   @QField(backendName = "outbound_message_id")
+   @QField(backendName = "outbound_message_id", possibleValueSourceName = "edi_outbound_message")
    private Integer outboundMessageId;
 
    @QField(backendName = "standard", maxLength = 255, possibleValueSourceName = "edi_standard")

@@ -103,7 +103,9 @@ public final class EdiRuntime
       {
          LOG.warn("EDI database payload storage is enabled; object storage is recommended for production");
       }
-      return (guides.load());
+      var ids = guides.load();
+      com.kingsrook.qbits.edi.processes.OutboundProcesses.installSchedules();
+      return (ids);
    }
 
    /*******************************************************************************

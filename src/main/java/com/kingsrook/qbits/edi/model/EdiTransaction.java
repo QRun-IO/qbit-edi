@@ -93,7 +93,7 @@ public class EdiTransaction extends QRecordEntity
    @QField(backendName = "guide_revision")
    private Integer guideRevision;
 
-   @QField(backendName = "map_id")
+   @QField(backendName = "map_id", possibleValueSourceName = "edi_map")
    private Integer mapId;
 
    @QField(backendName = "map_revision")

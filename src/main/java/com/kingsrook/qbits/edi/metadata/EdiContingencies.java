@@ -68,6 +68,11 @@ public final class EdiContingencies
                filter = new QQueryFilter().withCriteria("transactionSet", QCriteriaOperator.EQUALS, "${input.transactionSet}")
                   .withCriteria("version", QCriteriaOperator.EQUALS, "${input.version}");
             }
+            if(table.getName().equals("edi_interchange") && field.getName().equals("originalInterchangeId"))
+            {
+               filter = new QQueryFilter().withCriteria("partnerId", QCriteriaOperator.EQUALS, "${input.partnerId}")
+                  .withCriteria("agreementId", QCriteriaOperator.EQUALS, "${input.agreementId}").withCriteria("direction", QCriteriaOperator.EQUALS, "OUTBOUND");
+            }
             if(filter != null)
             {
                field.withPossibleValueSourceFilter(filter);
