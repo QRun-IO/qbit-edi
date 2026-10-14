@@ -138,6 +138,7 @@ public class EdiQBitProducer implements QBitMetaDataProducer<EdiQBitConfig>
          .withPlugin(new com.kingsrook.qbits.edi.as2.As2Transport()).withPlugin(new com.kingsrook.qbits.edi.transport.UnavailableTransport("EMAIL")));
       try
       {
+         com.kingsrook.qbits.edi.api.EdiApi.register(instance);
          com.kingsrook.qqq.middleware.javalin.QJavalinMetaData.ofOrWithNew(instance).withAdditionalRouteProviderReference(
             new com.kingsrook.qqq.backend.core.model.metadata.code.QCodeReference(com.kingsrook.qbits.edi.transport.HttpsRouteProvider.class))
             .withAdditionalRouteProviderReference(new com.kingsrook.qqq.backend.core.model.metadata.code.QCodeReference(com.kingsrook.qbits.edi.as2.As2RouteProvider.class));

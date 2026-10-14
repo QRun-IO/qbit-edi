@@ -76,6 +76,57 @@ There are **26 persisted tables**, whose SQL names equal their QQQ names.
 appear as child lists. Partner-scoped form choices use RC.6 contingent filters, including shared
 transports/guides and local certificates/identities.
 
+## UI API
+
+With optional Javalin present, the producer registers the `edi` extension, version `1.0.0`,
+under `/qqq/v1/qbit/edi`. All routes are endpoint specs and pass strict UI-route auditing.
+
+| Method | Path after `/qqq/v1/qbit/edi` | Result |
+|---|---|---|
+| GET | `/guides/{guideId}/tree` | Nested loops, ordered segments, elements and up to 200 active codes per element |
+| GET | `/maps/{mapId}/target` | Target fields, direct associations, current rules and registered transform argument schemas |
+| POST | `/sandbox/preview` | Parse counts, positional findings, acknowledgement, mapped records and revision/expected diffs |
+| POST | `/maps/{mapId}/validate` | Per-rule path, transform and required-argument errors |
+
+Preview accepts `{mapId, sampleId?, sampleBase64?, sampleName?, ruleOverrides?, guideRevision?}`.
+Supply exactly one sample source. Uploads are base64 JSON, at most **5 MiB decoded**, archived as
+encrypted `edi_map_sample` records through the same storage as Preview Map. No runtime files are
+created. Configure the host's Javalin `http.maxRequestSize` to at least 8 MiB to allow base64
+overhead and request metadata. Oversized decoded samples return 400; a smaller host limit returns 413.
+
+`ruleOverrides` replaces the entire rule list in memory, including an empty list; it never saves
+rules. `CURRENT` (default) selects the newest active revision of the pinned guide's name, standard,
+version, transaction set and partner; `ORIGINAL` uses the map's pinned guide. Validate accepts
+`{rules: [...]}` and checks the pinned guide. Rule fields and `transformArgs` have the same shape
+as core table CRUD (`transformArgs` is a JSON object encoded as a string).
+
+Every read enforces table permissions and partner locks with the caller's session, regardless of
+the host's default core-enforcement setting. Preview additionally requires **`edi.map.preview`**,
+shared with both Preview Map record actions. Reading target metadata requires target/association
+table read permissions; guide definitions, code lists, map rules and stored samples require their
+own table reads. LOOKUP and host transforms run as the caller, without service-account elevation.
+Only the internal PHI classification check and encrypted sample storage use the EDI system writer.
+
+For PHI, `result` and `ack.text` are null and both diff lists are empty; findings retain positions
+and codes with generic messages. Mapping failures are value-free `MAP` findings. Preview never
+writes target records. Diffs contain differing document records as `{documentIndex, before, after}`;
+acknowledgements for multiple groups are concatenated, with `type: MIXED` for different ack types.
+
+The mapper saves `edi_map_rule` through the **core table API**, using its normal
+`edi.map_rule.insert|edit|delete` permissions and record locks. There are no custom rule-write routes.
+The Next mapper page is separate phase-f work.
+
+The generated contract is `src/main/resources/openapi/qqq-v1/edi.yaml`; all component names are
+`Edi...V1`. Regenerate intentionally with:
+
+```powershell
+./mvnw.cmd -B '-Dtest=EdiApiContractTest' '-Dedi.openapi.update=true' test
+```
+
+RC.6 provides `UiApiContract.check`, used to compare generated and checked-in YAML and run
+`OpenApiCompatibilityChecker` against this initial fragment baseline. The extension also appears
+in the host's `/qqq/v1/openapi.yaml` and `/qqq/v1/version`.
+
 ## Inbound operation
 
 `InboundSink.receive(InboundPayload)` stores encrypted bytes and SHA-256 before returning a durable

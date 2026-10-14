@@ -576,16 +576,41 @@ upload is stored as a sample), and the standard Review/Result lines show:
 5. the diff against the previous map revision's result and against `expectedResultJson`.
 
 Nothing is written to target tables: the preview runs the whole pipeline with a no-op applier.
-Phase f adds spec'd endpoints (`POST /qqq/v1/qbit/edi/sandbox/preview` and related) for the mapper
-UI.
+Phase f1 provides the `edi` 1.0.0 `MiddlewareSpecExtension`, with component schemas named
+`Edi...V1` and a generated, contract-tested fragment at `openapi/qqq-v1/edi.yaml`:
 
-### 8.4 No-code mapper UI (phase f; specified now, built later)
+- `GET /qqq/v1/qbit/edi/guides/{guideId}/tree`
+- `GET /qqq/v1/qbit/edi/maps/{mapId}/target`
+- `POST /qqq/v1/qbit/edi/sandbox/preview`
+- `POST /qqq/v1/qbit/edi/maps/{mapId}/validate`
+
+Preview Map and the HTTP preview share `MapPreviewService`. HTTP preview takes `mapId`, exactly
+one of `sampleId`/`sampleBase64`, optional `sampleName`, a complete in-memory `ruleOverrides`
+replacement, and `guideRevision`. Uploads are limited to 5 MiB decoded and stored encrypted as
+samples; the host must allow at least 8 MiB HTTP bodies for base64 overhead. `CURRENT` (HTTP default)
+selects the newest active revision in the pinned guide family and partner; `ORIGINAL` uses the
+map's pinned guide, as the record action does.
+
+The response contains parse counts, positional findings, acknowledgement type/text, mapped records
+and associations, structured per-document diffs, and `phiSuppressed`. PHI returns null result/ack
+text, empty diffs and generic finding messages. Mapping errors are value-free `MAP` findings.
+The preview action permission is exactly `edi.map.preview`, with no `.hasAccess` suffix.
+Guide, sample and rule reads explicitly enforce permissions and record locks; transforms run in
+the caller session. Only classification and encrypted sample storage use the internal system writer.
+
+### 8.4 No-code mapper UI (phase f1 API built; Next page follows)
 A custom Next UI page (custom UIs may be nav entries):
 - left, the guide tree (loops, segments, elements with usage and code lists); right, the target
   table's fields and associations; drag to create a rule, then choose a transform;
 - a live preview pane on a chosen sample (the sandbox endpoint), with errors inline;
 - revisions: edit a DRAFT, activate, compare revisions;
-- reads and writes only through `/qqq/v1` (CRUD on `edi_map_rule` plus the extension endpoints).
+- reads and writes only through `/qqq/v1`: the guide-tree and map-target GETs above, the sandbox
+  preview POST and the map validate POST; writes remain core CRUD on `edi_map_rule`, enforcing
+  `edi.map_rule.insert|edit|delete` and record locks.
+- target metadata includes direct associations and transform argument JSON Schemas from the
+  registry. Validate accepts `{rules: [...]}`, returns indexed per-rule errors against the pinned
+  guide/target and never executes transforms or saves rules. Guide code lists return at most
+  200 active codes per element.
 
 ## 9. Flows
 

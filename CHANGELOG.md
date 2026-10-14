@@ -6,6 +6,11 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic
 
 ### Added
 
+- Phase f1 `edi` 1.0.0 spec'd UI API: guide tree, map target/transform metadata, encrypted base64 sample preview with unsaved rule overrides, and per-rule validation under `/qqq/v1/qbit/edi`.
+- Versioned `Edi...V1` schemas and generated OpenAPI fragment with the RC.6 contract/compatibility checks; real HTTP strict-mode permission, PHI, upload, isolation and validation tests.
+- Shared sandbox/record-action preview service, current/original guide selection, caller-session transforms, structured revision/expected diffs and value-free PHI diagnostics.
+- Transform registry argument schemas, including host-supplied schemas. Preview Map record actions now enforce the documented exact `edi.map.preview` permission through core's full-name permission checker.
+
 - Phase g EDIFACT syntax 3/4 envelopes (UNA/UNB, optional UNG/UNE, UNH/UNT, UNZ), release escaping, native envelope findings, UNB identity routing, 14-digit UN control allocation and duplicate detection.
 - Original D96A/D01B ORDERS, ORDRSP, DESADV, INVOIC and CONTRL guides; ORDERS inbound and retail response outbound sample maps with composite fields and segment groups.
 - Standard-neutral document validation/mapping, mixed X12/EDIFACT inbox framing, CONTRL generation and reconciliation with overdue resolution and rejection alerts, native outbound envelopes and archived resend-as-new.
