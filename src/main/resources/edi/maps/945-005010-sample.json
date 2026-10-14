@@ -1,0 +1,215 @@
+{
+  "map": {
+    "name": "Sample 945 005010",
+    "direction": "OUTBOUND",
+    "standard": "X12",
+    "version": "005010",
+    "transactionSet": "945",
+    "tableName": "sample_wms_shipment",
+    "businessKeyPath": "W0602",
+    "businessKeyType": "WMS",
+    "revision": 1,
+    "status": "ACTIVE"
+  },
+  "rules": [
+    {
+      "sequence": 1,
+      "ediPath": "W0601",
+      "qqqPath": null,
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"F\"}"
+    },
+    {
+      "sequence": 2,
+      "ediPath": "W0602",
+      "qqqPath": "orderNumber",
+      "required": true
+    },
+    {
+      "sequence": 3,
+      "ediPath": "W0603",
+      "qqqPath": "shippedAt",
+      "required": true,
+      "transform": "DATEPART",
+      "transformArgs": "{\"timezone\": \"America/Chicago\"}"
+    },
+    {
+      "sequence": 4,
+      "ediPath": "W0604",
+      "qqqPath": "shipmentNumber",
+      "required": false
+    },
+    {
+      "sequence": 5,
+      "ediPath": "W0606",
+      "qqqPath": "poNumber",
+      "required": false
+    },
+    {
+      "sequence": 6,
+      "ediPath": "N1/N101",
+      "qqqPath": null,
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"ST\"}"
+    },
+    {
+      "sequence": 7,
+      "ediPath": "N1/N102",
+      "qqqPath": "shipToName",
+      "required": false
+    },
+    {
+      "sequence": 8,
+      "ediPath": "N1/N301",
+      "qqqPath": "shipToAddress",
+      "required": false
+    },
+    {
+      "sequence": 9,
+      "ediPath": "N1/N401",
+      "qqqPath": "shipToCity",
+      "required": false
+    },
+    {
+      "sequence": 10,
+      "ediPath": "N1/N402",
+      "qqqPath": "shipToState",
+      "required": false
+    },
+    {
+      "sequence": 11,
+      "ediPath": "N1/N403",
+      "qqqPath": "shipToPostal",
+      "required": false
+    },
+    {
+      "sequence": 12,
+      "ediPath": "G6201",
+      "qqqPath": null,
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"11\"}"
+    },
+    {
+      "sequence": 13,
+      "ediPath": "G6202",
+      "qqqPath": "shippedAt",
+      "required": false,
+      "transform": "DATEPART",
+      "transformArgs": "{\"timezone\": \"America/Chicago\"}"
+    },
+    {
+      "sequence": 14,
+      "ediPath": "G6203",
+      "qqqPath": null,
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"Y\"}"
+    },
+    {
+      "sequence": 15,
+      "ediPath": "G6204",
+      "qqqPath": "shippedAt",
+      "required": false,
+      "transform": "TIMEPART",
+      "transformArgs": "{\"timezone\": \"America/Chicago\"}"
+    },
+    {
+      "sequence": 16,
+      "ediPath": "W2701",
+      "qqqPath": null,
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"M\"}"
+    },
+    {
+      "sequence": 17,
+      "ediPath": "W2702",
+      "qqqPath": "carrierScac",
+      "required": false
+    },
+    {
+      "sequence": 18,
+      "ediPath": "W2703",
+      "qqqPath": "routing",
+      "required": false
+    },
+    {
+      "sequence": 19,
+      "ediPath": "LX[*]/LX01",
+      "qqqPath": "lines.lineNumber",
+      "required": false,
+      "transform": "SEQUENCE"
+    },
+    {
+      "sequence": 20,
+      "ediPath": "LX[*]/W1201",
+      "qqqPath": "lines.statusCode",
+      "required": false
+    },
+    {
+      "sequence": 21,
+      "ediPath": "LX[*]/W1202",
+      "qqqPath": "lines.orderedQuantity",
+      "required": false,
+      "transform": "DECIMAL"
+    },
+    {
+      "sequence": 22,
+      "ediPath": "LX[*]/W1203",
+      "qqqPath": "lines.shippedQuantity",
+      "required": false,
+      "transform": "DECIMAL"
+    },
+    {
+      "sequence": 23,
+      "ediPath": "LX[*]/W1204",
+      "qqqPath": "lines.shortQuantity",
+      "required": false,
+      "transform": "DECIMAL"
+    },
+    {
+      "sequence": 24,
+      "ediPath": "LX[*]/W1205",
+      "qqqPath": "lines.unit",
+      "required": false
+    },
+    {
+      "sequence": 25,
+      "ediPath": "LX[*]/W1207",
+      "qqqPath": "lines.sku",
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"VN\"}"
+    },
+    {
+      "sequence": 26,
+      "ediPath": "LX[*]/W1208",
+      "qqqPath": "lines.sku",
+      "required": false
+    },
+    {
+      "sequence": 27,
+      "ediPath": "LX[*]/MAN01",
+      "qqqPath": "lines.sscc",
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"GM\"}"
+    },
+    {
+      "sequence": 28,
+      "ediPath": "LX[*]/MAN02",
+      "qqqPath": "lines.sscc",
+      "required": false
+    },
+    {
+      "sequence": 29,
+      "ediPath": "W0301",
+      "qqqPath": "totalUnits",
+      "required": true,
+      "transform": "DECIMAL"
+    }
+  ]
+}

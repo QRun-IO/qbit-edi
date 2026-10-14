@@ -1,0 +1,218 @@
+{
+  "map": {
+    "name": "Sample 204 004010 outbound",
+    "direction": "OUTBOUND",
+    "standard": "X12",
+    "version": "004010",
+    "transactionSet": "204",
+    "tableName": "sample_load",
+    "businessKeyPath": "B204",
+    "businessKeyType": "LOAD",
+    "revision": 1,
+    "status": "ACTIVE"
+  },
+  "rules": [
+    {
+      "sequence": 1,
+      "ediPath": "B202",
+      "qqqPath": "carrierScac",
+      "required": true
+    },
+    {
+      "sequence": 2,
+      "ediPath": "B204",
+      "qqqPath": "shipmentId",
+      "required": true
+    },
+    {
+      "sequence": 3,
+      "ediPath": "B206",
+      "qqqPath": "paymentMethod",
+      "required": true
+    },
+    {
+      "sequence": 4,
+      "ediPath": "B2A01",
+      "qqqPath": "purpose",
+      "required": true,
+      "transform": "CODE",
+      "transformArgs": "{\"ORIGINAL\": \"00\", \"CHANGE\": \"04\", \"CANCEL\": \"01\"}"
+    },
+    {
+      "sequence": 5,
+      "ediPath": "B2A02",
+      "qqqPath": null,
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"LT\"}"
+    },
+    {
+      "sequence": 6,
+      "ediPath": "L1101",
+      "qqqPath": "bolNumber",
+      "required": false
+    },
+    {
+      "sequence": 7,
+      "ediPath": "L1102",
+      "qqqPath": "bolNumber",
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"BM\"}"
+    },
+    {
+      "sequence": 8,
+      "ediPath": "MS301",
+      "qqqPath": "carrierScac",
+      "required": false
+    },
+    {
+      "sequence": 9,
+      "ediPath": "MS302",
+      "qqqPath": null,
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"B\"}"
+    },
+    {
+      "sequence": 10,
+      "ediPath": "MS304",
+      "qqqPath": null,
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"M\"}"
+    },
+    {
+      "sequence": 11,
+      "ediPath": "N1/N101",
+      "qqqPath": null,
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"BT\"}"
+    },
+    {
+      "sequence": 12,
+      "ediPath": "N1/N102",
+      "qqqPath": "billToName",
+      "required": false
+    },
+    {
+      "sequence": 13,
+      "ediPath": "S5[*]/S501",
+      "qqqPath": "stops.stopSequence",
+      "required": true
+    },
+    {
+      "sequence": 14,
+      "ediPath": "S5[*]/S502",
+      "qqqPath": "stops.stopReason",
+      "required": true
+    },
+    {
+      "sequence": 15,
+      "ediPath": "S5[*]/S503",
+      "qqqPath": "stops.weight",
+      "required": false,
+      "transform": "DECIMAL"
+    },
+    {
+      "sequence": 16,
+      "ediPath": "S5[*]/S504",
+      "qqqPath": "stops.weight",
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"L\"}"
+    },
+    {
+      "sequence": 17,
+      "ediPath": "S5[*]/G6201",
+      "qqqPath": "stops.stopReason",
+      "required": false,
+      "transform": "CODE",
+      "transformArgs": "{\"LD\": \"10\", \"UL\": \"02\"}"
+    },
+    {
+      "sequence": 18,
+      "ediPath": "S5[*]/G6202",
+      "qqqPath": "stops.appointmentAt",
+      "required": false,
+      "transform": "DATEPART",
+      "transformArgs": "{\"timezone\": \"America/Chicago\"}"
+    },
+    {
+      "sequence": 19,
+      "ediPath": "S5[*]/G6203",
+      "qqqPath": "stops.appointmentAt",
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"Y\"}"
+    },
+    {
+      "sequence": 20,
+      "ediPath": "S5[*]/G6204",
+      "qqqPath": "stops.appointmentAt",
+      "required": false,
+      "transform": "TIMEPART",
+      "transformArgs": "{\"timezone\": \"America/Chicago\"}"
+    },
+    {
+      "sequence": 21,
+      "ediPath": "S5[*]/S5N1/N101",
+      "qqqPath": "stops.stopReason",
+      "required": false,
+      "transform": "CODE",
+      "transformArgs": "{\"LD\": \"SF\", \"UL\": \"ST\"}"
+    },
+    {
+      "sequence": 22,
+      "ediPath": "S5[*]/S5N1/N102",
+      "qqqPath": "stops.name",
+      "required": false
+    },
+    {
+      "sequence": 23,
+      "ediPath": "S5[*]/S5N1/N301",
+      "qqqPath": "stops.address",
+      "required": false
+    },
+    {
+      "sequence": 24,
+      "ediPath": "S5[*]/S5N1/N401",
+      "qqqPath": "stops.city",
+      "required": false
+    },
+    {
+      "sequence": 25,
+      "ediPath": "S5[*]/S5N1/N402",
+      "qqqPath": "stops.state",
+      "required": false
+    },
+    {
+      "sequence": 26,
+      "ediPath": "S5[*]/S5N1/N403",
+      "qqqPath": "stops.postal",
+      "required": false
+    },
+    {
+      "sequence": 27,
+      "ediPath": "S5[*]/OID/OID01",
+      "qqqPath": "stops.orderNumber",
+      "required": false
+    },
+    {
+      "sequence": 28,
+      "ediPath": "L301",
+      "qqqPath": "totalWeight",
+      "required": false,
+      "transform": "DECIMAL"
+    },
+    {
+      "sequence": 29,
+      "ediPath": "L302",
+      "qqqPath": null,
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"G\"}"
+    }
+  ]
+}
