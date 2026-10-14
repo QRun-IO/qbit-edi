@@ -1,0 +1,148 @@
+bundle: qbit-edi
+version: 1
+layer: QBIT
+# Help for the EDI app and every edi_* table, in the QQQ help-bundle format
+# (qqq#1198). Each table entry says what the table is for and how its rows get
+# created, so an empty table explains itself. EdiHelp applies it until the core
+# HelpBundles registry ships in a QQQ release.
+# Summaries stay under 120 characters (EdiTablesGuardrailTest).
+entries:
+  - key: app:edi;slot:help
+    summary: "Exchange X12 and EDIFACT documents with trading partners: set up, then watch the activity."
+    content: |
+      Built-in guides and code lists load at startup. You set up the rest in this order: 1) a Partner; 2) Identities, one for your own ISA or UNB ID (no partner) and one for the partner; 3) an Agreement that pairs the two identities for a standard and usage (test or production); 4) Agreement Documents, one per transaction set and direction, with the guide and optionally a map; 5) a Transport (AS2, SFTP, HTTPS) and link it on the agreement. Certificates are only needed for AS2 signing and encryption. The Setup status section on the home shows which step is next. Everything after that (inbox, interchanges, transactions, exceptions, outbound messages) is written by the system as documents flow.
+
+  - key: table:edi_partner;slot:help
+    summary: "A trading partner you exchange documents with. The first setup step: identities, agreements and transports hang off it."
+    content: |
+      **How rows get created:** an administrator adds one with New: a name and a short code. It is host data, so it starts empty. Next add the partner's identity and your own, then an agreement.
+
+  - key: table:edi_identity;slot:help
+    summary: "An interchange identity: qualifier and ID (ISA or UNB). Yours has no partner; each partner has its own."
+    content: |
+      **How rows get created:** an administrator adds them with New, after the partner. Add one with no partner for your own ID, and one per partner for theirs. Inbound documents are routed by matching these qualifiers and IDs, so they must match what the partner sends exactly. It is host data and starts empty.
+
+  - key: table:edi_agreement;slot:help
+    summary: "The agreement with one partner: your identity, theirs, the standard, test or production, separators and acks."
+    content: |
+      **How rows get created:** an administrator adds one with New after the partner and both identities exist: pick your identity, the partner's identity, the standard and the usage indicator. Then set the inbound and outbound transports and add its documents. Without an agreement, inbound documents from that sender are rejected as unknown. It is host data and starts empty.
+
+  - key: table:edi_agreement_document;slot:help
+    summary: "One document type on an agreement: transaction set, version, direction, guide, map and acknowledgement rules."
+    content: |
+      **How rows get created:** an administrator adds one per transaction set and direction with New, after the agreement: pick the set, version and direction, then the guide (built-in guides are ready) and the map that turns it into records. A document with no row here is not processed. It is host data and starts empty.
+
+  - key: table:edi_control_number;slot:help
+    summary: "The last interchange, group or document control number sent, per agreement or identity scope."
+    content: |
+      **How rows get created:** automatically, the first time a document is sent for a scope; the system then advances the number on every send. An administrator edits the last value only to resume numbering after a partner or system change.
+
+  - key: table:edi_transport;slot:help
+    summary: "How documents travel to and from a partner: AS2, SFTP, HTTPS or a gateway, with secrets as variable names."
+    content: |
+      **How rows get created:** an administrator adds one with New, after the partner: pick the type and fill in its address and the NAMES of the environment variables holding passwords or keys (secrets are never stored). Then link it on the agreement as the inbound or outbound transport and run "Test Connection". It is host data and starts empty.
+
+  - key: table:edi_certificate;slot:help
+    summary: "Certificates for AS2 signing and encryption: yours and your partners', with expiry tracking."
+    content: |
+      **How rows get created:** an administrator adds one with New: paste a partner's public certificate, or register your own with the environment variable NAMES that hold its private key. Only AS2 needs them. Expiring certificates raise an alert, and "Promote Certificate" switches a NEXT certificate to current. It is host data and starts empty.
+
+  - key: table:edi_guide;slot:help
+    summary: "Implementation guides: the segments, elements and rules a document is validated against."
+    content: |
+      **How rows get created:** the qbit installs 41 built-in guides (X12 004010 and 005010, EDIFACT D96A and D01B, HIPAA) when the host starts, and updates them when the qbit changes. Built-ins are read-only: use "Create Partner Override" to copy one for a partner, edit the draft, then "Activate Guide".
+
+  - key: table:edi_guide_segment;slot:help
+    summary: "The segments of a guide, in order, with usage, repeat limits and loop position."
+    content: |
+      **How rows get created:** automatically with the guide, when a built-in guide loads or a partner override is created. Edit them only on a draft override.
+
+  - key: table:edi_guide_element;slot:help
+    summary: "The elements of a guide segment: data type, length, usage and the code list it is checked against."
+    content: |
+      **How rows get created:** automatically with the guide, when a built-in guide loads or a partner override is created. Edit them only on a draft override.
+
+  - key: table:edi_guide_rule;slot:help
+    summary: "Conditional rules in a guide, such as required-if and exclusion rules, evaluated during validation."
+    content: |
+      **How rows get created:** automatically with the guide, when a built-in guide loads or a partner override is created. Edit them only on a draft override.
+
+  - key: table:edi_code_list;slot:help
+    summary: "Code lists that guide elements are validated against, such as qualifiers and status codes."
+    content: |
+      **How rows get created:** the qbit installs them with its built-in guides when the host starts. An administrator can add a list for a partner override with New.
+
+  - key: table:edi_code_list_value;slot:help
+    summary: "The allowed values of a code list, with descriptions."
+    content: |
+      **How rows get created:** the qbit installs them with its built-in guides when the host starts. An administrator can add values to a list on a partner override with New.
+
+  - key: table:edi_map;slot:help
+    summary: "A versioned map between a document and a QQQ table: which record each document becomes, or is built from."
+    content: |
+      **How rows get created:** run "Install sample maps" to add the bundled synthetic examples (one per built-in document and version, as drafts, bound to nothing), or add your own with New. Point the map at your own table, adjust its rules, use "Preview Map" with a synthetic sample, then "Activate Map" and select it on the agreement document. Never use real PHI in samples.
+
+  - key: table:edi_map_rule;slot:help
+    summary: "One field rule of a map: an EDI path, the QQQ field it fills, an optional transform and condition."
+    content: |
+      **How rows get created:** "Install sample maps" adds the rules of each sample, or an administrator adds them with New on a draft map. Active maps are read-only; make a new revision to change one.
+
+  - key: table:edi_map_sample;slot:help
+    summary: "Synthetic documents used to preview a map and record the last preview result."
+    content: |
+      **How rows get created:** run "Preview Map" on a map and upload a synthetic sample document; the sample is saved here with its preview status. Never upload real PHI. It starts empty.
+
+  - key: table:edi_inbox;slot:help
+    summary: "Every inbound file or message received, before it is processed, with its status and raw document."
+    content: |
+      **How rows get created:** automatically, when a transport receives a document: the AS2, HTTPS or file-gateway endpoints, or an SFTP poll. A worker then parses it into interchanges. It starts empty and is never typed in; "Reprocess" re-runs a document.
+
+  - key: table:edi_payload;slot:help
+    summary: "Encrypted raw document bytes, used when payload storage is the database instead of object storage."
+    content: |
+      **How rows get created:** automatically, only when the host sets payload storage to DATABASE (demos and tests). Production hosts use object storage and this table stays empty.
+
+  - key: table:edi_interchange;slot:help
+    summary: "One interchange (ISA or UNB envelope) sent or received, with its status and the agreement it matched."
+    content: |
+      **How rows get created:** automatically, when an inbound document is parsed and when an outbound document is enveloped. It starts empty; use "Reprocess", "Resend" or "Download Raw Document" on a row.
+
+  - key: table:edi_functional_group;slot:help
+    summary: "A functional group (GS) inside an interchange, with the acknowledgement it expects or sent."
+    content: |
+      **How rows get created:** automatically, with each interchange. The home shows groups whose expected acknowledgement is overdue.
+
+  - key: table:edi_transaction;slot:help
+    summary: "One document (ST or UNH) inside a group: its transaction set, status and the record it became."
+    content: |
+      **How rows get created:** automatically, as each document is validated and mapped (inbound) or built (outbound). It starts empty; "Reprocess" re-runs a document after a map or guide change.
+
+  - key: table:edi_transaction_error;slot:help
+    summary: "A validation finding on a document: the segment, element, code and message."
+    content: |
+      **How rows get created:** automatically, when validation against the guide finds a problem in a document. They feed the 997, 999 and CONTRL acknowledgements.
+
+  - key: table:edi_exception;slot:help
+    summary: "Problems that need a person: failed parses, rejected acks, dead letters and transport failures."
+    content: |
+      **How rows get created:** automatically, when processing fails or an acknowledgement is rejected or overdue. Work them from the home queue: "Assign", "Ignore" or "Mark Resolved". It starts empty, which is good.
+
+  - key: table:edi_event;slot:help
+    summary: "Audit trail of what happened to a document: received, parsed, validated, sent, delivered and so on."
+    content: |
+      **How rows get created:** automatically, at each step of processing and when a raw document is downloaded. It is an append-only audit log shown on the interchange record, and is never edited.
+
+  - key: table:edi_as2_mdn;slot:help
+    summary: "AS2 delivery receipts (MDNs) sent and received, with the disposition and signature check."
+    content: |
+      **How rows get created:** automatically, by the AS2 endpoint: one when an MDN arrives for a message you sent (it settles that message as delivered or failed) and one for each MDN you send. It is read-only and used to ignore duplicate receipts. It starts empty and only AS2 transports use it.
+
+  - key: table:edi_outbound_request;slot:help
+    summary: "A request to send a host record as an EDI document, waiting to be built into an interchange."
+    content: |
+      **How rows get created:** automatically, when a record in a table the host lists for sending is created or changed, or when someone runs "Send As EDI" on a row. A worker builds the document and queues it as an outbound message.
+
+  - key: table:edi_outbound_message;slot:help
+    summary: "The outbound queue: each interchange waiting to send, its attempts, delivery status and MDN."
+    content: |
+      **How rows get created:** automatically, when a document is built for sending. A worker sends it over the agreement's transport, retries on failure, and marks it delivered when the acknowledgement or MDN arrives. Use "Resend" or "Cancel" on a row.

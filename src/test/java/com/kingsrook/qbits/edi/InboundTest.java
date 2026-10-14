@@ -744,4 +744,32 @@ class InboundTest
       assertThat(rows("sample_order_line")).isEmpty();
       assertThat(rows("edi_exception")).extracting(r -> r.getValueString("type")).contains("APPLY");
    }
+
+   /*******************************************************************************
+    ** An inactive identity stops X12 routing, as it does for EDIFACT.
+    *******************************************************************************/
+   @Test
+   void inactiveIdentityStopsX12Routing() throws Exception
+   {
+      setup("004010");
+      QRecord remote = rows("edi_identity").stream().filter(r -> r.getValue("partnerId") != null).findFirst().orElseThrow();
+      SystemWrites.call(() ->
+      {
+         SystemWrites.update("edi_identity", new QRecord().withValue("id", remote.getValue("id")).withValue("isActive", false));
+         return (null);
+      });
+      receive(raw(), "inactive");
+      new InboxWorker().runOnce();
+      assertThat(rows("sample_order")).isEmpty();
+      assertThat(rows("edi_exception")).extracting(r -> r.getValueString("type")).contains("UNKNOWN_PARTNER");
+
+      SystemWrites.call(() ->
+      {
+         SystemWrites.update("edi_identity", new QRecord().withValue("id", remote.getValue("id")).withValue("isActive", true));
+         return (null);
+      });
+      receive(Synthetic850.generate(18, "004010", X12Separators.DEFAULT), "active");
+      new InboxWorker().runOnce();
+      assertThat(rows("sample_order")).hasSize(1);
+   }
 }

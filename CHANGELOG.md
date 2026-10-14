@@ -4,7 +4,16 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic
 
 ## [Unreleased]
 
+### Changed
+
+- X12 routing and sending honor identity `isActive`, matching EDIFACT.
+
 ### Added
+
+- Help bundle `help/qbit-edi.yaml` (stand-in for qqq#1198): every table and the app say what they are for and how rows get created, including the setup order, so an empty table explains itself.
+- Setup status section on the EDI home (partner, identities, agreement, agreement documents, transport, certificates, guides, maps) with the next step; it counts only the active rows the runtime uses.
+- "Install sample maps" action on Maps: standard streamed ETL, insert-only by name, installs the 32 bundled synthetic maps as draft, unbound maps bound to the built-in guide.
+- `EdiTablesGuardrailTest`: every table is used at runtime, seeded or listed as starting empty, and has help.
 
 - Phase f1 `edi` 1.0.0 spec'd UI API: guide tree, map target/transform metadata, encrypted base64 sample preview with unsaved rule overrides, and per-rule validation under `/qqq/v1/qbit/edi`.
 - Versioned `Edi...V1` schemas and generated OpenAPI fragment with the RC.6 contract/compatibility checks; real HTTP strict-mode permission, PHI, upload, isolation and validation tests.

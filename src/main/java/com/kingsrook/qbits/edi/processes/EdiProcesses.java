@@ -88,6 +88,7 @@ public final class EdiProcesses
       result.add(action("edi_guide", "override", "Create Partner Override", "edi.guide.override"));
       result.add(action("edi_guide", "activate", "Activate Guide", "edi.guide.activate"));
       result.add(action("edi_map", "activate", "Activate Map", "edi.map.activate"));
+      result.add(InstallSampleMapsProcess.process());
       QProcessMetaData scheduled = new QProcessMetaData().withName("edi_inbox_worker").withLabel("Process Inbox").withIsHidden(true)
          .withPermissionRules(permission("edi.admin")).withStep(new QBackendStepMetaData().withName("run").withCode(new QCodeReference(WorkerStep.class)));
       if(config.getSchedulerName() != null)
