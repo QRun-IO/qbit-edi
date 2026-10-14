@@ -167,6 +167,29 @@ synthetic EDI on the standard Review step. Browser uploads require the host's RC
 staging. The alias encrypts streams and persists samples; this process accepts no filesystem archive.
 Samples must contain synthetic data only.
 
+## Setup and starter data
+
+No Liquibase changelog or host include is needed: the qbit seeds its own reference data. When the
+host calls `EdiRuntime.initialize()` at startup (after the schema exists) the 41 built-in guides
+load, with their segments, elements, rules, code lists and code values. It only changes a guide when
+the bundled content changes, so edits to your own rows are kept.
+
+Everything else is host or runtime data, and every table explains itself when empty (help bundle
+`help/qbit-edi.yaml`). Set up in this order:
+
+1. Partner.
+2. Identities: one of yours (no partner) and one per partner.
+3. Agreement: pairs your identity with the partner's, for a standard and test or production.
+4. Agreement documents: one per transaction set and direction, with the guide and optionally a map.
+5. Transport (AS2, SFTP, HTTPS), linked on the agreement. Certificates only for AS2 signing and encryption.
+
+The **Setup status** section on the home shows each step, whether it is done (counting only the
+active rows the runtime uses) and the next step.
+
+Maps start empty. The **Install sample maps** action on Maps adds the 32 bundled synthetic examples
+as draft maps with no partner and no agreement document, by name and never over an existing map. Point
+a map at your own table, preview it, activate it, then select it on an agreement document.
+
 ## Permissions
 
 Full table permissions include `edi.partner.read|insert|edit|delete`, `edi.map.*`,

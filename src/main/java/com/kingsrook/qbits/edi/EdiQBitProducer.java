@@ -130,6 +130,7 @@ public class EdiQBitProducer implements QBitMetaDataProducer<EdiQBitConfig>
       MetaDataProducerMultiOutput output = QBitMetaDataProducer.super.produce(instance);
       output.addSelfToInstance(instance);
       EdiRuntime.install(instance, qBitConfig);
+      com.kingsrook.qbits.edi.metadata.EdiHelp.apply(instance, qBitConfig.getAppName());
       instance.withSupplementalMetaData(new com.kingsrook.qbits.edi.metadata.EdiRecordLabels());
       instance.withRecordChangeListener(new com.kingsrook.qqq.backend.core.model.metadata.code.QCodeReference(com.kingsrook.qbits.edi.flow.OutboundEnqueue.class));
       instance.withSupplementalMetaData(new com.kingsrook.qbits.edi.transport.EdiTransportPluginsMetaData()

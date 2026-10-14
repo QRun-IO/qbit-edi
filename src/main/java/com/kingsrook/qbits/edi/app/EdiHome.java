@@ -69,7 +69,7 @@ public class EdiHome extends AbstractWidgetRenderer
    public static final List<String> SETUP = List.of("edi_partner", "edi_agreement", "edi_transport", "edi_certificate", "edi_guide", "edi_code_list", "edi_map");
    private static final Map<String, String> LABELS = new LinkedHashMap<>();
    private static final Map<String, String> DOCUMENT_NAMES = new HashMap<>();
-   private static final List<String> TABLES = List.of("queue", "acks", "errors", "volume", "system");
+   private static final List<String> TABLES = List.of("setup", "queue", "acks", "errors", "volume", "system");
 
    static
    {
@@ -85,6 +85,7 @@ public class EdiHome extends AbstractWidgetRenderer
       LABELS.put("overdue", "Overdue acks");
       LABELS.put("dead", "Dead letters");
       LABELS.put("certificates", "Certificates expiring (30 days)");
+      LABELS.put("setup", "Setup status");
       LABELS.put("queue", "Exception queue");
       LABELS.put("acks", "Overdue acknowledgements");
       LABELS.put("errors", "Recent errors (24 hours)");
@@ -138,6 +139,7 @@ public class EdiHome extends AbstractWidgetRenderer
          case "dead" -> count("edi_exception", openExceptions().withCriteria("type", QCriteriaOperator.IN, "DEAD_LETTER", "TRANSPORT"));
          case "certificates" -> count("edi_certificate", new QQueryFilter().withCriteria("notAfter", QCriteriaOperator.LESS_THAN_OR_EQUALS, now.plus(30, ChronoUnit.DAYS))
             .withCriteria("status", QCriteriaOperator.EQUALS, "ACTIVE"));
+         case "setup" -> setup();
          case "queue" -> queue(now);
          case "acks" -> acks(now);
          case "errors" -> errors(now);
@@ -187,6 +189,48 @@ public class EdiHome extends AbstractWidgetRenderer
    private static QQueryFilter overdueAcks(Instant now)
    {
       return (new QQueryFilter().withCriteria("ackStatus", QCriteriaOperator.EQUALS, "PENDING").withCriteria("ackDueAt", QCriteriaOperator.LESS_THAN, now));
+   }
+
+
+
+   /*******************************************************************************
+    ** The setup steps in order, with their status and the next step. Counts are
+    ** taken as the viewer; a table the viewer cannot read shows as not visible.
+    *******************************************************************************/
+   private static RenderWidgetOutput setup() throws QException
+   {
+      QQueryFilter active = new QQueryFilter().withCriteria("isActive", QCriteriaOperator.EQUALS, true);
+      EdiSetupStatus.Counts counts = new EdiSetupStatus.Counts(safeCount("edi_partner", new QQueryFilter()),
+         safeCount("edi_identity", new QQueryFilter().withCriteria("isActive", QCriteriaOperator.EQUALS, true).withCriteria("partnerId", QCriteriaOperator.IS_BLANK)),
+         safeCount("edi_identity", new QQueryFilter().withCriteria("isActive", QCriteriaOperator.EQUALS, true).withCriteria("partnerId", QCriteriaOperator.IS_NOT_BLANK)),
+         safeCount("edi_agreement", new QQueryFilter()), safeCount("edi_agreement", active),
+         safeCount("edi_agreement_document", new QQueryFilter()), safeCount("edi_agreement_document", active),
+         safeCount("edi_transport", new QQueryFilter()), safeCount("edi_transport", active),
+         safeCount("edi_certificate", new QQueryFilter()), safeCount("edi_guide", new QQueryFilter()), safeCount("edi_code_list", new QQueryFilter()),
+         safeCount("edi_map", new QQueryFilter()), safeCount("edi_map", new QQueryFilter().withCriteria("status", QCriteriaOperator.EQUALS, "ACTIVE")));
+      List<Map<String, Object>> rows = new ArrayList<>();
+      for(EdiSetupStatus.Item item : EdiSetupStatus.items(counts))
+      {
+         rows.add(row("Step", item.step(), "Status", item.state().label() + (item.detail().isEmpty() ? "" : ": " + item.detail()), "Next step", item.nextStep().isEmpty() ? "Nothing to do." : item.nextStep()));
+      }
+      return (table(List.of("Step", "Status", "Next step"), rows, "edi_partner", new QQueryFilter(), "Open partners"));
+   }
+
+
+
+   /*******************************************************************************
+    ** A count the viewer may not be allowed to read: -1 instead of an error.
+    *******************************************************************************/
+   private static int safeCount(String table, QQueryFilter filter)
+   {
+      try
+      {
+         return (countOf(table, filter));
+      }
+      catch(QException | RuntimeException e)
+      {
+         return (-1);
+      }
    }
 
 
