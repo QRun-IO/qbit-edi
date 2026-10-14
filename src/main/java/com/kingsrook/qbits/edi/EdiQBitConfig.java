@@ -35,6 +35,11 @@ public class EdiQBitConfig implements QBitConfig
    public static final String TABLE_NAME_PREFIX    = "edi_";
    public static final String PERMISSION_BASE_NAME = "edi";
 
+   private String schedulerName;
+   private Integer maxSegmentsPerTransaction = 100000;
+   private String payloadStore = "DATABASE";
+   private com.kingsrook.qbits.edi.security.EdiSecrets secretsResolver = System::getenv;
+   private Boolean partnerLocks = false;
    private String backendName;
    private String appName  = "edi";
    private String appLabel = "EDI";
@@ -51,6 +56,18 @@ public class EdiQBitConfig implements QBitConfig
       if(backendName == null || instance.getBackend(backendName) == null)
       {
          errors.add("backendName must name an existing backend");
+      }
+      if(maxSegmentsPerTransaction == null || maxSegmentsPerTransaction < 2)
+      {
+         errors.add("maxSegmentsPerTransaction must be at least 2");
+      }
+      if(!"DATABASE".equals(payloadStore))
+      {
+         errors.add("payloadStore must be DATABASE in phase a1");
+      }
+      if(secretsResolver == null || partnerLocks == null)
+      {
+         errors.add("secretsResolver and partnerLocks are required");
       }
       if(appName == null || appName.isBlank())
       {
@@ -150,6 +167,91 @@ public class EdiQBitConfig implements QBitConfig
    public EdiQBitConfig withParentAppName(String parentAppName)
    {
       this.parentAppName = parentAppName;
+      return (this);
+   }
+
+   /*******************************************************************************
+    ** Get schedulerName.
+    *******************************************************************************/
+   public String getSchedulerName()
+   {
+      return (schedulerName);
+   }
+
+   /*******************************************************************************
+    ** Configure schedulerName.
+    *******************************************************************************/
+   public EdiQBitConfig withSchedulerName(String value)
+   {
+      schedulerName = value;
+      return (this);
+   }
+
+   /*******************************************************************************
+    ** Get maxSegmentsPerTransaction.
+    *******************************************************************************/
+   public Integer getMaxSegmentsPerTransaction()
+   {
+      return (maxSegmentsPerTransaction);
+   }
+
+   /*******************************************************************************
+    ** Configure maxSegmentsPerTransaction.
+    *******************************************************************************/
+   public EdiQBitConfig withMaxSegmentsPerTransaction(Integer value)
+   {
+      maxSegmentsPerTransaction = value;
+      return (this);
+   }
+
+   /*******************************************************************************
+    ** Get payloadStore.
+    *******************************************************************************/
+   public String getPayloadStore()
+   {
+      return (payloadStore);
+   }
+
+   /*******************************************************************************
+    ** Configure payloadStore.
+    *******************************************************************************/
+   public EdiQBitConfig withPayloadStore(String value)
+   {
+      payloadStore = value;
+      return (this);
+   }
+
+   /*******************************************************************************
+    ** Get secretsResolver.
+    *******************************************************************************/
+   public com.kingsrook.qbits.edi.security.EdiSecrets getSecretsResolver()
+   {
+      return (secretsResolver);
+   }
+
+   /*******************************************************************************
+    ** Configure secretsResolver.
+    *******************************************************************************/
+   public EdiQBitConfig withSecretsResolver(com.kingsrook.qbits.edi.security.EdiSecrets value)
+   {
+      secretsResolver = value;
+      return (this);
+   }
+
+   /*******************************************************************************
+    ** Get partnerLocks.
+    *******************************************************************************/
+   public Boolean getPartnerLocks()
+   {
+      return (partnerLocks);
+   }
+
+   /*******************************************************************************
+    ** Configure partnerLocks.
+    *******************************************************************************/
+   public EdiQBitConfig withPartnerLocks(Boolean value)
+   {
+      partnerLocks = value;
       return (this);
    }
 }

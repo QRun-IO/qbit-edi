@@ -9,8 +9,9 @@ later. The design is [docs/DESIGN.md](docs/DESIGN.md).
 
 ## Status
 
-Repository scaffold. The design spec PR and the phased build (partners and X12 core, retail, AS2,
-logistics, healthcare, mapper UI, EDIFACT) follow; see the phase table in `docs/DESIGN.md`.
+Phase a1 implements the 21-table model, X12 envelopes, baseline guide validation, TA1/997/999,
+control allocation, duplicate checks, and encrypted database payload storage. Transports, inbox
+workers, maps, and the app/home arrive in later phases; see `docs/DESIGN.md`.
 
 ## Requirements
 
@@ -32,20 +33,39 @@ new EdiQBitProducer()
    .produce(qInstance);
 ```
 
-The producer scans only `com.kingsrook.qbits.edi.metadata` for component producers. Set
-`withParentAppName("admin")` to nest the EDI app under an existing parent app.
+The producer scans only `com.kingsrook.qbits.edi.metadata` for component producers. App placement
+settings are retained for phase a2; a1 installs no app or home.
+
+Apply [the PostgreSQL schema](docs/ddl/edi-postgres.sql), establish the host's service session in
+QQQ, and call `EdiRuntime.current().initialize()` to install the five baseline guides. All other
+services are available from that runtime. Database services use the current QQQ service context;
+the host owns authentication, permissions and the authorized system scope for internal writes.
 
 ## Tables and permissions
 
 Tables are lowercase snake_case prefixed `edi_`, and the SQL table name equals the QQQ table name.
-Permissions use the full name (`edi.*`). The table list arrives with phase (a); see
-`docs/DESIGN.md`.
+Permissions use the full name (`edi.*`). Runtime tables disable people-facing insert, edit and
+delete capabilities. Exceptions permit status, assignment and resolution edits. Optional partner
+locks apply to direct and inherited partner relationships. See `docs/DESIGN.md` for the table list.
 
 ## Configuration
 
-Code configuration (`EdiQBitConfig`) holds only the backend and app placement. Partners,
-agreements, transports, implementation guides and maps are data in the `edi_` tables. Secrets
-(AS2 keys, SFTP credentials) are referenced by environment-variable name, never stored.
+`EdiQBitConfig` holds backend/app placement, optional `schedulerName`,
+`maxSegmentsPerTransaction` (100000), `payloadStore` (`DATABASE`), `secretsResolver` (environment
+variables), and `partnerLocks` (false). Partners, agreements, transports and guides are table data.
+
+Set `QQQ_EDI_PAYLOAD_KEY` to a base64-encoded 32-byte master key. During rotation, retain the old
+key in `QQQ_EDI_PAYLOAD_KEY_PREVIOUS`; new writes use the current key. Payloads use random data
+keys wrapped with AES-256-GCM, with authenticated ciphertext and plaintext SHA-256. Nothing is
+written to local storage. The database fallback buffers a payload in memory; production object
+storage is deferred to a2. The host is responsible for database encryption at rest for PHI columns.
+
+RC.5 does not expose the upcoming core `DataClassification` API. `EdiClassifications` carries
+explicit PHI/PII/confidential metadata until RC.6; PHI fields and internal payload/certificate/inbox
+tables deny AI exposure. This marker does not provide field masking: a PHI host still needs the
+secured-data integration and access controls described in the design.
+
+Guide JSON and rule syntax are documented in [GUIDE-FORMAT.md](docs/GUIDE-FORMAT.md).
 
 ## Adopting in another app
 

@@ -115,7 +115,7 @@ Package layout (`com.kingsrook.qbits.edi`):
 | `metadata` | the only scanned package: tables, PVS, joins, widgets, processes, app |
 | `model` | table entities (`EdiPartner`, `EdiAgreement`, ...) |
 | `x12` | StAEDI reading and writing, envelopes, separators, control numbers, splitting |
-| `guide` | guide model, compiler to StAEDI schema, rule engine, SNIP levels, built-in guide loader |
+| `guide` | guide model, structural validator, rule engine, SNIP levels, built-in guide loader |
 | `ack` | 997, 999 and TA1 builders, inbound ack reconciliation, overdue monitor |
 | `map` | map model, path language, transforms, inbound apply, outbound build, sandbox preview |
 | `flow` | inbox and outbound workers, state machines, reprocess and resend |
@@ -400,7 +400,8 @@ Built on as2-lib (Apache-2.0):
   GE02 = GS06, SE01 = segment count, SE02 = ST02. Envelope errors produce TA1 or AK9/IK9 codes.
 - Character set: the X12 basic and extended character sets, and UTF-8 where the agreement allows it
   (005010 extended). Unrecognised bytes are an envelope error, never silently replaced.
-- Writing uses `EDIStreamWriter` with the agreement's separators.
+- Writing uses an in-memory serializer with the agreement's separators, fixed-width ISA
+  padding, component/repetition handling, and optional line endings.
 - EDIFACT: StAEDI reads UNA/UNB/UNG/UNH and validates against EDIFACT schemas. It is designed into
   the model now (`standard` columns, UNB fields on `edi_identity`, CONTRL as an ack type) and built
   in phase g.
@@ -436,13 +437,13 @@ for BEG03), `componentPosition` (null or 1..n), `elementId` (the data element nu
 `elementId`, `source` (BUILT_IN, CUSTOM, EXTERNAL), `externalCodeSet` (for licensed code sets,
 section 11.4); values have `code`, `description`, `isActive`.
 
-### 7.2 Compilation and validation
-- Activating a guide compiles it into a StAEDI schema (XML generated in memory and cached by guide
-  id and revision, never written to disk). StAEDI then enforces SNIP level 1 and most of level 2
-  structurally: segment order, loops, minimum and maximum use, element types and lengths, code
-  lists and syntax notes.
-- After StAEDI, the guide rule engine runs the situational and inter-segment rules on the buffered
-  transaction set.
+### 7.2 Guide validation
+StAEDI tokenizes the stream and checks envelope syntax. The guide engine applies the guide data
+to each buffered transaction: segment order, nested loops, usage and repetition limits, element
+types and lengths, code lists, syntax notes, and situational and inter-segment expressions. Both
+JSON resources and database guide revisions use this same in-memory engine; guide validation does
+not generate a second StAEDI schema or write files.
+
 - Every finding becomes an `edi_transaction_error` row: segment position, segment id, element
   position, the X12 code for the ack (AK3/AK4 for 997, IK3/IK4/CTX for 999), the SNIP level and a
   plain message. Element values go in `valueExcerpt` only for non-PHI documents (section 12).
