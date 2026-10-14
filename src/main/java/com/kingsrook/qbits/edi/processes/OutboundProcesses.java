@@ -61,7 +61,11 @@ public class OutboundProcesses implements BackendStep
          .withStep(new QBackendStepMetaData().withName("execute").withCode(new QCodeReference(OutboundProcesses.class)));
       if(config.getSchedulerName() != null && (seconds != null || cron != null))
       {
-         process.withSchedule(new QScheduleMetaData().withSchedulerName(config.getSchedulerName()).withRepeatSeconds(seconds).withCronExpression(cron).withCronTimeZoneId("UTC"));
+         //////////////////////////////////////////////////////////////////////////
+         // core validation refuses a cron time zone on a repeat schedule        //
+         //////////////////////////////////////////////////////////////////////////
+         process.withSchedule(new QScheduleMetaData().withSchedulerName(config.getSchedulerName()).withRepeatSeconds(seconds).withCronExpression(cron)
+            .withCronTimeZoneId(cron == null ? null : "UTC"));
       }
       return (process);
    }
