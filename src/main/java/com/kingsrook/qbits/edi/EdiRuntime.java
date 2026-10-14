@@ -53,7 +53,7 @@ public final class EdiRuntime
    private static final Map<QInstance, EdiRuntime> INSTANCES = Collections.synchronizedMap(new WeakHashMap<>());
    private final X12EnvelopeReader reader;
    private final X12Writer writer = new X12Writer();
-   private final GuideValidator validator = new GuideValidator();
+   private final GuideValidator validator;
    private final BuiltInGuideLoader guides = new BuiltInGuideLoader();
    private final com.kingsrook.qbits.edi.storage.PayloadStore payloads;
    private final EdiQBitConfig config;
@@ -71,6 +71,7 @@ public final class EdiRuntime
    private EdiRuntime(QInstance instance, EdiQBitConfig config)
    {
       this.config = config;
+      validator = new GuideValidator(config);
       reader = new X12EnvelopeReader(config.getMaxSegmentsPerTransaction());
       payloads = "OBJECT_STORAGE".equals(config.getPayloadStore())
          ? new com.kingsrook.qbits.edi.storage.ObjectStoragePayloadStore(new PayloadCrypto(config.getSecretsResolver()), config.getPayloadBucketAlias(), config.getClock())

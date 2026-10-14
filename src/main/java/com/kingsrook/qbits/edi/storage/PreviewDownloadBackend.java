@@ -71,6 +71,10 @@ public class PreviewDownloadBackend implements QBackendModuleInterface, QStorage
       {
          throw new QException("Preview download is not authorized for this session");
       }
+      if(input.getReference().startsWith("raw:"))
+      {
+         return (RawDocumentDownload.open(input.getReference()));
+      }
       return (SystemWrites.call(() -> EdiRuntime.current().payloads().open(new PayloadRef(input.getReference(), null, 0))));
    }
 

@@ -55,6 +55,26 @@ public class EdiQBitConfig implements QBitConfig
       return (java.util.Set.copyOf(sendAsEdiTables));
    }
 
+   private com.kingsrook.qbits.edi.guide.ExternalCodeSetProvider externalCodeSetProvider;
+
+   /*******************************************************************************
+    ** Optional host provider for licensed external code sets.
+    *******************************************************************************/
+   @JsonIgnore
+   public com.kingsrook.qbits.edi.guide.ExternalCodeSetProvider getExternalCodeSetProvider()
+   {
+      return (externalCodeSetProvider);
+   }
+
+   /*******************************************************************************
+    ** Register a provider; null retains format-only validation.
+    *******************************************************************************/
+   public EdiQBitConfig withExternalCodeSetProvider(com.kingsrook.qbits.edi.guide.ExternalCodeSetProvider value)
+   {
+      externalCodeSetProvider = value;
+      return (this);
+   }
+
    private String payloadBucketAlias = "edi";
    private java.util.function.Supplier<com.kingsrook.qqq.backend.core.model.session.QSession> serviceSessionSupplier = null;
    private java.time.Clock clock = java.time.Clock.systemUTC();
@@ -68,6 +88,7 @@ public class EdiQBitConfig implements QBitConfig
    private String appName  = "edi";
    private String appLabel = "EDI";
    private String parentAppName;
+   private String publicBaseUrl;
 
 
 
@@ -348,6 +369,25 @@ public class EdiQBitConfig implements QBitConfig
    public EdiQBitConfig withEsbDestinationName(String value)
    {
       esbDestinationName = value;
+      return (this);
+   }
+
+   /*******************************************************************************
+    ** Public base URL of this deployment (for example https://edi.example.com),
+    ** used to build the asynchronous AS2 receipt address
+    ** {base}/qqq/hooks/edi/as2/{transport}/mdn.
+    *******************************************************************************/
+   public String getPublicBaseUrl()
+   {
+      return (publicBaseUrl);
+   }
+
+   /*******************************************************************************
+    ** Set the public base URL.
+    *******************************************************************************/
+   public EdiQBitConfig withPublicBaseUrl(String value)
+   {
+      publicBaseUrl = value;
       return (this);
    }
 }

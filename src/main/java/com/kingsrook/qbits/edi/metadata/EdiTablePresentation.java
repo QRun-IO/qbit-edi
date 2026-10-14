@@ -40,7 +40,7 @@ import com.kingsrook.qqq.backend.core.model.metadata.tables.Tier;
  *******************************************************************************/
 public final class EdiTablePresentation
 {
-   private static final Set<String> ACRONYMS = Set.of("ID", "PHI", "PII", "URL", "ISA", "GS", "ST", "AS2", "SFTP", "HTTPS", "HTTP", "MDN", "TLS", "TA1", "EDI", "UPC", "NPI", "QQQ", "JSON", "PEM", "SHA256", "SNIP", "VAN", "AK3", "AK4", "IK3", "IK4");
+   private static final Set<String> ACRONYMS = Set.of("ID", "PHI", "PII", "URL", "ISA", "GS", "ST", "AS2", "SFTP", "HTTPS", "HTTP", "MDN", "TLS", "TA1", "EDI", "UPC", "NPI", "QQQ", "JSON", "PEM", "SHA256", "SNIP", "VAN", "AK3", "AK4", "IK3", "IK4", "MIC");
 
 
 
@@ -76,6 +76,7 @@ public final class EdiTablePresentation
          case "edi_inbox" -> "Inbound Message";
          case "edi_outbound_request" -> "Outbound Request";
          case "edi_outbound_message" -> "Outbound Message";
+         case "edi_as2_mdn" -> "AS2 MDN";
          case "edi_payload" -> "Payload";
          default -> throw new IllegalArgumentException("Missing EDI table label: " + table);
       });
@@ -198,6 +199,7 @@ public final class EdiTablePresentation
          case "edi_inbox" -> List.of("transportType", "externalId", "status", "partnerId", "transportId", "receivedAt", "attempts");
          case "edi_outbound_request" -> List.of("status", "agreementDocumentId", "sourceTableName", "sourceRecordId", "attempts", "nextAttemptAt");
          case "edi_outbound_message" -> List.of("transportId", "status", "partnerId", "agreementId", "attempts", "sentAt", "deliveredAt");
+         case "edi_as2_mdn" -> List.of("direction", "originalMessageId", "disposition", "signed", "signatureValid", "partnerId", "transportId", "receivedAt");
          case "edi_payload" -> List.of("kind", "sizeBytes", "sha256");
          default -> throw new IllegalArgumentException("Missing EDI field order: " + table);
       });

@@ -110,7 +110,7 @@ class DatabaseTest
    void metadata() throws Exception
    {
       QInstance instance = H2Support.create();
-      assertThat(instance.getTables()).hasSize(27);
+      assertThat(instance.getTables()).hasSize(28);
       for(QTableMetaData table : instance.getTables().values())
       {
          if(table.getName().equals("edi_preview_download"))

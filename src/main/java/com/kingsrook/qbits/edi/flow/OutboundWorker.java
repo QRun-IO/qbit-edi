@@ -115,7 +115,7 @@ public class OutboundWorker
             {
                continue;
             }
-            try
+            try(var logging = com.kingsrook.qbits.edi.security.PhiLogScope.open(Boolean.TRUE.equals(document.getValueBoolean("containsPhi"))))
             {
                com.kingsrook.qbits.edi.document.EdiDocument set = InboundApplier.asPartner(EdiRuntime.current().config().getServiceSessionSupplier(), agreement.getValueInteger("partnerId"), () ->
                {

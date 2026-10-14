@@ -51,7 +51,7 @@ public class MapPreview
          .withCriteria("containsPhi", com.kingsrook.qqq.backend.core.model.actions.tables.query.QCriteriaOperator.EQUALS, true)).isEmpty());
       var guide = new GuideRepository().load(map.getValueInteger("guideId"));
       ArrayList<ProcessSummaryLineInterface> lines = new ArrayList<>();
-      try(InputStream stream = runtime.payloads().open(new PayloadRef(sample.getValueString("payloadRef"), null, 0)))
+      try(var logging = com.kingsrook.qbits.edi.security.PhiLogScope.open(phi); InputStream stream = runtime.payloads().open(new PayloadRef(sample.getValueString("payloadRef"), null, 0)))
       {
          if("EDIFACT".equals(map.getValueString("standard")))
          {

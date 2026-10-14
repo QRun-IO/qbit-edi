@@ -1,0 +1,45 @@
+{
+  "map": {
+    "name": "Synthetic 834 inbound",
+    "direction": "INBOUND",
+    "transactionSet": "834",
+    "version": "005010X220A1",
+    "tableName": "sample_enrollment",
+    "revision": 1,
+    "status": "ACTIVE",
+    "businessKeyType": "HEALTHCARE",
+    "businessKeyPath": "BGN02",
+    "standard": "X12",
+    "onMatch": "UPDATE",
+    "matchKeyFields": "reference"
+  },
+  "rules": [
+    {
+      "sequence": 1,
+      "ediPath": "BGN02",
+      "qqqPath": "reference"
+    },
+    {
+      "sequence": 2,
+      "ediPath": "2000[*]/REF[REF01=0F]/REF02",
+      "qqqPath": "members.memberId"
+    },
+    {
+      "sequence": 3,
+      "ediPath": "2000[*]/2100A/NM103",
+      "qqqPath": "members.patientName"
+    },
+    {
+      "sequence": 4,
+      "ediPath": "2000[*]/2100A/DMG02",
+      "qqqPath": "members.birthDate",
+      "transform": "DATE",
+      "condition": "present(2100A/DMG02)"
+    },
+    {
+      "sequence": 5,
+      "ediPath": "2000[*]/2300/HD03",
+      "qqqPath": "members.coverage"
+    }
+  ]
+}

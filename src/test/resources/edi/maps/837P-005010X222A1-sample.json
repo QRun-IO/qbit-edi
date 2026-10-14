@@ -1,0 +1,68 @@
+{
+  "map": {
+    "name": "Synthetic 837P inbound",
+    "direction": "INBOUND",
+    "transactionSet": "837",
+    "version": "005010X222A1",
+    "tableName": "sample_claim",
+    "revision": 1,
+    "status": "ACTIVE",
+    "businessKeyType": "HEALTHCARE",
+    "businessKeyPath": "CLM01",
+    "standard": "X12",
+    "onMatch": "UPDATE",
+    "matchKeyFields": "claimNumber"
+  },
+  "rules": [
+    {
+      "sequence": 1,
+      "ediPath": "CLM01",
+      "qqqPath": "claimNumber"
+    },
+    {
+      "sequence": 2,
+      "ediPath": "2010BA/NM109",
+      "qqqPath": "memberId"
+    },
+    {
+      "sequence": 3,
+      "ediPath": "2010BA/NM103",
+      "qqqPath": "patientName"
+    },
+    {
+      "sequence": 4,
+      "ediPath": "CLM02",
+      "qqqPath": "totalCharge",
+      "transform": "DECIMAL",
+      "condition": "present(CLM02)"
+    },
+    {
+      "sequence": 5,
+      "ediPath": "HI01-2",
+      "qqqPath": "diagnosis"
+    },
+    {
+      "sequence": 6,
+      "ediPath": "2400[*]/LX01",
+      "qqqPath": "lines.lineNumber"
+    },
+    {
+      "sequence": 7,
+      "ediPath": "2400[*]/SV101-2",
+      "qqqPath": "lines.procedureCode"
+    },
+    {
+      "sequence": 8,
+      "ediPath": "2400[*]/SV102",
+      "qqqPath": "lines.charge",
+      "transform": "DECIMAL",
+      "condition": "present(SV102)"
+    },
+    {
+      "sequence": 9,
+      "ediPath": "2010CA/NM103",
+      "qqqPath": "patientName",
+      "condition": "present(2010CA/NM103)"
+    }
+  ]
+}

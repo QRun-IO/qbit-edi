@@ -26,6 +26,7 @@ import java.util.List;
 import com.kingsrook.qbits.edi.EdiQBitConfig;
 import com.kingsrook.qbits.edi.model.EdiAgreement;
 import com.kingsrook.qbits.edi.model.EdiAgreementDocument;
+import com.kingsrook.qbits.edi.model.EdiAs2Mdn;
 import com.kingsrook.qbits.edi.model.EdiCertificate;
 import com.kingsrook.qbits.edi.model.EdiCodeList;
 import com.kingsrook.qbits.edi.model.EdiCodeListValue;
@@ -118,6 +119,8 @@ public final class EdiTables
          .withCustomizer(TableCustomizers.PRE_UPDATE_RECORD, new QCodeReference(TransportValidation.class));
       tables.add(transport);
       QTableMetaData certificate = base(config, EdiCertificate.TABLE_NAME, EdiCertificate.class, "alias", false);
+      certificate.withCustomizer(TableCustomizers.PRE_INSERT_RECORD, new QCodeReference(com.kingsrook.qbits.edi.as2.CertificateCustomizer.class))
+         .withCustomizer(TableCustomizers.PRE_UPDATE_RECORD, new QCodeReference(com.kingsrook.qbits.edi.as2.CertificateCustomizer.class));
       tables.add(certificate);
       QTableMetaData guide = base(config, EdiGuide.TABLE_NAME, EdiGuide.class, "name", false);
       guide.withUniqueKey(new UniqueKey("name", "revision"));
@@ -156,6 +159,7 @@ public final class EdiTables
       tables.add(base(config, "edi_map_sample", EdiMapSample.class, "name", false));
       tables.add(base(config, "edi_outbound_request", EdiOutboundRequest.class, "id", true).withUniqueKey(new UniqueKey("agreementDocumentId", "eventId")));
       tables.add(base(config, "edi_outbound_message", EdiOutboundMessage.class, "id", true));
+      tables.add(base(config, EdiAs2Mdn.TABLE_NAME, EdiAs2Mdn.class, "originalMessageId", true));
       for(QTableMetaData table : tables)
       {
          List<String> guidePath = switch(table.getName())
@@ -228,7 +232,7 @@ public final class EdiTables
       QTableMetaData table = new QTableMetaData().withName(name).withBackendName(config.getBackendName())
          .withPrimaryKeyField("id").withFieldsFromEntity(entity).withRecordLabelFormatAndFields("%s", label)
          .withPermissionRules(new QPermissionRules().withPermissionBaseName("edi." + name.substring(4)).withLevel(PermissionLevel.READ_INSERT_EDIT_DELETE_PERMISSIONS))
-         .withAuditRules(new QAuditRules().withAuditLevel(readOnly ? AuditLevel.RECORD : AuditLevel.FIELD));
+         .withAuditRules(new QAuditRules().withAuditLevel(readOnly || name.equals("edi_map_sample") ? AuditLevel.RECORD : AuditLevel.FIELD));
       QRecordEntity.registerTable(entity, table);
       if(List.of("edi_payload", "edi_certificate", "edi_inbox").contains(name))
       {
@@ -301,10 +305,11 @@ public final class EdiTables
       sources.add(enumSource("edi_interchange_status", "RECEIVED", "ACCEPTED", "ACCEPTED_WITH_ERRORS", "REJECTED", "DUPLICATE", "ENVELOPED", "SENT", "DELIVERED", "FAILED"));
       sources.add(enumSource("edi_ack_status", "A", "E", "P", "R", "NONE", "PENDING"));
       sources.add(enumSource("edi_transaction_status", "RECEIVED", "VALID", "INVALID", "MAPPED", "APPLIED", "EXCEPTION", "QUEUED", "SENT", "ACKNOWLEDGED", "REJECTED", "IGNORED"));
-      sources.add(enumSource("edi_event_type", "RECEIVED", "STORED", "PARSED", "VALIDATED", "ACK_SENT", "ACK_QUEUED", "MAPPED", "APPLIED", "ENVELOPED", "SENT", "MDN", "DELIVERED", "ACK_RECEIVED", "EXCEPTION", "REPROCESSED", "RESENT"));
+      sources.add(enumSource("edi_event_type", "RECEIVED", "STORED", "PARSED", "VALIDATED", "ACK_SENT", "ACK_QUEUED", "MAPPED", "APPLIED", "ENVELOPED", "SENT", "MDN", "DELIVERED", "ACK_RECEIVED", "EXCEPTION", "REPROCESSED", "RESENT", "RAW_DOWNLOADED"));
       sources.add(enumSource("edi_exception_type", "UNKNOWN_PARTNER", "PARTNER_MISMATCH", "NOT_CONFIGURED", "DUPLICATE", "ENVELOPE", "VALIDATION", "MAPPING", "APPLY", "TRANSPORT", "REJECTED_ACK", "OVERDUE_ACK", "DEAD_LETTER"));
       sources.add(enumSource("edi_exception_status", "OPEN", "IN_PROGRESS", "RESOLVED", "IGNORED"));
       sources.add(enumSource("edi_inbox_status", "PENDING", "PROCESSING", "PROCESSED", "RETRY_WAIT", "DEAD_LETTER", "DUPLICATE", "IGNORED"));
+      sources.add(enumSource("edi_as2_mdn_delivery_status", "NONE", "PENDING", "SENT", "FAILED"));
       sources.add(enumSource("edi_payload_kind", "INBOUND", "OUTBOUND", "AS2", "MDN", "SAMPLE"));
       sources.add(QPossibleValueSource.newForTable("edi_partner"));
       sources.add(QPossibleValueSource.newForTable("edi_identity"));
@@ -333,6 +338,7 @@ public final class EdiTables
       sources.add(QPossibleValueSource.newForTable("edi_map_sample"));
       sources.add(QPossibleValueSource.newForTable("edi_outbound_request"));
       sources.add(QPossibleValueSource.newForTable("edi_outbound_message"));
+      sources.add(QPossibleValueSource.newForTable("edi_as2_mdn"));
       return (sources);
    }
 
@@ -403,6 +409,8 @@ public final class EdiTables
       joins.add(new QJoinMetaData().withName("edi_agreement_document_agreement_document_id_edi_outbound_request").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_agreement_document").withRightTable("edi_outbound_request").withJoinOn(new JoinOn("id", "agreementDocumentId")));
       joins.add(new QJoinMetaData().withName("edi_agreement_agreement_id_edi_outbound_message").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_agreement").withRightTable("edi_outbound_message").withJoinOn(new JoinOn("id", "agreementId")));
       joins.add(new QJoinMetaData().withName("edi_outbound_message_outbound_message_id_edi_interchange").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_outbound_message").withRightTable("edi_interchange").withJoinOn(new JoinOn("id", "outboundMessageId")));
+      joins.add(new QJoinMetaData().withName("edi_outbound_message_outbound_message_id_edi_as2_mdn").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_outbound_message").withRightTable("edi_as2_mdn").withJoinOn(new JoinOn("id", "outboundMessageId")));
+      joins.add(new QJoinMetaData().withName("edi_inbox_inbox_id_edi_as2_mdn").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_inbox").withRightTable("edi_as2_mdn").withJoinOn(new JoinOn("id", "inboxId")));
       joins.add(new QJoinMetaData().withName("edi_inbox_inbox_id_edi_event").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_inbox").withRightTable("edi_event").withJoinOn(new JoinOn("id", "inboxId")));
       return (joins);
    }
@@ -414,7 +422,8 @@ public final class EdiTables
    {
       return (joins().stream().map(join -> ChildRecordListRenderer.widgetMetaDataBuilder(join).withName(join.getName())
          .withLabel(joinLabel(join)).withCanAddChildRecord(false)
-         .withOrderBys(childOrder(join.getRightTable())).getWidgetMetaData().withGridColumns(12)).toList());
+         .withOrderBys(childOrder(join.getRightTable())).getWidgetMetaData()
+         .withCodeReference(new QCodeReference(com.kingsrook.qbits.edi.app.EdiChildRecordListRenderer.class)).withGridColumns(12)).toList());
    }
 
    /*******************************************************************************
@@ -424,7 +433,7 @@ public final class EdiTables
    {
       return (switch(table)
       {
-         case "edi_transaction", "edi_interchange", "edi_exception", "edi_inbox", "edi_event", "edi_outbound_request", "edi_outbound_message" ->
+         case "edi_transaction", "edi_interchange", "edi_exception", "edi_inbox", "edi_event", "edi_outbound_request", "edi_outbound_message", "edi_as2_mdn" ->
             List.of(new QFilterOrderBy("createDate", false), new QFilterOrderBy("id", false));
          case "edi_guide_segment", "edi_map_rule" -> List.of(new QFilterOrderBy("sequence"), new QFilterOrderBy("id"));
          case "edi_guide_element" -> List.of(new QFilterOrderBy("position"), new QFilterOrderBy("componentPosition"), new QFilterOrderBy("id"));

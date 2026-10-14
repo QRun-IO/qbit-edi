@@ -75,6 +75,10 @@ public final class EdiProcesses
       {
          result.add(action(table, "preview", "Preview Map", "edi.map.preview"));
       }
+      for(String table : List.of("edi_inbox", "edi_interchange"))
+      {
+         result.add(action(table, "download", "Download Raw Document", "edi.raw.download").withMaxInputRecords(1));
+      }
       result.add(action("edi_exception", "assign", "Assign", "edi.exception.assign"));
       result.add(action("edi_exception", "ignore", "Ignore", "edi.exception.ignore"));
       result.add(action("edi_exception", "resolve", "Mark Resolved", "edi.exception.resolve"));
@@ -95,11 +99,13 @@ public final class EdiProcesses
          result.add(action(table, "cancel", "Cancel", "edi.cancel"));
       }
       result.add(action("edi_transport", "test", "Test Connection", "edi.transport.test"));
+      result.add(action("edi_certificate", "promote", "Promote Certificate", "edi.certificate.promote"));
+      result.add(action("edi_certificate", "export", "Export Public Certificate", "edi.certificate.read"));
       for(String table : config.getSendAsEdiTables())
       {
          result.add(action(table, "send", "Send As EDI", "edi.send"));
       }
-      for(String name : List.of("edi_outbound_worker", "edi_send_worker", "edi_ack_monitor", "edi_outbound_enqueue"))
+      for(String name : List.of("edi_outbound_worker", "edi_send_worker", "edi_as2_mdn_sender", "edi_ack_monitor", "edi_outbound_enqueue"))
       {
          result.add(OutboundProcesses.process(name, config, name.equals("edi_outbound_enqueue") ? null : name.equals("edi_ack_monitor") ? 300 : 15, null));
       }
@@ -135,6 +141,19 @@ public final class EdiProcesses
          }
          process.getFrontendStep("review").withFormField(new QFieldMetaData("sampleUpload", QFieldType.BLOB).withLabel("Upload synthetic sample (optional)")
             .withFieldAdornment(com.kingsrook.qqq.backend.core.model.metadata.fields.AdornmentType.FileUploadAdornment.newFieldAdornment()));
+      }
+      if(operation.equals("preview") || operation.equals("export"))
+      {
+         process.getFrontendStep("result").withComponent(new com.kingsrook.qqq.backend.core.model.metadata.processes.QFrontendComponentMetaData()
+            .withType(com.kingsrook.qqq.backend.core.model.metadata.processes.QComponentType.DOWNLOAD_FORM));
+         for(String field : List.of("downloadFileName", "storageTableName", "storageReference"))
+         {
+            process.getBackendStep("execute").getOutputMetaData().withField(new QFieldMetaData(field, QFieldType.STRING));
+            process.getFrontendStep("result").withViewField(new QFieldMetaData(field, QFieldType.STRING));
+         }
+      }
+      if(operation.equals("download"))
+      {
          process.getFrontendStep("result").withComponent(new com.kingsrook.qqq.backend.core.model.metadata.processes.QFrontendComponentMetaData()
             .withType(com.kingsrook.qqq.backend.core.model.metadata.processes.QComponentType.DOWNLOAD_FORM));
          for(String field : List.of("downloadFileName", "storageTableName", "storageReference"))
@@ -168,7 +187,7 @@ public final class EdiProcesses
       public void runOnePage(RunBackendStepInput input, RunBackendStepOutput output)
       {
          count += input.getRecords().size();
-         output.getRecords().addAll(input.getRecords());
+         input.getRecords().forEach(record -> output.getRecords().add(new QRecord().withValue("id", record.getValue("id"))));
       }
 
       /*******************************************************************************
@@ -204,7 +223,30 @@ public final class EdiProcesses
                var query = new com.kingsrook.qqq.backend.core.model.actions.tables.query.QueryInput(table).withFilter(EdiRecords.equal("id", selected.getValue("id"))).withShouldFetchHeavyFields(true);
                query.setPermissionEnforcement(com.kingsrook.qqq.backend.core.actions.permissions.PermissionEnforcement.ENFORCE);
                QRecord row = new com.kingsrook.qqq.backend.core.actions.tables.QueryAction().execute(query).getRecords().getFirst();
-               if(operation.equals("preview"))
+               if(operation.equals("promote") && !"NEXT".equals(row.getValueString("status")))
+               {
+                  lines.add(new ProcessSummaryLine(Status.WARNING, 1, "only a NEXT certificate can be promoted"));
+                  continue;
+               }
+               if(operation.equals("export"))
+               {
+                  lines.add(new ProcessSummaryLine(Status.OK, 1, "public certificate exported"));
+               }
+               else if(operation.equals("download"))
+               {
+                  if(!QContext.getQSession().hasPermission("edi.raw.download"))
+                  {
+                     throw new QException("Raw document download is not authorized");
+                  }
+                  var storage = new com.kingsrook.qqq.backend.core.model.actions.tables.storage.StorageInput(com.kingsrook.qbits.edi.storage.PreviewDownloadBackend.TABLE)
+                     .withReference("raw:" + table + ":" + row.getValueInteger("id"));
+                  com.kingsrook.qqq.backend.core.actions.processes.ProcessFileDownload.registerStorage(storage);
+                  output.addValue("downloadFileName", "edi-document.edi");
+                  output.addValue("storageTableName", storage.getTableName());
+                  output.addValue("storageReference", storage.getReference());
+                  lines.add(new ProcessSummaryLine(Status.OK, 1, "Document ready for authorized download"));
+               }
+               else if(operation.equals("preview"))
                {
                   QRecord map = table.equals("edi_map") ? row : EdiRecords.query("edi_map", EdiRecords.equal("id", row.getValue("mapId"))).getFirst();
                   List<QRecord> samples = table.equals("edi_map_sample") ? List.of(row) : EdiRecords.query("edi_map_sample", EdiRecords.equal("mapId", row.getValue("id")));
@@ -265,6 +307,10 @@ public final class EdiProcesses
                            .test(row.toEntity(com.kingsrook.qbits.edi.model.EdiTransport.class));
                         lines.add(new ProcessSummaryLine(Boolean.TRUE.equals(test.success()) ? Status.OK : Status.ERROR, 1, test.summary()));
                      }
+                     else if(operation.equals("promote"))
+                     {
+                        new com.kingsrook.qbits.edi.as2.CertificateService().promote(row);
+                     }
                      else if(List.of("assign", "ignore", "resolve").contains(operation))
                      {
                         QRecord update = new QRecord().withValue("id", row.getValue("id")).withValue("status", operation.equals("assign") ? "IN_PROGRESS" : operation.equals("ignore") ? "IGNORED" : "RESOLVED");
@@ -286,18 +332,19 @@ public final class EdiProcesses
                   }));
                   lines.add(new ProcessSummaryLine(Status.OK, 1, "record processed"));
                }
-               if(operation.equals("preview"))
+               if(operation.equals("preview") || operation.equals("export"))
                {
-                  String json = new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules().writeValueAsString(lines);
+                  boolean export = operation.equals("export");
+                  String content = export ? row.getValueString("certificatePem") : new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules().writeValueAsString(lines);
                   var ref = SystemWrites.call(() -> EdiRuntime.current().payloads().put(com.kingsrook.qbits.edi.storage.PayloadKind.SAMPLE,
-                     new java.io.ByteArrayInputStream(json.getBytes(java.nio.charset.StandardCharsets.UTF_8))));
+                     new java.io.ByteArrayInputStream(content.getBytes(java.nio.charset.StandardCharsets.UTF_8))));
                   var storage = new com.kingsrook.qqq.backend.core.model.actions.tables.storage.StorageInput(com.kingsrook.qbits.edi.storage.PreviewDownloadBackend.TABLE).withReference(ref.value());
                   com.kingsrook.qqq.backend.core.actions.processes.ProcessFileDownload.registerStorage(storage);
-                  output.addValue("downloadFileName", "edi-map-preview.json");
+                  output.addValue("downloadFileName", export ? row.getValueString("alias").replaceAll("[^A-Za-z0-9._-]", "-") + ".pem" : "edi-map-preview.json");
                   output.addValue("storageTableName", storage.getTableName());
                   output.addValue("storageReference", ref.value());
                }
-               output.getRecords().add(selected);
+               output.getRecords().add(new QRecord().withValue("id", selected.getValue("id")));
             }
             catch(Exception e)
             {

@@ -273,8 +273,9 @@ class OutboundTest
       assertThat(rows("edi_exception")).filteredOn(r -> "OVERDUE_ACK".equals(r.getValueString("type"))).allMatch(r -> "RESOLVED".equals(r.getValueString("status")));
       SystemWrites.call(() ->
       {
-         SystemWrites.insert("edi_certificate", new QRecord().withValue("alias", "synthetic-expiring").withValue("status", "ACTIVE").withValue("notAfter", Instant.now().plusSeconds(6 * 86400)));
-         SystemWrites.insert("edi_certificate", new QRecord().withValue("alias", "synthetic-expired").withValue("status", "ACTIVE").withValue("notAfter", Instant.now().minusSeconds(1)));
+         SystemWrites.insert("edi_certificate", new QRecord().withValue("alias", "synthetic-expiring").withValue("status", "ACTIVE").withValue("certificatePem", As2Support.party("synthetic-expiring", 6).certificatePem()));
+         SystemWrites.insert("edi_certificate", new QRecord().withValue("alias", "synthetic-expired").withValue("status", "ACTIVE")
+            .withValue("certificatePem", As2Support.create("synthetic-expired", Instant.now().minusSeconds(2 * 86400), Instant.now().minusSeconds(1)).certificatePem()));
          return (null);
       });
       new AckMonitor().runOnce();

@@ -34,31 +34,31 @@ import com.kingsrook.qbits.edi.x12.X12Segment;
  *******************************************************************************/
 public class GuideValidator
 {
+   private final com.kingsrook.qbits.edi.EdiQBitConfig config;
+
+   /*******************************************************************************
+    ** Standalone validation uses built-in formats without a licensed provider.
+    *******************************************************************************/
+   public GuideValidator()
+   {
+      this(new com.kingsrook.qbits.edi.EdiQBitConfig());
+   }
+
+   /*******************************************************************************
+    ** Read the host provider at validation time, allowing runtime registration.
+    *******************************************************************************/
+   public GuideValidator(com.kingsrook.qbits.edi.EdiQBitConfig config)
+   {
+      this.config = config;
+   }
+
    /*******************************************************************************
     ** Validate one transaction; diagnostic text never contains submitted values.
     *******************************************************************************/
    public List<ValidationFinding> validate(EdiDocument transaction, Guide guide, boolean containsPhi)
    {
       State state = new State(transaction.segments(), containsPhi, "EDIFACT".equals(guide.standard()));
-      List<Node> roots = new ArrayList<>();
-      Map<String, Node> nodes = new LinkedHashMap<>();
-      for(GuideSegment segment : guide.segments())
-      {
-         List<Node> destination = roots;
-         if(segment.loopId() != null && !segment.loopId().isBlank())
-         {
-            Node loop = nodes.get(segment.loopId());
-            if(loop == null)
-            {
-               loop = new Node(segment.loopId(), null);
-               nodes.put(segment.loopId(), loop);
-               Node parent = nodes.get(segment.parentLoopId());
-               (parent == null ? roots : parent.children).add(loop);
-            }
-            destination = loop.children;
-         }
-         destination.add(new Node(null, segment));
-      }
+      List<Node> roots = tree(guide);
       consume(roots, state, false);
       while(state.index < state.segments.size())
       {
@@ -93,10 +93,15 @@ public class GuideValidator
          GuideSegment definition = binding.definition();
          X12Segment segment = binding.segment();
          elements(segment, definition, evaluator, state);
+         external(segment, definition, state);
          for(GuideRule rule : list(definition.rules()))
          {
-            rule(rule, segment, definition.loopId(), evaluator, state);
+            rule(rule, segment, definition.loopId(), "SITUATIONAL".equals(rule.type()) && definition.loopId() != null ? scoped(binding, state) : evaluator, state);
          }
+      }
+      if(guide.version().startsWith("005010X"))
+      {
+         state.findings.addAll(new HealthcareValidation().validate(transaction, guide, state.loops));
       }
       return (List.copyOf(state.findings));
    }
@@ -107,27 +112,64 @@ public class GuideValidator
    public Map<String, List<List<X12Segment>>> loops(EdiDocument transaction, Guide guide)
    {
       State state = new State(transaction.segments(), true, "EDIFACT".equals(guide.standard()));
+      List<Node> roots = tree(guide);
+      consume(roots, state, false);
+      return (state.loops);
+   }
+
+   /*******************************************************************************
+    ** The same loop name can occur under subscriber and dependent patient parents.
+    *******************************************************************************/
+   private static List<Node> tree(Guide guide)
+   {
       List<Node> roots = new ArrayList<>();
-      Map<String, Node> nodes = new LinkedHashMap<>();
+      Map<String, Node> latest = new LinkedHashMap<>();
       for(GuideSegment segment : guide.segments())
       {
          List<Node> destination = roots;
          if(segment.loopId() != null && !segment.loopId().isBlank())
          {
-            Node loop = nodes.get(segment.loopId());
+            Node parent = latest.get(segment.parentLoopId());
+            List<Node> siblings = parent == null ? roots : parent.children;
+            Node loop = siblings.stream().filter(n -> segment.loopId().equals(n.loopId)).findFirst().orElse(null);
             if(loop == null)
             {
                loop = new Node(segment.loopId(), null);
-               nodes.put(segment.loopId(), loop);
-               Node parent = nodes.get(segment.parentLoopId());
-               (parent == null ? roots : parent.children).add(loop);
+               siblings.add(loop);
             }
+            latest.put(segment.loopId(), loop);
             destination = loop.children;
          }
          destination.add(new Node(null, segment));
       }
-      consume(roots, state, false);
-      return (state.loops);
+      return (roots);
+   }
+
+   /*******************************************************************************
+    ** Situational rules see their occurrence plus direct ancestor segments, never siblings.
+    *******************************************************************************/
+   private static RuleEvaluator scoped(Binding binding, State state)
+   {
+      List<X12Segment> scope = state.loops.getOrDefault(binding.definition().loopId(), List.of()).stream()
+         .filter(o -> o.contains(binding.segment())).min(java.util.Comparator.comparingInt(List::size)).orElse(state.segments);
+      List<X12Segment> visible = new ArrayList<>(scope);
+      for(List<X12Segment> ancestor : state.loops.values().stream().flatMap(List::stream).toList())
+      {
+         if(ancestor.size() > scope.size() && ancestor.contains(scope.getFirst()))
+         {
+            for(X12Segment segment : ancestor)
+            {
+               boolean nested = state.loops.values().stream().flatMap(List::stream)
+                  .anyMatch(o -> o.size() < ancestor.size() && ancestor.contains(o.getFirst()) && o.contains(segment));
+               if(!nested && !visible.contains(segment))
+               {
+                  visible.add(segment);
+               }
+            }
+         }
+      }
+      visible.sort(java.util.Comparator.comparingInt(X12Segment::position));
+      return (new RuleEvaluator(visible, state.loops));
    }
 
    /*******************************************************************************
@@ -141,7 +183,7 @@ public class GuideValidator
          {
             GuideSegment head = node.children.getFirst().definition;
             int count = 0;
-            while(state.matches(head.segmentId()))
+            while(state.matches(head))
             {
                int start = state.index;
                consume(node.children, state, true);
@@ -165,7 +207,7 @@ public class GuideValidator
             GuideSegment definition = node.definition;
             int count = 0;
             int maximum = number(definition.maxUse(), 1);
-            while(state.matches(definition.segmentId()) && (count == 0 || !loopOccurrence || node != nodes.getFirst()))
+            while(state.matches(definition.segmentId()) && (node != nodes.getFirst() || !loopOccurrence || state.matches(definition)) && (count == 0 || !loopOccurrence || node != nodes.getFirst()))
             {
                X12Segment segment = state.segments.get(state.index++);
                state.bindings.add(new Binding(segment, definition));
@@ -235,9 +277,50 @@ public class GuideValidator
                state.add(segment, definition.loopId(), element, "8", code, "Invalid element data type", value);
             }
             if(element.fixedValue() != null && !element.fixedValue().equals(value)
-               || "ID".equals(element.dataType()) && element.codes() != null && !element.codes().contains(value))
+               || !"EXTERNAL".equals(element.source()) && "ID".equals(element.dataType()) && element.codes() != null && !element.codes().contains(value))
             {
                state.add(segment, definition.loopId(), element, "8", "7", "Invalid code or fixed value", value);
+            }
+         }
+      }
+   }
+
+   /*******************************************************************************
+    ** External membership is SNIP 5 and is optional; formats are always built in.
+    *******************************************************************************/
+   private void external(X12Segment segment, GuideSegment definition, State state)
+   {
+      if(config.getExternalCodeSetProvider() == null)
+      {
+         return;
+      }
+      for(GuideElement element : list(definition.elements()))
+      {
+         if(!"EXTERNAL".equals(element.source()))
+         {
+            continue;
+         }
+         int repetitions = element.position() <= segment.elements().size() ? segment.elements().get(element.position() - 1).size() : 1;
+         for(int repetition = 1; repetition <= repetitions; repetition++)
+         {
+            String value = segment.value(element.position(), repetition, number(element.componentPosition(), 1));
+            if(!value.isEmpty())
+            {
+               boolean valid;
+               try(var logging = com.kingsrook.qbits.edi.security.PhiLogScope.open(state.phi))
+               {
+                  valid = config.getExternalCodeSetProvider().isValid(element.externalCodeSet(), value,
+                     HealthcareValidation.asOf(state.segments, config.getClock()));
+               }
+               catch(RuntimeException e)
+               {
+                  valid = false;
+               }
+               if(!valid)
+               {
+                  state.findings.add(new ValidationFinding(segment.position(), segment.id(), definition.loopId(), element.position(), element.componentPosition(),
+                     5, "8", "7", "8", "7", "ERROR", "External code validation failed", null));
+               }
             }
          }
       }
@@ -392,6 +475,15 @@ public class GuideValidator
       private boolean matches(String id)
       {
          return (index < segments.size() && segments.get(index).id().equals(id));
+      }
+
+      /*******************************************************************************
+       ** Fixed qualifiers distinguish adjacent HL and NM1 loop anchors.
+       *******************************************************************************/
+      private boolean matches(GuideSegment definition)
+      {
+         return (matches(definition.segmentId()) && list(definition.elements()).stream().filter(e -> e.fixedValue() != null)
+            .allMatch(e -> e.fixedValue().equals(segments.get(index).value(e.position(), 1, number(e.componentPosition(), 1)))));
       }
 
       /*******************************************************************************

@@ -5,10 +5,11 @@ and application, and TA1/997/999/CONTRL acknowledgements. See [the design](docs/
 
 ## Status
 
-Phases a1, a2, b, d and g implement inbound/outbound retail and logistics EDI. Original baseline guides cover
+Phases a1 to e and g implement inbound/outbound retail, logistics and healthcare EDI (X12 and EDIFACT) over gateway, SFTP, HTTPS and AS2. Original baseline guides cover
 850, 855, 856, 810, 846 and 860 in 004010/005010, plus 997/999. Source records and associations
 produce validated, encrypted outbound interchanges, with control-number tracking, retries,
-acknowledgement monitoring and operator resend/cancel actions. AS2 and email sending remain disabled.
+acknowledgement monitoring and operator resend/cancel actions. AS2 (signed, encrypted, compressed, synchronous and
+asynchronous MDN, certificate rollover) is built in; email sending remains disabled until the qbit-email API ships.
 A runnable synthetic [demo](docs/DEMO.md) includes Next UI and needs no external services.
 
 EDIFACT syntax versions 3 and 4 support UNA/UNB, optional UNG groups, UNH messages and their
@@ -132,6 +133,8 @@ Full table permissions include `edi.partner.read|insert|edit|delete`, `edi.map.*
 | Resend / Resend As New | `edi.resend` |
 | Cancel | `edi.cancel` |
 | Test Connection | `edi.transport.test` |
+| Promote Certificate | `edi.certificate.promote` |
+| Export Public Certificate | `edi.certificate.read` |
 | Scheduled workers / ESB enqueue | `edi.admin` |
 
 Partner locks use `edi_partner` with `edi.admin` all-access. Home queries explicitly enforce
@@ -151,6 +154,7 @@ the viewing user's permissions. Processes are table/record actions, never naviga
 | `payloadStore` | `DATABASE` or `OBJECT_STORAGE` |
 | `payloadBucketAlias` | `edi` |
 | `secretsResolver` | Environment-variable lookup |
+| `publicBaseUrl` | Null; the deployment base URL (for example `https://edi.example.com`), required for ASYNC AS2 receipts |
 | `clock` | UTC system clock |
 | `esbDestinationName` | Null; optional core ESB destination |
 
@@ -166,7 +170,7 @@ alias and select `OBJECT_STORAGE`. EDI uses only its public API and system acces
 Optional `qqq-esb` publishes setup/activity events after commit. Document events contain only ID
 and status because RC.5's standard factory otherwise copies PHI fields. Alert names are
 `edi.inbox.dead-letter`, `edi.ack.overdue`, `edi.ack.rejected`, `edi.send.failed`,
-`edi.certificate.expiring` and `edi.certificate.expired` (RC.5 requires dotted names).
+`edi.certificate.expiring`, `edi.certificate.expired` and `edi.mdn.overdue` (RC.5 requires dotted names).
 
 RC.5 lacks the planned core `DataClassification` API. `EdiClassifications` marks PHI/PII/confidential
 fields and PHI fields deny AI exposure. Hosts must supply secured-data protection, database
@@ -200,7 +204,8 @@ TRANSPORT exception and raise `edi.send.failed`.
 | GATEWAY | `gatewayEndpointName`; marked `FileGatewayOutbox` stand-in with a provider registration hook. Put is SENT; `EdiFileGatewayConsumer.onDownloaded` is DELIVERED. |
 | SFTP | MINA client from core's filesystem module; required `sftpHostKeyFingerprint` in MINA SHA256 format, username and password/private-key env name. Streams upload to `.tmp`, then rename. `sftpPollCron` schedules remote pickup; `sftpFilePattern` is a Java regex (default `.*\.x12`). DELETE/MOVE occurs only after durable inbox commit. |
 | HTTPS | POST with NONE/BASIC/BEARER/HMAC; TLS required except loopback. BASIC's secret is `user:password`; BEARER's is the token; HMAC uses core Standard Webhooks `whsec_` format. `httpsHeadersJson` holds nonsecret headers only. Redirects are refused; 2xx is DELIVERED, 429/5xx retry. |
-| AS2 / EMAIL | Settings validation only. Sending returns a permanent unavailable result until phase c / the email API. |
+| AS2 | See [AS2](#as2). |
+| EMAIL | Settings validation only. Sending returns a permanent unavailable result until the qbit-email API ships. |
 
 Optional Javalin registers `POST /qqq/hooks/edi/https/{transport}`. `httpsInboundAuth` must be
 BASIC, BEARER or HMAC with `httpsSecretEnvVar`. It authenticates exact bytes, caps intake at
@@ -219,6 +224,103 @@ without re-running its map and links `originalInterchangeId`. Cancel accepts QUE
 
 Existing a2 databases need `edi_interchange.original_interchange_id INTEGER` and a unique index
 on `edi_outbound_request(agreement_document_id, event_id)` in addition to their prior schema.
+
+## AS2
+
+`As2Transport` (type `AS2`) sends and receives AS2 (RFC 4130) with S/MIME signing and encryption
+(SHA-256/384/512, AES-128/256 CBC or GCM; SHA1 and 3DES only when set explicitly and flagged by
+the read-only `weakCrypto` field), optional zlib compression, and synchronous or asynchronous
+signed MDNs. Everything is in memory: no keystore, key or temporary file is ever written.
+
+**Transport settings** (`edi_transport`, type AS2): `as2LocalId`, `as2PartnerId`, `as2Url` (HTTPS;
+plain HTTP only on loopback), `as2Subject`, `signAlgorithm` (blank = unsigned), `encryptAlgorithm`
+(blank = unencrypted), `compress`, `mdnMode` (`SYNC` default, `ASYNC`, `NONE`), `mdnSigned`,
+`localCertificateId` (ours), `partnerCertificateId`, optional `partnerTlsCertificateId` (pins the
+partner TLS certificate), and optional `httpAuthUserEnvVar` / `httpAuthPasswordEnvVar` for HTTP
+Basic. For inbound, a set `signAlgorithm` / `encryptAlgorithm` means signed / encrypted messages are
+required (otherwise `insufficient-message-security`). A VAN is an AS2 transport with `isVan` true
+and no `partnerId`; its partner certificate belongs to the VAN operator's partner record, and
+routing to trading partners stays by ISA identity.
+
+**Certificates** (`edi_certificate`): paste the public PEM only; subject, issuer, serial,
+SHA-256 fingerprint and validity are parsed on save, and a pasted private key is refused. Our private
+key is never stored: `privateKeyEnvVar` names an environment variable holding a PEM PKCS#8 key or a
+base64 PKCS#12 store (with `privateKeyPasswordEnvVar` for its password). A missing or mismatched
+variable fails plainly, naming only the variable. Status `ACTIVE` signs and encrypts outbound;
+inbound accepts `ACTIVE` and `NEXT` (ours for decryption, the partner's for verification), so a
+rollover is: add the new certificate as `NEXT`, tell the partner, then run **Promote Certificate**
+(`NEXT` becomes `ACTIVE`, the previous `ACTIVE` of the same partner and usage becomes `RETIRED`).
+**Export Public Certificate** downloads the PEM to send to a partner. The monitor alerts at 30, 14
+and 7 days before expiry and at expiry for `ACTIVE` and `NEXT` certificates.
+
+**Hook URLs** (outside `/qqq/v1`, authenticated per transport by AS2 identity, signature and
+certificate; give your partner the first, and the second is sent in `Receipt-Delivery-Option`):
+
+| URL | Purpose |
+| --- | --- |
+| `POST {base}/qqq/hooks/edi/as2/{transport}` | Receive messages; answers with the MDN, or 200 and a queued asynchronous MDN |
+| `POST {base}/qqq/hooks/edi/as2/{transport}/mdn` | Receive asynchronous MDNs for messages we sent |
+
+`{transport}` is the transport `name`. Set `EdiQBitConfig.withPublicBaseUrl(...)` so `ASYNC`
+transports can announce the second URL. Bodies are limited by the largest `maxInterchangeBytes` of
+the agreements on the transport (50 MB default). A retransmitted Message-ID is answered with the
+original MDN and is not reprocessed; a bad signature, decryption or MIC returns an MDN with
+`processed/error: authentication-failed`, `decryption-failed` or `integrity-check-failed` and creates
+no inbox row; a storage failure returns `unexpected-processing-error` so the partner retries. Every MDN
+sent or received is kept in the read-only `edi_as2_mdn` table (AS2 MDNs child lists on the
+outbound message and the inbound message) with the raw MDN in the encrypted payload store.
+`ASYNC` messages stay SENT until the MDN arrives; the `edi_as2_mdn_sender` step delivers the MDNs we
+owe, retrying with the send backoff, and `edi.mdn.overdue` warns when an `ASYNC` MDN is later than
+the agreement document `ackDueMinutes` (60 when unset).
+
+Existing databases need the new `edi_as2_mdn` table, `edi_outbound_message.transport_mic` and
+`edi_transport.weak_crypto` (see `docs/ddl/edi-postgres.sql`).
+
+## HIPAA and PHI
+
+Original **QQQ baseline guides** cover 837P (005010X222A1), 837I (005010X223A2),
+835 (005010X221A1), 270/271 (005010X279A1), 276/277 (005010X212), 834 (005010X220A1)
+and 999 (005010X231A1). These are in-house structure and usage baselines, not licensed TR3s.
+No TR3 text or full licensed code lists ship. Hosts may import their licensed guides.
+
+SNIP 1–2 covers envelopes and the active guide. SNIP 3 uses exact decimals for claim charges,
+claim/line CAS adjustments and payments less signed PLB adjustments (zero tolerance). SNIP 4
+rules run per loop occurrence, including dependent patients, claim/line dates, diagnoses,
+subscriber demographics and benefits-or-rejection responses. SNIP 3+ findings produce `E` and
+an exception; SNIP 1–2 errors produce `R`. HIPAA replies use 999 when acknowledgement is enabled.
+SNIP 5 includes ICD-10 diagnosis shape, NPI Luhn with the 80840 prefix, and US ZIP shape.
+`ExternalCodeSetProvider.isValid(codeSet, code, asOf)` supplies licensed membership checks for
+EXTERNAL code lists; without it, only formats are checked. The System widget reports that state.
+
+Healthcare agreement documents default to PHI and SNIP 4. Clinical keys go only to
+`edi_transaction.phiBusinessKey`; validation excerpts, acknowledgements, events, exceptions,
+alerts and process summaries contain no submitted clinical values. Healthcare sample maps and
+host tables live **only in test sources/resources** and use seeded synthetic patients and claims.
+Their NPI `1234567893` is a checksum test fixture, not an asserted provider identity.
+
+**The host must encrypt the database at rest and should install qbit-secured-data.** Payloads
+are always AES-GCM encrypted; PHI columns rely on host database encryption. RC.5's
+`EdiClassifications` stand-in marks PHI/PII/CONFIDENTIAL and denies PHI AI exposure, but does not
+mask values. Without secured-data policies, a user with table access can read PHI columns.
+The home explicitly reports this limitation. Use record-level audits on host PHI target tables
+until core classified-value audit protection is available.
+
+RC.5 also logs query criteria verbatim. The marked `PhiLogScope` bridge suppresses synchronous
+logger diagnostics during PHI mapping/application and preview; ordinary value-free EDI events
+remain persisted. It changes no logger levels and does not suppress other threads. Replace both
+bridges with core secured-data support at 4.1.0-RC.6. Map samples use record-level audits to avoid
+copying expected-result PHI into audit details. Host code outside these scopes must protect its
+own logging, audits and asynchronous work.
+
+Download Raw Document uses a session-bound process grant, rechecks `edi.raw.download` and record
+read/partner access at download time, streams decrypted bytes without local files, and records
+`RAW_DOWNLOADED` with the user and row references, never content. Download filenames are generic.
+
+`PhiCanaryTest` scans every five-character marker window through gateway/HTTPS intake, forced
+SNIP 2/3/4 errors, mapping/apply, 999, replay/resend, Review/Result, alerts, DEBUG logs, all EDI
+query exports and all home/child widgets. FULL exports exempt only PHI-classified columns;
+RC.5 HIDDEN field-lock exports have no exemptions. MASKED tiers and the optional Quick Search
+qbit require the newer secured-data integration and are not claimed by these RC.5 tests.
 
 ## Build and verification
 

@@ -1,0 +1,43 @@
+{
+  "map": {
+    "name": "Synthetic 277 inbound",
+    "direction": "INBOUND",
+    "transactionSet": "277",
+    "version": "005010X212",
+    "tableName": "sample_claim_status",
+    "revision": 1,
+    "status": "ACTIVE",
+    "businessKeyType": "HEALTHCARE",
+    "businessKeyPath": "2200C/TRN02",
+    "standard": "X12",
+    "onMatch": "UPDATE",
+    "matchKeyFields": "trace"
+  },
+  "rules": [
+    {
+      "sequence": 1,
+      "ediPath": "2200C/TRN02",
+      "qqqPath": "trace"
+    },
+    {
+      "sequence": 2,
+      "ediPath": "2100C/NM109",
+      "qqqPath": "memberId"
+    },
+    {
+      "sequence": 3,
+      "ediPath": "STC01-1",
+      "qqqPath": "category"
+    },
+    {
+      "sequence": 4,
+      "ediPath": "STC01-2",
+      "qqqPath": "statusCode"
+    },
+    {
+      "sequence": 5,
+      "ediPath": "REF[REF01=EJ]/REF02",
+      "qqqPath": "claimNumber"
+    }
+  ]
+}
