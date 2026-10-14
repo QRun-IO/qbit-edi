@@ -24,6 +24,9 @@ import java.util.List;
 import com.kingsrook.qbits.edi.EdiRuntime;
 import com.kingsrook.qbits.edi.storage.EdiRecords;
 import com.kingsrook.qbits.edi.support.SystemWrites;
+import com.kingsrook.qqq.backend.core.alerts.NotificationAudience;
+import com.kingsrook.qqq.backend.core.alerts.NotificationSignal;
+import com.kingsrook.qqq.backend.core.alerts.QAlerts;
 import com.kingsrook.qqq.backend.core.model.actions.tables.query.QCriteriaOperator;
 import com.kingsrook.qqq.backend.core.model.actions.tables.query.QQueryFilter;
 import com.kingsrook.qqq.backend.core.model.data.QRecord;
@@ -54,15 +57,32 @@ public final class EdiJournal
          filter.withCriteria(pair[0].toString(), pair[1] == null ? QCriteriaOperator.IS_BLANK : QCriteriaOperator.EQUALS, (Integer) pair[1]);
       }
       List<QRecord> matches = EdiRecords.query("edi_exception", filter);
-      if(matches.isEmpty())
+      QRecord exception;
+      boolean opened = matches.isEmpty();
+      if(opened)
       {
-         SystemWrites.insert("edi_exception", new QRecord().withValue("inboxId", inbox).withValue("interchangeId", interchange).withValue("transactionId", transaction)
+         exception = SystemWrites.insert("edi_exception", new QRecord().withValue("inboxId", inbox).withValue("interchangeId", interchange).withValue("transactionId", transaction)
             .withValue("partnerId", partner).withValue("type", type).withValue("summary", summary).withValue("status", "OPEN").withValue("occurrences", 1));
       }
       else
       {
          QRecord row = matches.getFirst();
+         exception = row;
+         opened = List.of("RESOLVED", "IGNORED").contains(row.getValueString("status"));
          SystemWrites.update("edi_exception", new QRecord().withValue("id", row.getValue("id")).withValue("occurrences", row.getValueInteger("occurrences") + 1).withValue("status", "OPEN"));
+      }
+      if(opened && partner != null && List.of("REJECTED_ACK", "DEAD_LETTER").contains(type))
+      {
+         String[] assignees = EdiRecords.query("edi_exception", EdiRecords.equal("partnerId", partner)
+            .withCriteria("status", QCriteriaOperator.IN, "OPEN", "IN_PROGRESS")).stream()
+            .map(row -> row.getValueString("assignedToUserId")).filter(user -> user != null && !user.isBlank()).distinct().toArray(String[]::new);
+         if(assignees.length > 0)
+         {
+            QAlerts.notify(new NotificationSignal("EDI exception opened")
+               .withBody("An acknowledgement rejection or dead-letter exception needs attention.")
+               .withAudience(NotificationAudience.users(assignees))
+               .withSourceName("edi").withSourceTableName("edi_exception").withSourceRecordId(exception.getValueString("id")));
+         }
       }
       event(inbox, interchange, transaction, "EXCEPTION");
    }

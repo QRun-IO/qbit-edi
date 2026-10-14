@@ -130,7 +130,7 @@ Package layout (`com.kingsrook.qbits.edi`):
 
 | Dependency | Scope | Why |
 |---|---|---|
-| QQQ `4.1.0-RC.5` (then each new RC, G7) | compile | core, `QAlerts.raise/resolve` (RC.5) |
+| QQQ `4.1.0-RC.6` (then each new RC, G7) | compile | core classification, `QAlerts.raise/resolve/notify` |
 | `qqq-middleware-javalin` | optional | hooks route provider; UI API extension (RC.6) |
 | `qqq-esb` | optional | outbound trigger from ESB table events |
 | `qqq-backend-module-filesystem` (SFTP) | compile | SFTP push and VAN polling. This is core's SFTP client, the one qbit-sftp-data-integration uses; EDI uses it directly instead of depending on that qbit (G1). Remote SFTP only; nothing local. |
@@ -139,13 +139,20 @@ Package layout (`com.kingsrook.qbits.edi`):
 | `qbit-object-storage` (its `api` package only) | optional | raw payload storage (section 10) |
 | `qbit-file-gateway` (its `api` package only) | optional | inbound SFTP and partner-pull OUTBOX (section 5.3) |
 
-Core features that arrive in RC.6, and how EDI bridges until then:
+Core features checked against the `v4.1.0-RC.6` tag:
 
-| Need | Core | Until RC.6 |
+| Need | Core | RC.6 status |
 |---|---|---|
-| `DataClassification` on fields (PHI) | `actions.ai.DataClassification` (#1142) | `EdiClassifications` stand-in, `STAND-IN(core=QRun-IO/qqq#1142, removeBy=4.1.0-RC.6)`, sets the classification reflectively when the class is present |
-| User notifications | `QAlerts.notify` (#1125) | alerts only via `QAlerts.raise` (RC.5); notifications added with the RC.6 bump |
-| UI API extension point | `MiddlewareSpecExtension` (#1128) | the sandbox is a record action (section 8.3); spec'd endpoints come in phase f |
+| `DataClassification` on fields (PHI) | `actions.ai.DataClassification` (#1142) | Uses `AiFieldMetaData.withClassification` and CONFIDENTIAL `AiTableMetaData` defaults; classification stand-in removed, including healthcare test fixtures |
+| User notifications | `QAlerts.notify` (#1125) | Assign notifies the assignee; new/reopened rejection and dead-letter exceptions notify current partner assignees (section 4.4) |
+| UI API extension point | `MiddlewareSpecExtension` (#1128) | Available in core; sandbox remains a record action until phase f |
+| Contingent choice dependency behavior | `PossibleValueDependencyBehavior`, `possibleValueSourceDependsOn` | Neither API exists in the tag; existing filters retain shared choices before a partner is selected |
+| Secured-data tiers and log redaction | `FieldAccessHelper`, logging hook (#1147) | Spec only; no implementation in the tag. Retain `PhiLogScope`, `STAND-IN(core=QRun-IO/qqq#1147, removeBy=4.1.0-RC.7)` |
+
+**RC.6 baseline:** classifications and notifications now use core APIs. The PHI logging bridge
+remains because RDBMS query failures still log filters and QLogger has no classified-value
+redaction hook; review/remove it by RC.7 under #1147. FULL and HIDDEN field-lock canaries run;
+MASKED tiers await `FieldAccessHelper`. Host logging/audits outside PHI scopes still need protection.
 
 The file-gateway `api` ships in that qbit's phase (a). Until it is on a published SNAPSHOT, EDI uses
 `GatewayStandIn` with the identical shape, marked `STAND-IN(core=QRun-IO/qbit-file-gateway,
@@ -247,7 +254,11 @@ One row per document, version and direction that the agreement carries.
 - When the ack arrives, `QAlerts.resolve("edi.ack.overdue", dedupKey, note)`.
 - A rejecting ack (AK9/IK9 `R`, or partial `P`) raises `edi.ack.rejected` (ERROR) and opens a
   `REJECTED_ACK` exception.
-- From RC.6, assignees of exceptions also get a `QAlerts.notify` notification.
+- Assign sends the assignee a value-free `QAlerts.notify` notification after the update commits.
+  New or reopened `REJECTED_ACK`/`DEAD_LETTER` exceptions notify distinct assignees of
+  OPEN/IN_PROGRESS exceptions for the same partner (including the reopened row's assignee).
+  Existing active exception assignments define partner recipients; no new assignment model is
+  introduced. Coalesced repeat occurrences do not notify again. Rollbacks discard notifications.
 
 ## 5. Transports
 
@@ -565,16 +576,41 @@ upload is stored as a sample), and the standard Review/Result lines show:
 5. the diff against the previous map revision's result and against `expectedResultJson`.
 
 Nothing is written to target tables: the preview runs the whole pipeline with a no-op applier.
-Phase f adds spec'd endpoints (`POST /qqq/v1/qbit/edi/sandbox/preview` and related) for the mapper
-UI.
+Phase f1 provides the `edi` 1.0.0 `MiddlewareSpecExtension`, with component schemas named
+`Edi...V1` and a generated, contract-tested fragment at `openapi/qqq-v1/edi.yaml`:
 
-### 8.4 No-code mapper UI (phase f; specified now, built later)
+- `GET /qqq/v1/qbit/edi/guides/{guideId}/tree`
+- `GET /qqq/v1/qbit/edi/maps/{mapId}/target`
+- `POST /qqq/v1/qbit/edi/sandbox/preview`
+- `POST /qqq/v1/qbit/edi/maps/{mapId}/validate`
+
+Preview Map and the HTTP preview share `MapPreviewService`. HTTP preview takes `mapId`, exactly
+one of `sampleId`/`sampleBase64`, optional `sampleName`, a complete in-memory `ruleOverrides`
+replacement, and `guideRevision`. Uploads are limited to 5 MiB decoded and stored encrypted as
+samples; the host must allow at least 8 MiB HTTP bodies for base64 overhead. `CURRENT` (HTTP default)
+selects the newest active revision in the pinned guide family and partner; `ORIGINAL` uses the
+map's pinned guide, as the record action does.
+
+The response contains parse counts, positional findings, acknowledgement type/text, mapped records
+and associations, structured per-document diffs, and `phiSuppressed`. PHI returns null result/ack
+text, empty diffs and generic finding messages. Mapping errors are value-free `MAP` findings.
+The preview action permission is exactly `edi.map.preview`, with no `.hasAccess` suffix.
+Guide, sample and rule reads explicitly enforce permissions and record locks; transforms run in
+the caller session. Only classification and encrypted sample storage use the internal system writer.
+
+### 8.4 No-code mapper UI (phase f1 API built; Next page follows)
 A custom Next UI page (custom UIs may be nav entries):
 - left, the guide tree (loops, segments, elements with usage and code lists); right, the target
   table's fields and associations; drag to create a rule, then choose a transform;
 - a live preview pane on a chosen sample (the sandbox endpoint), with errors inline;
 - revisions: edit a DRAFT, activate, compare revisions;
-- reads and writes only through `/qqq/v1` (CRUD on `edi_map_rule` plus the extension endpoints).
+- reads and writes only through `/qqq/v1`: the guide-tree and map-target GETs above, the sandbox
+  preview POST and the map validate POST; writes remain core CRUD on `edi_map_rule`, enforcing
+  `edi.map_rule.insert|edit|delete` and record locks.
+- target metadata includes direct associations and transform argument JSON Schemas from the
+  registry. Validate accepts `{rules: [...]}`, returns indexed per-rule errors against the pinned
+  guide/target and never executes transforms or saves rules. Guide code lists return at most
+  200 active codes per element.
 
 ## 9. Flows
 
@@ -770,7 +806,7 @@ so.
 
 ## 12. HIPAA and PHI
 
-- **Classification** (`DataClassification`, core #1142; the stand-in until RC.6):
+- **Classification** (`DataClassification`, core #1142; native RC.6 metadata):
   - PHI: `edi_transaction.phiBusinessKey`, `edi_transaction_error.valueExcerpt` (never written for
     PHI documents, but classified anyway), `edi_map_sample.expectedResultJson`, `edi_inbox.fileName`
     (file names often carry member or claim ids), and the payloads themselves (encrypted, never in a
@@ -794,10 +830,10 @@ so.
 - **Canary egress tests** (phase e, the core SECURED-DATA procedure): two randomized markers per
   patient-name, member-id, claim-number and diagnosis field run through gateway and HTTPS hooks,
   validation with SNIP 2/3/4 failures, 999, map/apply, exceptions, reprocess/resend, every home and
-  child widget, every persisted `edi_` table's QueryAction export, Review/Result, captured alerts
+  child widget, every persisted `edi_` table's QueryAction export, Review/Result, captured alerts and notifications
   and an in-memory DEBUG log appender. Every five-character window is scanned, detecting all
   longer substrings. Only explicit PHI value/display-value columns are exempt for FULL exports;
-  ciphertext bytes are checked for plaintext. RC.5 HIDDEN field locks are separately exercised
+  ciphertext bytes are checked for plaintext. RC.6 HIDDEN field locks are separately exercised
   without exemptions. The storage-only download alias has no query surface. MASKED tiers and
   the optional Quick Search index await their host/core integration; they are not simulated.
   Long diagnosis markers use a widened test-only guide element so accepted-with-error fixtures
@@ -942,7 +978,6 @@ queued acknowledgements are implemented. These RC.5 adaptations refine the execu
   Object storage uses only its published API.
 - Standard optional ESB publication follows RC.5. Document events use the core envelope/publisher
   with ID/status only because the standard factory copies every field, including PHI keys.
-- The a1 classification stand-in and host responsibility for PHI field protection remain unchanged.
 
 Synthetic H2 verification covers permissions, association rollback, retry/stale claims, gateway
 storage failures, original/current replay, 997/999, ack reconciliation, previews and home renderers.
@@ -998,13 +1033,9 @@ RC.5 adaptations implemented in this worktree:
 
 ## Phase e implementation notes (2026-10-14)
 
-- Core RC.5 logs full query criteria, including PHI upsert keys. `PhiLogScope` is a scoped,
-  marked bridge to suppress synchronous diagnostic logging during PHI map/apply and previews;
-  it leaves unrelated threads and persisted value-free events intact. Remove with the core
-  classification/logging bridge at RC.6. Map samples use record-level audits on RC.5 because their
-  expected-result column can contain PHI. Host asynchronous code, target audits and queries outside
-  these boundaries still need host secured-data protection. Raw downloads use RC.5's existing
-  session-bound storage grant and an `edi_event` audit rather than a not-yet-available access log.
+- See the RC.6 baseline in section 3. Map samples use record-level audits because expected-result
+  JSON can contain PHI. Raw downloads use a session-bound storage grant and an `edi_event` audit;
+  a secured-data access log remains host integration work.
 - Situational rules bind to their occurrence and inherit only direct ancestor segments, so a
   sibling line's service date cannot satisfy another line. Fixed loop-head qualifiers distinguish
   HL/NM1 roles; the same 2300/2400 names can occur under subscriber and patient parents.
@@ -1018,7 +1049,7 @@ RC.5 adaptations implemented in this worktree:
   associations. These are baseline examples, not a complete licensed TR3 implementation.
 - Child-list widgets explicitly enforce their nested queries on RC.5; the generic renderer
   otherwise bypasses field locks inside the already-authorized widget action scope.
-- MASKED-user response scanning and Quick Search indexing are not available on the pinned RC.5
+- MASKED-user response scanning and Quick Search indexing are not available on the pinned RC.6
   test classpath. FULL and actual HIDDEN-field-lock scans run now; no simulated masking is used.
 
 ## Phase g implementation notes (2026-10-14)

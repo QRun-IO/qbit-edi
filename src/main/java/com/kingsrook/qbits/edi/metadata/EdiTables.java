@@ -51,10 +51,10 @@ import com.kingsrook.qbits.edi.model.EdiPayload;
 import com.kingsrook.qbits.edi.model.EdiTransaction;
 import com.kingsrook.qbits.edi.model.EdiTransactionError;
 import com.kingsrook.qbits.edi.model.EdiTransport;
-import com.kingsrook.qbits.edi.security.EdiClassifications;
 import com.kingsrook.qqq.backend.core.actions.ai.AiExposure;
 import com.kingsrook.qqq.backend.core.actions.ai.AiFieldMetaData;
 import com.kingsrook.qqq.backend.core.actions.ai.AiTableMetaData;
+import com.kingsrook.qqq.backend.core.actions.ai.DataClassification;
 import com.kingsrook.qqq.backend.core.actions.customizers.TableCustomizers;
 import com.kingsrook.qqq.backend.core.actions.dashboard.widgets.ChildRecordListRenderer;
 import com.kingsrook.qqq.backend.core.exceptions.QException;
@@ -234,9 +234,10 @@ public final class EdiTables
          .withPermissionRules(new QPermissionRules().withPermissionBaseName("edi." + name.substring(4)).withLevel(PermissionLevel.READ_INSERT_EDIT_DELETE_PERMISSIONS))
          .withAuditRules(new QAuditRules().withAuditLevel(readOnly || name.equals("edi_map_sample") ? AuditLevel.RECORD : AuditLevel.FIELD));
       QRecordEntity.registerTable(entity, table);
+      AiTableMetaData.ofOrWithNew(table).withClassification(DataClassification.CONFIDENTIAL);
       if(List.of("edi_payload", "edi_certificate", "edi_inbox").contains(name))
       {
-         table.withSupplementalMetaData(new AiTableMetaData().withExposure(AiExposure.NONE));
+         AiTableMetaData.ofOrWithNew(table).withExposure(AiExposure.NONE);
       }
       if(name.equals("edi_exception"))
       {
@@ -253,13 +254,14 @@ public final class EdiTables
       }
       for(QFieldMetaData field : table.getFields().values())
       {
-         String classification = List.of("phiBusinessKey", "fileName", "ciphertext", "expectedResultJson", "valueExcerpt").contains(field.getName()) ? "PHI"
-            : List.of("contactName", "contactEmail", "contactPhone").contains(field.getName()) ? "PII" : "CONFIDENTIAL";
-         field.withSupplementalMetaData(new EdiClassifications(classification));
-         if(classification.equals("PHI"))
+         DataClassification classification = List.of("phiBusinessKey", "fileName", "ciphertext", "expectedResultJson", "valueExcerpt").contains(field.getName()) ? DataClassification.PHI
+            : List.of("contactName", "contactEmail", "contactPhone").contains(field.getName()) ? DataClassification.PII : DataClassification.CONFIDENTIAL;
+         AiFieldMetaData metadata = new AiFieldMetaData().withClassification(classification);
+         if(classification == DataClassification.PHI)
          {
-            field.withSupplementalMetaData(new AiFieldMetaData().withExposure(AiExposure.NONE));
+            metadata.withExposure(AiExposure.NONE);
          }
+         field.withSupplementalMetaData(metadata);
       }
       EdiTablePresentation.apply(table);
       EdiRecordLabels.configure(table);

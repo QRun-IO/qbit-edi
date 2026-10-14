@@ -34,7 +34,7 @@ ALTER TABLE edi_agreement ADD COLUMN syntax_identifier VARCHAR(255);
 
 ## Requirements and installation
 
-Java 21, QQQ **4.1.0-RC.5**, an RDBMS backend, and `com.kingsrook.qbits:qbit-edi:0.1.0-SNAPSHOT`.
+Java 21, QQQ **4.1.0-RC.6+**, an RDBMS backend, and `com.kingsrook.qbits:qbit-edi:0.1.0-SNAPSHOT`.
 Apply [the PostgreSQL schema](docs/ddl/edi-postgres.sql). Targets and their associations must
 share the EDI backend so each transaction set can commit or roll back atomically.
 
@@ -57,7 +57,7 @@ a least-privilege `QSession` with target and association permissions. Applying w
 produces an APPLY exception: `no service session configured`.
 
 The `edi` app has Activity/Setup sections, typed home widgets, record screens and standard
-Review/Result actions. Main tables have RC.5 search-field metadata; `EdiIntegrations.mainTables()`
+Review/Result actions. Main tables have RC.6 search-field metadata; `EdiIntegrations.mainTables()`
 also exposes the list for host search registration.
 
 ## Tables
@@ -73,8 +73,59 @@ There are **26 persisted tables**, whose SQL names equal their QQQ names.
 | Storage/queue | `edi_payload`, `edi_outbound_request`, `edi_outbound_message` |
 
 `edi_preview_download` is a **storage-only metadata alias**, not a SQL table. Supporting tables
-appear as child lists. Partner-scoped form choices use RC.5 contingent filters, including shared
+appear as child lists. Partner-scoped form choices use RC.6 contingent filters, including shared
 transports/guides and local certificates/identities.
+
+## UI API
+
+With optional Javalin present, the producer registers the `edi` extension, version `1.0.0`,
+under `/qqq/v1/qbit/edi`. All routes are endpoint specs and pass strict UI-route auditing.
+
+| Method | Path after `/qqq/v1/qbit/edi` | Result |
+|---|---|---|
+| GET | `/guides/{guideId}/tree` | Nested loops, ordered segments, elements and up to 200 active codes per element |
+| GET | `/maps/{mapId}/target` | Target fields, direct associations, current rules and registered transform argument schemas |
+| POST | `/sandbox/preview` | Parse counts, positional findings, acknowledgement, mapped records and revision/expected diffs |
+| POST | `/maps/{mapId}/validate` | Per-rule path, transform and required-argument errors |
+
+Preview accepts `{mapId, sampleId?, sampleBase64?, sampleName?, ruleOverrides?, guideRevision?}`.
+Supply exactly one sample source. Uploads are base64 JSON, at most **5 MiB decoded**, archived as
+encrypted `edi_map_sample` records through the same storage as Preview Map. No runtime files are
+created. Configure the host's Javalin `http.maxRequestSize` to at least 8 MiB to allow base64
+overhead and request metadata. Oversized decoded samples return 400; a smaller host limit returns 413.
+
+`ruleOverrides` replaces the entire rule list in memory, including an empty list; it never saves
+rules. `CURRENT` (default) selects the newest active revision of the pinned guide's name, standard,
+version, transaction set and partner; `ORIGINAL` uses the map's pinned guide. Validate accepts
+`{rules: [...]}` and checks the pinned guide. Rule fields and `transformArgs` have the same shape
+as core table CRUD (`transformArgs` is a JSON object encoded as a string).
+
+Every read enforces table permissions and partner locks with the caller's session, regardless of
+the host's default core-enforcement setting. Preview additionally requires **`edi.map.preview`**,
+shared with both Preview Map record actions. Reading target metadata requires target/association
+table read permissions; guide definitions, code lists, map rules and stored samples require their
+own table reads. LOOKUP and host transforms run as the caller, without service-account elevation.
+Only the internal PHI classification check and encrypted sample storage use the EDI system writer.
+
+For PHI, `result` and `ack.text` are null and both diff lists are empty; findings retain positions
+and codes with generic messages. Mapping failures are value-free `MAP` findings. Preview never
+writes target records. Diffs contain differing document records as `{documentIndex, before, after}`;
+acknowledgements for multiple groups are concatenated, with `type: MIXED` for different ack types.
+
+The mapper saves `edi_map_rule` through the **core table API**, using its normal
+`edi.map_rule.insert|edit|delete` permissions and record locks. There are no custom rule-write routes.
+The Next mapper page is separate phase-f work.
+
+The generated contract is `src/main/resources/openapi/qqq-v1/edi.yaml`; all component names are
+`Edi...V1`. Regenerate intentionally with:
+
+```powershell
+./mvnw.cmd -B '-Dtest=EdiApiContractTest' '-Dedi.openapi.update=true' test
+```
+
+RC.6 provides `UiApiContract.check`, used to compare generated and checked-in YAML and run
+`OpenApiCompatibilityChecker` against this initial fragment baseline. The extension also appears
+in the host's `/qqq/v1/openapi.yaml` and `/qqq/v1/version`.
 
 ## Inbound operation
 
@@ -111,7 +162,7 @@ Outbound maps support nested association paths; inbound target paths retain the 
 Preview shows parse counts, SNIP findings, the would-be ack, mapped JSON, expected-result and
 previous-revision comparisons. It writes no target records. PHI previews suppress document values.
 A session-authorized encrypted JSON report is downloadable. Select a stored sample or upload
-synthetic EDI on the standard Review step. Browser uploads require the host's RC.5 Javalin
+synthetic EDI on the standard Review step. Browser uploads require the host's RC.6 Javalin
 `uploadedFileArchiveTableName` to be `edi_preview_download` and multipart handling without disk
 staging. The alias encrypts streams and persists samples; this process accepts no filesystem archive.
 Samples must contain synthetic data only.
@@ -165,29 +216,35 @@ in memory. Database storage remains the default for demos/tests.
 
 For object storage, add/install optional `qbit-object-storage:0.1.0-RC.2`, configure its bucket
 alias and select `OBJECT_STORAGE`. EDI uses only its public API and system access, with keys
-`edi/yyyy/MM/dd/kind/uuid`. Its transitive QQQ dependencies are excluded to retain RC.5.
+`edi/yyyy/MM/dd/kind/uuid`. Its transitive QQQ dependencies are excluded to retain RC.6.
 
 Optional `qqq-esb` publishes setup/activity events after commit. Document events contain only ID
-and status because RC.5's standard factory otherwise copies PHI fields. Alert names are
+and status because RC.6's standard factory otherwise copies PHI fields. Alert names are
 `edi.inbox.dead-letter`, `edi.ack.overdue`, `edi.ack.rejected`, `edi.send.failed`,
-`edi.certificate.expiring`, `edi.certificate.expired` and `edi.mdn.overdue` (RC.5 requires dotted names).
+`edi.certificate.expiring`, `edi.certificate.expired` and `edi.mdn.overdue` (RC.6 requires dotted names).
 
-RC.5 lacks the planned core `DataClassification` API. `EdiClassifications` marks PHI/PII/confidential
-fields and PHI fields deny AI exposure. Hosts must supply secured-data protection, database
-encryption at rest and access policies for PHI columns; markers alone do not mask fields.
+Core `DataClassification` metadata marks PHI/PII/CONFIDENTIAL fields through `AiFieldMetaData`,
+with a CONFIDENTIAL table default through `AiTableMetaData`. PHI fields deny AI exposure.
+Hosts must supply secured-data protection, database encryption at rest and access policies for PHI columns; markers alone do not mask fields.
 The home reports installed integration and storage state.
+
+Assign sends a value-free `QAlerts.notify` notification to the assignee after commit. Newly opened
+or reopened REJECTED_ACK/DEAD_LETTER exceptions notify distinct assignees of OPEN/IN_PROGRESS
+exceptions for the same partner; these existing assignments define the partner's recipients.
+Repeated occurrences do not send another notification. Titles and bodies contain no document,
+partner or exception-summary values. Without an alerts integration, core uses its logging sink.
 
 ## Outbound and transports
 
 Active OUTBOUND agreement documents select the source table, map, guide and trigger. RECORD_CHANGE
 uses core's instance listener and the writer's transaction. Source and EDI tables must share the
 backend. `triggerFilter` is a serialized QQQ `QQueryFilter`; MANUAL also honors that filter.
-RC.5 catches listener errors without failing the source write: successful enqueues roll back with
+RC.6 catches listener errors without failing the source write: successful enqueues roll back with
 the source transaction, but hosts must monitor failed listener execution.
 
-`edi_outbound_enqueue` is the ESB boundary. Configure an RC.5 `EsbTrigger` to invoke it with
+`edi_outbound_enqueue` is the ESB boundary. Configure an RC.6 `EsbTrigger` to invoke it with
 `sourceTableName`, `sourceRecordId` and `eventId`; broker setup belongs to the host. Event IDs are
-unique per agreement document. RC.5's consumer runner uses JMS, so broker-free acceptance calls
+unique per agreement document. RC.6's consumer runner uses JMS, so broker-free acceptance calls
 this process directly.
 
 `edi_outbound_worker` and `edi_send_worker` run every 15 seconds when a scheduler is configured.
@@ -299,17 +356,18 @@ host tables live **only in test sources/resources** and use seeded synthetic pat
 Their NPI `1234567893` is a checksum test fixture, not an asserted provider identity.
 
 **The host must encrypt the database at rest and should install qbit-secured-data.** Payloads
-are always AES-GCM encrypted; PHI columns rely on host database encryption. RC.5's
-`EdiClassifications` stand-in marks PHI/PII/CONFIDENTIAL and denies PHI AI exposure, but does not
-mask values. Without secured-data policies, a user with table access can read PHI columns.
+are always AES-GCM encrypted; PHI columns rely on host database encryption. RC.6 core
+classification metadata marks PHI/PII/CONFIDENTIAL and denies PHI AI exposure, but does not
+provide secured-data field tiers. Without secured-data policies, a user with table access can
+read PHI columns.
 The home explicitly reports this limitation. Use record-level audits on host PHI target tables
 until core classified-value audit protection is available.
 
-RC.5 also logs query criteria verbatim. The marked `PhiLogScope` bridge suppresses synchronous
-logger diagnostics during PHI mapping/application and preview; ordinary value-free EDI events
-remain persisted. It changes no logger levels and does not suppress other threads. Replace both
-bridges with core secured-data support at 4.1.0-RC.6. Map samples use record-level audits to avoid
-copying expected-result PHI into audit details. Host code outside these scopes must protect its
+RC.6 still includes query criteria in RDBMS failure logs and has no logging redaction hook.
+The marked `PhiLogScope` bridge suppresses synchronous logger diagnostics during PHI mapping/application and preview; ordinary value-free EDI events
+remain persisted. It changes no logger levels and does not suppress other threads. The bridge
+tracks core #1147 (secured-data logging), with a removal/review deadline of 4.1.0-RC.7.
+Map samples use record-level audits to avoid copying expected-result PHI into audit details. Host code outside these scopes must protect its
 own logging, audits and asynchronous work.
 
 Download Raw Document uses a session-bound process grant, rechecks `edi.raw.download` and record
@@ -317,10 +375,10 @@ read/partner access at download time, streams decrypted bytes without local file
 `RAW_DOWNLOADED` with the user and row references, never content. Download filenames are generic.
 
 `PhiCanaryTest` scans every five-character marker window through gateway/HTTPS intake, forced
-SNIP 2/3/4 errors, mapping/apply, 999, replay/resend, Review/Result, alerts, DEBUG logs, all EDI
+SNIP 2/3/4 errors, mapping/apply, 999, replay/resend, Review/Result, alerts/notifications, DEBUG logs, all EDI
 query exports and all home/child widgets. FULL exports exempt only PHI-classified columns;
-RC.5 HIDDEN field-lock exports have no exemptions. MASKED tiers and the optional Quick Search
-qbit require the newer secured-data integration and are not claimed by these RC.5 tests.
+RC.6 HIDDEN field-lock exports have no exemptions. MASKED tiers and the optional Quick Search
+qbit require the newer secured-data integration and are not claimed by these RC.6 tests.
 
 ## Build and verification
 

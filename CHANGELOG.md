@@ -6,6 +6,11 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic
 
 ### Added
 
+- Phase f1 `edi` 1.0.0 spec'd UI API: guide tree, map target/transform metadata, encrypted base64 sample preview with unsaved rule overrides, and per-rule validation under `/qqq/v1/qbit/edi`.
+- Versioned `Edi...V1` schemas and generated OpenAPI fragment with the RC.6 contract/compatibility checks; real HTTP strict-mode permission, PHI, upload, isolation and validation tests.
+- Shared sandbox/record-action preview service, current/original guide selection, caller-session transforms, structured revision/expected diffs and value-free PHI diagnostics.
+- Transform registry argument schemas, including host-supplied schemas. Preview Map record actions now enforce the documented exact `edi.map.preview` permission through core's full-name permission checker.
+
 - Phase g EDIFACT syntax 3/4 envelopes (UNA/UNB, optional UNG/UNE, UNH/UNT, UNZ), release escaping, native envelope findings, UNB identity routing, 14-digit UN control allocation and duplicate detection.
 - Original D96A/D01B ORDERS, ORDRSP, DESADV, INVOIC and CONTRL guides; ORDERS inbound and retail response outbound sample maps with composite fields and segment groups.
 - Standard-neutral document validation/mapping, mixed X12/EDIFACT inbox framing, CONTRL generation and reconciliation with overdue resolution and rejection alerts, native outbound envelopes and archived resend-as-new.
@@ -45,7 +50,19 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic
 - Repository scaffold to the QRun qbit repository standard: `qbit-build-parent` 2.0.0, QQQ 4.1.0-RC.5, Maven wrapper, Checkstyle, JaCoCo gate, CircleCI qqq-orb 0.6.8, release-candidate workflow, Dependabot, community files.
 - `EdiQBitProducer` and `EdiQBitConfig` (table prefix `edi_`, permission base `edi`).
 
+### Changed
+
+- QQQ baseline is now 4.1.0-RC.6. EDI tables/fields and healthcare test fixtures use core `DataClassification` through `AiTableMetaData`/`AiFieldMetaData`, preserving PHI, PII, CONFIDENTIAL and PHI AI-exposure restrictions.
+- Exception Assign and new/reopened partner rejection/dead-letter exceptions send value-free core notifications after commit, with capturing-sink and PHI canary coverage.
+- Retain `PhiLogScope` for core #1147 until RC.7: RC.6 still logs RDBMS query filters and has no redaction hook or `FieldAccessHelper`. Contingent dependency-behavior APIs are also absent; shared-choice filters remain tested.
+
+### Removed
+
+- Reflective `EdiClassifications` RC.5 stand-in. File-gateway stand-ins remain until its API is published; the object-storage API integration is unchanged.
+
 ### Fixed
+
+- Shared-choice filters group partner-or-shared alternatives beneath an AND root, so core search criteria cannot admit another partner's transports.
 
 - 999 now accepts SNIP 3+ findings with `E` instead of rejecting every ERROR. HIPAA acknowledgement selection follows the implementation version and enabled agreement expectation; outbound HIPAA ST carries its implementation identifier.
 - Qualified HL/NM1 anchors distinguish healthcare hierarchy levels; repeated loop names under different parents retain separate occurrences. Situational rules inherit direct ancestor segments without borrowing values from sibling occurrences.

@@ -47,24 +47,37 @@ public class GuideRepository
     *******************************************************************************/
    public Guide load(Integer id) throws Exception
    {
-      QRecord guide = rows("edi_guide", "id", id).getFirst();
-      List<QRecord> definitions = new ArrayList<>(rows("edi_guide_segment", "guideId", id));
+      return (load(id, false));
+   }
+
+   /*******************************************************************************
+    ** UI preview explicitly enforces every guide read, independently of host defaults.
+    *******************************************************************************/
+   public Guide load(Integer id, boolean enforcePermissions) throws Exception
+   {
+      var guideRows = rows("edi_guide", "id", id, enforcePermissions);
+      if(guideRows.isEmpty())
+      {
+         throw (new com.kingsrook.qqq.backend.core.exceptions.QNotFoundException("Not found"));
+      }
+      QRecord guide = guideRows.getFirst();
+      List<QRecord> definitions = new ArrayList<>(rows("edi_guide_segment", "guideId", id, enforcePermissions));
       definitions.sort(Comparator.comparing(r -> r.getValueInteger("sequence")));
       List<GuideSegment> segments = new ArrayList<>();
-      List<QRecord> rules = rows("edi_guide_rule", "guideId", id);
+      List<QRecord> rules = rows("edi_guide_rule", "guideId", id, enforcePermissions);
       for(QRecord definition : definitions)
       {
          Integer segmentId = definition.getValueInteger("id");
          List<GuideElement> elements = new ArrayList<>();
-         for(QRecord element : rows("edi_guide_element", "guideSegmentId", segmentId))
+         for(QRecord element : rows("edi_guide_element", "guideSegmentId", segmentId, enforcePermissions))
          {
             List<String> codes = null;
             QRecord codeList = null;
             if(element.getValueInteger("codeListId") != null)
             {
-               codeList = rows("edi_code_list", "id", element.getValueInteger("codeListId")).getFirst();
+               codeList = rows("edi_code_list", "id", element.getValueInteger("codeListId"), enforcePermissions).getFirst();
                codes = new ArrayList<>();
-               for(QRecord code : rows("edi_code_list_value", "codeListId", element.getValueInteger("codeListId")))
+               for(QRecord code : rows("edi_code_list_value", "codeListId", element.getValueInteger("codeListId"), enforcePermissions))
                {
                   if(Boolean.TRUE.equals(code.getValueBoolean("isActive")))
                   {
@@ -206,9 +219,9 @@ public class GuideRepository
    /*******************************************************************************
     ** Query normalized child records.
     *******************************************************************************/
-   private static List<QRecord> rows(String table, String field, Integer id) throws Exception
+   private static List<QRecord> rows(String table, String field, Integer id, boolean enforcePermissions) throws Exception
    {
-      return (EdiRecords.query(table, EdiRecords.equal(field, id)));
+      return (enforcePermissions ? EdiRecords.queryEnforced(table, EdiRecords.equal(field, id)) : EdiRecords.query(table, EdiRecords.equal(field, id)));
    }
 
    /*******************************************************************************

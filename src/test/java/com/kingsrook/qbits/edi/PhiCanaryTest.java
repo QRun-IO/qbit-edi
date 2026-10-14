@@ -44,7 +44,6 @@ import com.kingsrook.qbits.edi.flow.InboxWorker;
 import com.kingsrook.qbits.edi.flow.SendWorker;
 import com.kingsrook.qbits.edi.metadata.EdiTables;
 import com.kingsrook.qbits.edi.processes.EdiProcesses;
-import com.kingsrook.qbits.edi.security.EdiClassifications;
 import com.kingsrook.qbits.edi.storage.EdiRecords;
 import com.kingsrook.qbits.edi.storage.PayloadCrypto;
 import com.kingsrook.qbits.edi.storage.PreviewDownloadBackend;
@@ -55,6 +54,8 @@ import com.kingsrook.qbits.edi.transport.gateway.EdiFileGatewayConsumer;
 import com.kingsrook.qbits.edi.transport.gateway.standin.FileGatewayOutbox;
 import com.kingsrook.qbits.edi.transport.gateway.standin.InboundFile;
 import com.kingsrook.qbits.edi.transport.gateway.standin.OutboxFileRef;
+import com.kingsrook.qqq.backend.core.actions.ai.AiFieldMetaData;
+import com.kingsrook.qqq.backend.core.actions.ai.DataClassification;
 import com.kingsrook.qqq.backend.core.actions.dashboard.RenderWidgetAction;
 import com.kingsrook.qqq.backend.core.actions.tables.QueryAction;
 import com.kingsrook.qqq.backend.core.context.QContext;
@@ -78,7 +79,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /*******************************************************************************
  ** End-to-end PHI egress scanner. Only explicit PHI columns may retain sentinels.
- ** RC.5 has no secured-data tier resolver; FULL exports and positional egress run here.
+ ** RC.6 has no secured-data tier resolver; FULL exports and positional egress run here.
  *******************************************************************************/
 class PhiCanaryTest
 {
@@ -120,8 +121,8 @@ class PhiCanaryTest
                   {
                      for(var field : QContext.getQInstance().getTable(table).getFields().values())
                      {
-                        var classification = field.getSupplementalMetaData("edi.classification");
-                        if(classification instanceof EdiClassifications classified && classified.getClassification().equals("PHI"))
+                        var classification = AiFieldMetaData.of(field);
+                        if(classification != null && classification.getClassification() == DataClassification.PHI)
                         {
                            values.remove(field.getName());
                         }
@@ -158,6 +159,7 @@ class PhiCanaryTest
          demo.seed();
          var instance = demo.defineQInstance();
          CapturedAlerts.outputs.clear();
+         CapturedAlerts.notifications.clear();
          com.kingsrook.qqq.backend.core.alerts.AlertsInstanceMetaData.ofOrWithNew(instance).withSink(new com.kingsrook.qqq.backend.core.model.metadata.code.QCodeReference(CapturedAlerts.class));
          // A test-only widened diagnosis field allows the long marker through mapping;
          // its invalid code shape still exercises SNIP 5, and separate documents force SNIP 2.
@@ -250,6 +252,13 @@ class PhiCanaryTest
             }
             for(QRecord exception : rows("edi_exception"))
             {
+               process("edi_exception_assign", exception);
+               SystemWrites.call(() -> SystemWrites.transaction(() ->
+               {
+                  com.kingsrook.qbits.edi.flow.EdiJournal.exception(exception.getValueInteger("inboxId"), exception.getValueInteger("interchangeId"),
+                     exception.getValueInteger("transactionId"), exception.getValueInteger("partnerId"), "DEAD_LETTER", "Synthetic PHI failure");
+                  return (null);
+               }));
                process("edi_exception_resolve", exception);
             }
             while(new SendWorker().runOnce() > 0)
@@ -266,6 +275,8 @@ class PhiCanaryTest
             SystemWrites.call(() -> { SystemWrites.update("edi_functional_group", new QRecord().withValue("id", group.getValue("id")).withValue("ackStatus", "PENDING").withValue("ackDueAt", Instant.now().minusSeconds(60))); return (null); });
             new AckMonitor().runOnce();
             assertThat(CapturedAlerts.outputs).isNotEmpty();
+            assertThat(CapturedAlerts.notifications).anyMatch(json -> json.contains("EDI exception assigned"));
+            assertThat(CapturedAlerts.notifications).anyMatch(json -> json.contains("EDI exception opened"));
             CapturedAlerts.outputs.forEach(output -> scan(output, "alerts"));
             for(var table : instance.getTables().values())
             {
@@ -340,7 +351,7 @@ class PhiCanaryTest
    }
 
    /*******************************************************************************
-    ** RC.5 HIDDEN field locks are real enforcement, not test-side JSON redaction.
+    ** RC.6 HIDDEN field locks are real enforcement, not test-side JSON redaction.
     *******************************************************************************/
    private void hiddenExportsAndWidgets() throws Exception
    {
@@ -358,7 +369,7 @@ class PhiCanaryTest
          viewer.withPermissions("edi." + table.getName().substring(4) + ".read");
          for(var field : table.getFields().values())
          {
-            if(field.getSupplementalMetaData("edi.classification") instanceof EdiClassifications classified && classified.getClassification().equals("PHI"))
+            if(AiFieldMetaData.of(field) != null && AiFieldMetaData.of(field).getClassification() == DataClassification.PHI)
             {
                field.withFieldSecurityLock(new com.kingsrook.qqq.backend.core.model.metadata.security.FieldSecurityLock().withSecurityKeyType("synthetic_phi_access"));
             }
@@ -401,6 +412,10 @@ class PhiCanaryTest
    private RunBackendStepOutput process(String name, QRecord record) throws Exception
    {
       var input = new RunBackendStepInput().withProcessName(name).withRecords(List.of(record));
+      if(name.equals("edi_exception_assign"))
+      {
+         input.withValues(Map.of("assignedToUserId", "synthetic-canary-user"));
+      }
       var review = new EdiProcesses.Review();
       var preview = new RunBackendStepOutput();
       review.runOnePage(input, preview);
@@ -428,6 +443,19 @@ class PhiCanaryTest
    public static class CapturedAlerts implements com.kingsrook.qqq.backend.core.alerts.AlertSinkInterface
    {
       static final List<String> outputs = new ArrayList<>();
+      static final List<String> notifications = new ArrayList<>();
+
+      /*******************************************************************************
+       ** Scan the complete notification payload for PHI, including attributes.
+       *******************************************************************************/
+      @Override
+      public void notify(com.kingsrook.qqq.backend.core.alerts.NotificationSignal signal)
+      {
+         String json = JsonUtils.toJson(signal);
+         notifications.add(json);
+         outputs.add(json);
+      }
+
 
       /*******************************************************************************
        ** Retain every serialized signal for the substring scanner.

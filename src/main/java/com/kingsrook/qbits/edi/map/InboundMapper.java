@@ -121,6 +121,10 @@ public class InboundMapper
                }
             }
          }
+         catch(com.kingsrook.qqq.backend.core.exceptions.QPermissionDeniedException e)
+         {
+            throw (e);
+         }
          catch(Exception e)
          {
             throw new IllegalArgumentException("Mapping failed at rule " + rule.getValueInteger("sequence") + " (" + rule.getValueString("ediPath") + " -> " + rule.getValueString("qqqPath") + ")");
