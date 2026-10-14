@@ -232,7 +232,7 @@ public final class EdiTables
       QTableMetaData table = new QTableMetaData().withName(name).withBackendName(config.getBackendName())
          .withPrimaryKeyField("id").withFieldsFromEntity(entity).withRecordLabelFormatAndFields("%s", label)
          .withPermissionRules(new QPermissionRules().withPermissionBaseName("edi." + name.substring(4)).withLevel(PermissionLevel.READ_INSERT_EDIT_DELETE_PERMISSIONS))
-         .withAuditRules(new QAuditRules().withAuditLevel(readOnly ? AuditLevel.RECORD : AuditLevel.FIELD));
+         .withAuditRules(new QAuditRules().withAuditLevel(readOnly || name.equals("edi_map_sample") ? AuditLevel.RECORD : AuditLevel.FIELD));
       QRecordEntity.registerTable(entity, table);
       if(List.of("edi_payload", "edi_certificate", "edi_inbox").contains(name))
       {
@@ -305,7 +305,7 @@ public final class EdiTables
       sources.add(enumSource("edi_interchange_status", "RECEIVED", "ACCEPTED", "ACCEPTED_WITH_ERRORS", "REJECTED", "DUPLICATE", "ENVELOPED", "SENT", "DELIVERED", "FAILED"));
       sources.add(enumSource("edi_ack_status", "A", "E", "P", "R", "NONE", "PENDING"));
       sources.add(enumSource("edi_transaction_status", "RECEIVED", "VALID", "INVALID", "MAPPED", "APPLIED", "EXCEPTION", "QUEUED", "SENT", "ACKNOWLEDGED", "REJECTED", "IGNORED"));
-      sources.add(enumSource("edi_event_type", "RECEIVED", "STORED", "PARSED", "VALIDATED", "ACK_SENT", "ACK_QUEUED", "MAPPED", "APPLIED", "ENVELOPED", "SENT", "MDN", "DELIVERED", "ACK_RECEIVED", "EXCEPTION", "REPROCESSED", "RESENT"));
+      sources.add(enumSource("edi_event_type", "RECEIVED", "STORED", "PARSED", "VALIDATED", "ACK_SENT", "ACK_QUEUED", "MAPPED", "APPLIED", "ENVELOPED", "SENT", "MDN", "DELIVERED", "ACK_RECEIVED", "EXCEPTION", "REPROCESSED", "RESENT", "RAW_DOWNLOADED"));
       sources.add(enumSource("edi_exception_type", "UNKNOWN_PARTNER", "PARTNER_MISMATCH", "NOT_CONFIGURED", "DUPLICATE", "ENVELOPE", "VALIDATION", "MAPPING", "APPLY", "TRANSPORT", "REJECTED_ACK", "OVERDUE_ACK", "DEAD_LETTER"));
       sources.add(enumSource("edi_exception_status", "OPEN", "IN_PROGRESS", "RESOLVED", "IGNORED"));
       sources.add(enumSource("edi_inbox_status", "PENDING", "PROCESSING", "PROCESSED", "RETRY_WAIT", "DEAD_LETTER", "DUPLICATE", "IGNORED"));
@@ -422,7 +422,8 @@ public final class EdiTables
    {
       return (joins().stream().map(join -> ChildRecordListRenderer.widgetMetaDataBuilder(join).withName(join.getName())
          .withLabel(joinLabel(join)).withCanAddChildRecord(false)
-         .withOrderBys(childOrder(join.getRightTable())).getWidgetMetaData().withGridColumns(12)).toList());
+         .withOrderBys(childOrder(join.getRightTable())).getWidgetMetaData()
+         .withCodeReference(new QCodeReference(com.kingsrook.qbits.edi.app.EdiChildRecordListRenderer.class)).withGridColumns(12)).toList());
    }
 
    /*******************************************************************************

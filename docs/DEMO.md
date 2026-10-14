@@ -44,7 +44,8 @@ The in-memory gateway accepts every send, and the rejected documents produce rej
 
 The SFTP/HTTPS partner settings are illustrative `.invalid` destinations. Their agreements have
 no outbound transport, so they cannot contact a real partner; resulting acknowledgement send
-retries are visible. Northwind alone has configured outbound documents. The in-memory gateway
+retries are visible. Northwind has the retail outbound documents; the logistics and healthcare
+scenarios add their own outbound configurations. The in-memory gateway
 is restored after the intentional dead-letter scenario. Standard Send As EDI, Test Connection,
 Resend, Resend As New and Cancel actions are available. The gateway stores bytes in memory;
 it does not expose a separate partner download UI.
@@ -58,3 +59,17 @@ descending creation date and ID. The home exception queue puts OPEN before IN_PR
 first within each status. RC.5 has no table-level default-sort metadata to override Next's sort.
 Inbound message labels use external IDs because filenames are classified as PHI.
 Light/dark visual layout and production scheduler/gateway deployment remain host acceptance.
+
+Phase e adds a fifth partner, **Cedar Health Clearinghouse** (CEDAR, PHI enabled), after the existing
+retail and logistics scenarios. It sends seeded synthetic professional and institutional claims,
+a remittance, a professional claim with a one-dollar balancing error (SNIP 3), and a professional
+claim missing its dependent patient loop (SNIP 4). Both business-rule errors are accepted with
+errors (`E`) and open exceptions. Value-free 999s go to the in-memory clearinghouse outbox.
+A synthetic eligibility request goes out as a 270 and a matching-trace 271 arrives. Clinical keys
+appear only in the classified PHI key column, not the ordinary document key or record labels.
+
+The healthcare sample maps and tables are test-only. Patients are seeded `Testpatient Alpha`
+fixtures, member IDs begin with `SYN`, and `1234567893` is a documented NPI checksum test value.
+The host database must be encrypted for real PHI; this disposable demo uses synthetic data only.
+The System widget shows format-only external code validation until a provider is registered.
+Inbox and interchange records offer the audited **Download Raw Document** action.

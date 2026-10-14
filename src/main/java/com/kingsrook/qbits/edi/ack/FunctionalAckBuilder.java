@@ -57,7 +57,7 @@ final class FunctionalAckBuilder
       for(X12TransactionSet transaction : group.transactions())
       {
          List<ValidationFinding> errors = findings.getOrDefault(transaction.st().value(2), List.of());
-         boolean rejected = !transaction.findings().isEmpty() || errors.stream().anyMatch(f -> "ERROR".equals(f.severity()));
+         boolean rejected = !transaction.findings().isEmpty() || errors.stream().anyMatch(f -> "ERROR".equals(f.severity()) && f.snipLevel() <= 2);
          String status = rejected ? "R" : errors.isEmpty() ? "A" : "E";
          if(!rejected)
          {

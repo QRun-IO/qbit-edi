@@ -750,6 +750,13 @@ Non-HIPAA documents validate at level 2 by default and HIPAA documents at level 
 document can raise or lower its level.
 
 ### 11.4 External code sets
+
+JSON element constraints support `source: "EXTERNAL"` and `externalCodeSet`. Normalized code-list
+rows preserve both properties. Register the provider with
+`EdiQBitConfig.withExternalCodeSetProvider(...)`; it is excluded from configuration JSON.
+Membership failures are positional SNIP 5 findings. The effective date uses a service date,
+then a payment date, otherwise the configured clock. Provider failures disclose no values.
+
 `ExternalCodeSetProvider` (SPI: `boolean isValid(String codeSet, String code, LocalDate asOf)`),
 registered by the host, for example backed by a licensed table the host loads. Code lists with
 `source = EXTERNAL` delegate to it. Without a provider they check the format only, and the home says
@@ -778,13 +785,17 @@ so.
 - **Minimum necessary:** PHI maps write only the mapped fields. The raw document stays encrypted and
   can be downloaded only with the record action "Download Raw Document" (permission
   `edi.raw.download`), which is audited and, with secured-data, written to its access log.
-- **Canary egress tests** (phase e, the core SECURED-DATA procedure): synthetic 837P and 835
-  documents carry `CANARY-PHI-<random>` in the patient name, member id, claim number and a
-  diagnosis. They run through receive, validate (with forced errors), 999, map, apply, exception,
-  reprocess, resend, the home widgets, exports of every `edi_` table, Quick Search, alerts and
-  captured logs, as a FULL, a MASKED and a HIDDEN user. The test fails on any substring of the canary
-  longer than 4 characters outside the encrypted payloads and the PHI-classified columns, and for the
-  MASKED and HIDDEN users anywhere at all.
+- **Canary egress tests** (phase e, the core SECURED-DATA procedure): two randomized markers per
+  patient-name, member-id, claim-number and diagnosis field run through gateway and HTTPS hooks,
+  validation with SNIP 2/3/4 failures, 999, map/apply, exceptions, reprocess/resend, every home and
+  child widget, every persisted `edi_` table's QueryAction export, Review/Result, captured alerts
+  and an in-memory DEBUG log appender. Every five-character window is scanned, detecting all
+  longer substrings. Only explicit PHI value/display-value columns are exempt for FULL exports;
+  ciphertext bytes are checked for plaintext. RC.5 HIDDEN field locks are separately exercised
+  without exemptions. The storage-only download alias has no query surface. MASKED tiers and
+  the optional Quick Search index await their host/core integration; they are not simulated.
+  Long diagnosis markers use a widened test-only guide element so accepted-with-error fixtures
+  can also reach mapping/apply; separate malformed monetary elements force structural rejection.
 - No real PHI anywhere in the repo: samples are synthetic, produced by a seeded generator.
 
 ## 13. App home and navigation
@@ -955,7 +966,7 @@ RC.5 adaptations implemented in this worktree:
 - `InboundApplier` assumed every target table has associations; a flat table (the 214 status sample) hit a null pointer. It is now null-safe.
 - The 214 sample map records the first LX event per transaction into a flat status table and always inserts (no match key), so repeated statuses form a history; a host that wants every LX event maps an association.
 - Demo: Harbor Logistics gets a gateway OUTBOX transport for 945s (the partner pulls over SFTP, per 5.3) after the retail seed has run, so its earlier acknowledgements keep their visible retries; the fourth partner Ridgeline Freight is added, so `EdiDemoServerTest` now expects four partners.
-||||||| parent of bfb63ce (feat: phase c - AS2 transport)
+
 
 ## Phase c implementation notes (2026-10-14)
 
@@ -977,3 +988,29 @@ RC.5 adaptations implemented in this worktree:
   `lastError` instead of a generic text.
 - Not implemented: EC and RSA-PSS signing keys (RSA only), MIC comparison under a different algorithm than
   the one requested, CAQH/Peppol profiles, and AS2 over a host-mounted client certificate (`MTLS`).
+
+
+## Phase e implementation notes (2026-10-14)
+
+- Core RC.5 logs full query criteria, including PHI upsert keys. `PhiLogScope` is a scoped,
+  marked bridge to suppress synchronous diagnostic logging during PHI map/apply and previews;
+  it leaves unrelated threads and persisted value-free events intact. Remove with the core
+  classification/logging bridge at RC.6. Map samples use record-level audits on RC.5 because their
+  expected-result column can contain PHI. Host asynchronous code, target audits and queries outside
+  these boundaries still need host secured-data protection. Raw downloads use RC.5's existing
+  session-bound storage grant and an `edi_event` audit rather than a not-yet-available access log.
+- Situational rules bind to their occurrence and inherit only direct ancestor segments, so a
+  sibling line's service date cannot satisfy another line. Fixed loop-head qualifiers distinguish
+  HL/NM1 roles; the same 2300/2400 names can occur under subscriber and patient parents.
+- The 271 baseline requires benefits or an AAA rejection for a traced response; it does not
+  perform cross-document 270/271 correlation. Provider differences that cannot be inferred from
+  the submitted document belong in a companion guide or host rule; no rendering provider is
+  invented from an absent identifier.
+- Healthcare maps and sample target tables are test-only, per the phase-e scope. The 837 sample
+  map is a single-claim example with service-line associations; the validator supports multiple
+  claims and checks each independently. The 835 and 834 samples map multiple claim/member
+  associations. These are baseline examples, not a complete licensed TR3 implementation.
+- Child-list widgets explicitly enforce their nested queries on RC.5; the generic renderer
+  otherwise bypasses field locks inside the already-authorized widget action scope.
+- MASKED-user response scanning and Quick Search indexing are not available on the pinned RC.5
+  test classpath. FULL and actual HIDDEN-field-lock scans run now; no simulated masking is used.

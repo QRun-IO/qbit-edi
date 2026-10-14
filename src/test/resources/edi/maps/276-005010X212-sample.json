@@ -1,0 +1,259 @@
+{
+  "map": {
+    "name": "Synthetic 276 outbound",
+    "direction": "OUTBOUND",
+    "transactionSet": "276",
+    "version": "005010X212",
+    "tableName": "sample_claim_status",
+    "revision": 1,
+    "status": "ACTIVE",
+    "businessKeyType": "HEALTHCARE",
+    "businessKeyPath": "TRN02",
+    "standard": "X12",
+    "onMatch": "UPDATE"
+  },
+  "rules": [
+    {
+      "sequence": 2,
+      "ediPath": "BHT01",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"0010\"}"
+    },
+    {
+      "sequence": 3,
+      "ediPath": "BHT02",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"13\"}"
+    },
+    {
+      "sequence": 4,
+      "ediPath": "BHT03",
+      "qqqPath": "trace"
+    },
+    {
+      "sequence": 5,
+      "ediPath": "BHT04",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"20261015\"}"
+    },
+    {
+      "sequence": 6,
+      "ediPath": "BHT05",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"1200\"}"
+    },
+    {
+      "sequence": 7,
+      "ediPath": "2000A/HL01",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"1\"}"
+    },
+    {
+      "sequence": 8,
+      "ediPath": "2000A/HL02",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"\"}"
+    },
+    {
+      "sequence": 9,
+      "ediPath": "2000A/HL03",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"20\"}"
+    },
+    {
+      "sequence": 10,
+      "ediPath": "2000A/HL04",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"1\"}"
+    },
+    {
+      "sequence": 11,
+      "ediPath": "2000A/2100A/NM101",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"PR\"}"
+    },
+    {
+      "sequence": 12,
+      "ediPath": "2000A/2100A/NM102",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"2\"}"
+    },
+    {
+      "sequence": 13,
+      "ediPath": "2000A/2100A/NM103",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"Synthetic PR\"}"
+    },
+    {
+      "sequence": 14,
+      "ediPath": "2000A/2100A/NM108",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"PI\"}"
+    },
+    {
+      "sequence": 15,
+      "ediPath": "2000A/2100A/NM109",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"SYNPLAN\"}"
+    },
+    {
+      "sequence": 16,
+      "ediPath": "2000B/HL01",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"2\"}"
+    },
+    {
+      "sequence": 17,
+      "ediPath": "2000B/HL02",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"1\"}"
+    },
+    {
+      "sequence": 18,
+      "ediPath": "2000B/HL03",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"21\"}"
+    },
+    {
+      "sequence": 19,
+      "ediPath": "2000B/HL04",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"1\"}"
+    },
+    {
+      "sequence": 20,
+      "ediPath": "2000B/2100B/NM101",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"1P\"}"
+    },
+    {
+      "sequence": 21,
+      "ediPath": "2000B/2100B/NM102",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"2\"}"
+    },
+    {
+      "sequence": 22,
+      "ediPath": "2000B/2100B/NM103",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"Synthetic 1P\"}"
+    },
+    {
+      "sequence": 23,
+      "ediPath": "2000B/2100B/NM108",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"XX\"}"
+    },
+    {
+      "sequence": 24,
+      "ediPath": "2000B/2100B/NM109",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"1234567893\"}"
+    },
+    {
+      "sequence": 25,
+      "ediPath": "2000C/HL01",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"3\"}"
+    },
+    {
+      "sequence": 26,
+      "ediPath": "2000C/HL02",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"2\"}"
+    },
+    {
+      "sequence": 27,
+      "ediPath": "2000C/HL03",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"22\"}"
+    },
+    {
+      "sequence": 28,
+      "ediPath": "2000C/HL04",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"0\"}"
+    },
+    {
+      "sequence": 29,
+      "ediPath": "2000C/2100C/NM101",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"IL\"}"
+    },
+    {
+      "sequence": 30,
+      "ediPath": "2000C/2100C/NM102",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"1\"}"
+    },
+    {
+      "sequence": 31,
+      "ediPath": "2000C/2100C/NM103",
+      "qqqPath": "patientName"
+    },
+    {
+      "sequence": 32,
+      "ediPath": "2000C/2100C/NM108",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"MI\"}"
+    },
+    {
+      "sequence": 33,
+      "ediPath": "2000C/2100C/NM109",
+      "qqqPath": "memberId"
+    },
+    {
+      "sequence": 34,
+      "ediPath": "2000C/2100C/2200C/TRN01",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"1\"}"
+    },
+    {
+      "sequence": 35,
+      "ediPath": "2000C/2100C/2200C/TRN02",
+      "qqqPath": "trace"
+    },
+    {
+      "sequence": 36,
+      "ediPath": "2000C/2100C/2200C/REF01",
+      "qqqPath": null,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"EJ\"}"
+    },
+    {
+      "sequence": 37,
+      "ediPath": "2000C/2100C/2200C/REF02",
+      "qqqPath": "claimNumber"
+    }
+  ]
+}

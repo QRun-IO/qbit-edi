@@ -312,7 +312,7 @@ public class EdiHome extends AbstractWidgetRenderer
       List<Map<String, Object>> rows = new ArrayList<>();
       rows.add(row("Item", "Payload storage", "Status", "DATABASE".equals(store) ? "Database, encrypted (demos and tests)" : "Object storage, encrypted"));
       rows.add(row("Item", "Secured data", "Status", secured ? "Installed" : "Not installed: PHI fields are not masked"));
-      rows.add(row("Item", "External code sets", "Status", "Not configured"));
+      rows.add(row("Item", "External code sets", "Status", EdiRuntime.current().config().getExternalCodeSetProvider() == null ? "Format only: no provider configured" : "Provider configured"));
       rows.add(row("Item", "Inbound backlog", "Status", countOf("edi_inbox", inboxBacklog())
          + (oldestIn.isEmpty() ? "" : ", oldest " + humanize(Duration.between(oldestIn.getFirst().getValueInstant("receivedAt"), now)))));
       rows.add(row("Item", "Outbound queue", "Status", countOf("edi_outbound_message", outboundQueue())

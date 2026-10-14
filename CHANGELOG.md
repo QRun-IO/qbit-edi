@@ -6,8 +6,11 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic
 
 ### Added
 
+- Phase e original HIPAA baselines for 837P/I, 835, 270/271, 276/277 and 834; exact SNIP 3 balancing, occurrence-scoped SNIP 4 rules, SNIP 5 formats and a host `ExternalCodeSetProvider` SPI.
+- Test-only healthcare maps, classified sample tables, seeded synthetic fixtures, Cedar Health Clearinghouse demo traffic and a PHI canary scanner covering both ingress paths, 999s, apply/replay/resend, widgets, query exports, alerts and logs.
+- Permission-checked, session-bound Download Raw Document actions for inbox/interchange rows, with a value-free user audit event.
+
 - Phase d warehouse and logistics baseline guides for 940, 945, 214 and 204 in 004010 and 005010 (syntax notes, situational control-total and stop rules, AT7 pairing), inbound/outbound sample maps (940 in, 945 out/in, 214 in, 204 in/out), DATEPART/TIMEPART outbound transforms and `+`-joined inbound paths for date/time pairs, and Harbor Logistics and Ridgeline Freight demo traffic.
-||||||| parent of bfb63ce (feat: phase c - AS2 transport)
 
 - Phase c AS2: `As2Transport` send and receive (RFC 4130) with S/MIME signing (SHA-256/384/512; SHA1 flagged), encryption (AES-128/256 CBC or GCM; 3DES flagged), optional compression, synchronous and asynchronous signed MDNs with MIC verification, Test Connection, optional TLS pinning and VAN transports with no partner. Built on as2-lib 5.1.8 and BouncyCastle, entirely in memory (no keystore or temporary files).
 - `POST /qqq/hooks/edi/as2/{transport}` and `/{transport}/mdn` route provider: identity, decryption (ACTIVE or NEXT keys), signature and MIC checks, Message-ID dedupe returning the original MDN, error MDNs with no inbox row, and a queued, retried asynchronous MDN sender.
@@ -39,5 +42,9 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic
 - `EdiQBitProducer` and `EdiQBitConfig` (table prefix `edi_`, permission base `edi`).
 
 ### Fixed
+
+- 999 now accepts SNIP 3+ findings with `E` instead of rejecting every ERROR. HIPAA acknowledgement selection follows the implementation version and enabled agreement expectation; outbound HIPAA ST carries its implementation identifier.
+- Qualified HL/NM1 anchors distinguish healthcare hierarchy levels; repeated loop names under different parents retain separate occurrences. Situational rules inherit direct ancestor segments without borrowing values from sibling occurrences.
+- Review/Result records expose identifiers only. A marked RC.5 PHI logging bridge prevents core upsert query diagnostics from copying claim/member values into logs.
 
 - Inbound apply no longer fails with a null-pointer error on a target table that has no associations (flat tables such as the 214 status sample).

@@ -1,0 +1,43 @@
+{
+  "map": {
+    "name": "Synthetic 271 inbound",
+    "direction": "INBOUND",
+    "transactionSet": "271",
+    "version": "005010X279A1",
+    "tableName": "sample_eligibility_response",
+    "revision": 1,
+    "status": "ACTIVE",
+    "businessKeyType": "HEALTHCARE",
+    "businessKeyPath": "TRN02",
+    "standard": "X12",
+    "onMatch": "UPDATE",
+    "matchKeyFields": "trace"
+  },
+  "rules": [
+    {
+      "sequence": 1,
+      "ediPath": "TRN02",
+      "qqqPath": "trace"
+    },
+    {
+      "sequence": 2,
+      "ediPath": "2100C/NM109",
+      "qqqPath": "memberId"
+    },
+    {
+      "sequence": 3,
+      "ediPath": "2100C/NM103",
+      "qqqPath": "patientName"
+    },
+    {
+      "sequence": 4,
+      "ediPath": "EB01",
+      "qqqPath": "benefit"
+    },
+    {
+      "sequence": 5,
+      "ediPath": "EB03",
+      "qqqPath": "serviceType"
+    }
+  ]
+}

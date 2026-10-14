@@ -1,0 +1,59 @@
+{
+  "map": {
+    "name": "Synthetic 835 inbound",
+    "direction": "INBOUND",
+    "transactionSet": "835",
+    "version": "005010X221A1",
+    "tableName": "sample_remittance",
+    "revision": 1,
+    "status": "ACTIVE",
+    "businessKeyType": "HEALTHCARE",
+    "businessKeyPath": "TRN02",
+    "standard": "X12",
+    "onMatch": "UPDATE",
+    "matchKeyFields": "trace"
+  },
+  "rules": [
+    {
+      "sequence": 1,
+      "ediPath": "TRN02",
+      "qqqPath": "trace"
+    },
+    {
+      "sequence": 2,
+      "ediPath": "BPR02",
+      "qqqPath": "payment",
+      "transform": "DECIMAL",
+      "condition": "present(BPR02)"
+    },
+    {
+      "sequence": 3,
+      "ediPath": "2100[*]/CLP01",
+      "qqqPath": "claims.claimNumber"
+    },
+    {
+      "sequence": 4,
+      "ediPath": "2100[*]/CLP03",
+      "qqqPath": "claims.charge",
+      "transform": "DECIMAL",
+      "condition": "present(CLP03)"
+    },
+    {
+      "sequence": 5,
+      "ediPath": "2100[*]/CLP04",
+      "qqqPath": "claims.paid",
+      "transform": "DECIMAL",
+      "condition": "present(CLP04)"
+    },
+    {
+      "sequence": 6,
+      "ediPath": "2100[*]/NM1[NM101=QC]/NM103",
+      "qqqPath": "claims.patientName"
+    },
+    {
+      "sequence": 7,
+      "ediPath": "2100[*]/NM1[NM101=IL]/NM109",
+      "qqqPath": "claims.memberId"
+    }
+  ]
+}
