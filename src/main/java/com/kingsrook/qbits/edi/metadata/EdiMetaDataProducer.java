@@ -69,7 +69,7 @@ public class EdiMetaDataProducer extends QBitComponentMetaDataProducer<MetaDataP
       }
       output.add(com.kingsrook.qbits.edi.app.EdiHome.app(getQBitConfig(), tables));
       com.kingsrook.qbits.edi.app.EdiHome.widgets().forEach(output::add);
-      for(String name : java.util.List.of("edi.inbox.dead-letter", "edi.ack.overdue", "edi.ack.rejected"))
+      for(String name : java.util.List.of("edi.inbox.dead-letter", "edi.ack.overdue", "edi.ack.rejected", "edi.send.failed", "edi.certificate.expiring", "edi.certificate.expired"))
       {
          output.add(new com.kingsrook.qqq.backend.core.alerts.QAlertTypeMetaData().withName(name).withLabel(name)
             .withSourceName("edi").withDefaultSeverity(com.kingsrook.qqq.backend.core.alerts.AlertSeverity.ERROR)

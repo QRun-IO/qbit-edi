@@ -1,0 +1,111 @@
+{
+  "map": {
+    "name": "Sample 855 004010",
+    "direction": "OUTBOUND",
+    "standard": "X12",
+    "version": "004010",
+    "transactionSet": "855",
+    "tableName": "sample_order",
+    "businessKeyPath": "BAK03",
+    "businessKeyType": "RETAIL",
+    "revision": 1,
+    "status": "ACTIVE"
+  },
+  "rules": [
+    {
+      "ediPath": "BAK01",
+      "qqqPath": null,
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"00\"}",
+      "sequence": 1
+    },
+    {
+      "ediPath": "BAK02",
+      "qqqPath": null,
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"AC\"}",
+      "sequence": 2
+    },
+    {
+      "ediPath": "BAK03",
+      "qqqPath": "poNumber",
+      "required": true,
+      "sequence": 3
+    },
+    {
+      "ediPath": "BAK04",
+      "qqqPath": "orderDate",
+      "required": false,
+      "transform": "DATE",
+      "sequence": 4
+    },
+    {
+      "ediPath": "PO1[*]/PO101",
+      "qqqPath": "lines.sku",
+      "required": false,
+      "transform": "SEQUENCE",
+      "sequence": 5
+    },
+    {
+      "ediPath": "PO1[*]/PO102",
+      "qqqPath": "lines.quantity",
+      "required": false,
+      "transform": "DECIMAL",
+      "sequence": 6
+    },
+    {
+      "ediPath": "PO1[*]/PO103",
+      "qqqPath": "lines.sku",
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"EA\"}",
+      "sequence": 7
+    },
+    {
+      "ediPath": "PO1[*]/PO104",
+      "qqqPath": "lines.unitPrice",
+      "required": false,
+      "transform": "DECIMAL",
+      "sequence": 8
+    },
+    {
+      "ediPath": "PO1[*]/PO106",
+      "qqqPath": "lines.sku",
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"VP\"}",
+      "sequence": 9
+    },
+    {
+      "ediPath": "PO1[*]/PO107",
+      "qqqPath": "lines.sku",
+      "required": false,
+      "sequence": 10
+    },
+    {
+      "ediPath": "PO1[*]/ACK01",
+      "qqqPath": "lines.sku",
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"IA\"}",
+      "sequence": 11
+    },
+    {
+      "ediPath": "PO1[*]/ACK02",
+      "qqqPath": "lines.quantity",
+      "required": false,
+      "transform": "DECIMAL",
+      "sequence": 12
+    },
+    {
+      "ediPath": "PO1[*]/ACK03",
+      "qqqPath": "lines.sku",
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"EA\"}",
+      "sequence": 13
+    }
+  ]
+}

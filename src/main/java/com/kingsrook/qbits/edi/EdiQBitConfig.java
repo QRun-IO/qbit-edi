@@ -35,6 +35,25 @@ public class EdiQBitConfig implements QBitConfig
    public static final String TABLE_NAME_PREFIX    = "edi_";
    public static final String PERMISSION_BASE_NAME = "edi";
 
+   private final java.util.Set<String> sendAsEdiTables = new java.util.LinkedHashSet<>();
+
+   /*******************************************************************************
+    ** Opt a source table into the manual Send As EDI action.
+    *******************************************************************************/
+   public EdiQBitConfig withSendAsEdiTable(String tableName)
+   {
+      sendAsEdiTables.add(tableName);
+      return (this);
+   }
+
+   /*******************************************************************************
+    ** Explicitly opted-in manual source tables.
+    *******************************************************************************/
+   public java.util.Set<String> getSendAsEdiTables()
+   {
+      return (java.util.Set.copyOf(sendAsEdiTables));
+   }
+
    private String payloadBucketAlias = "edi";
    private java.util.function.Supplier<com.kingsrook.qqq.backend.core.model.session.QSession> serviceSessionSupplier = null;
    private java.time.Clock clock = java.time.Clock.systemUTC();

@@ -68,4 +68,39 @@ public class EdiFileGatewayConsumer implements FileGatewayConsumer
          return (FileAcceptance.retryLater("EDI durable intake is unavailable", Duration.ofMinutes(1)));
       }
    }
+
+   /*******************************************************************************
+    ** Gateway download notification completes the durable outbound message.
+    *******************************************************************************/
+   @Override
+   public void onDownloaded(com.kingsrook.qbits.edi.transport.gateway.standin.OutboxFileRef ref) throws Exception
+   {
+      com.kingsrook.qbits.edi.support.SystemWrites.call(() ->
+      {
+         for(var message : com.kingsrook.qbits.edi.storage.EdiRecords.query("edi_outbound_message",
+            com.kingsrook.qbits.edi.storage.EdiRecords.equal("transportMessageId", String.valueOf(ref.outboxFileId()))))
+         {
+            var transport = com.kingsrook.qbits.edi.flow.OutboundWorker.row("edi_transport", message.getValue("transportId"));
+            if(!"GATEWAY".equals(transport.getValueString("type")) || !ref.endpointName().equals(transport.getValueString("gatewayEndpointName")))
+            {
+               continue;
+            }
+            com.kingsrook.qbits.edi.support.SystemWrites.transaction(() ->
+            {
+               if(com.kingsrook.qbits.edi.support.SystemWrites.guard("UPDATE edi_outbound_message SET id=id WHERE id=? AND status='SENT'", message.getValue("id")))
+               {
+                  com.kingsrook.qbits.edi.support.SystemWrites.update("edi_outbound_message", new com.kingsrook.qqq.backend.core.model.data.QRecord()
+                     .withValue("id", message.getValue("id")).withValue("status", "DELIVERED").withValue("deliveredAt", com.kingsrook.qbits.edi.EdiRuntime.current().config().getClock().instant()));
+                  if(message.getValue("interchangeId") != null)
+                  {
+                     com.kingsrook.qbits.edi.support.SystemWrites.update("edi_interchange", new com.kingsrook.qqq.backend.core.model.data.QRecord().withValue("id", message.getValue("interchangeId")).withValue("status", "DELIVERED"));
+                  }
+                  com.kingsrook.qbits.edi.flow.EdiJournal.event(null, message.getValueInteger("interchangeId"), null, "DELIVERED");
+               }
+               return (null);
+            });
+         }
+         return (null);
+      });
+   }
 }

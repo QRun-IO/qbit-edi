@@ -299,6 +299,7 @@ CREATE TABLE edi_interchange (
    interchange_date TIMESTAMP,
    interchange_version VARCHAR(255),
    modify_date TIMESTAMP,
+   original_interchange_id INTEGER,
    outbound_message_id INTEGER,
    partner_id INTEGER,
    payload_ref VARCHAR(255),
@@ -402,7 +403,8 @@ CREATE TABLE edi_outbound_request (
    next_attempt_at TIMESTAMP,
    source_record_id VARCHAR(255),
    source_table_name VARCHAR(255),
-   status VARCHAR(255)
+   status VARCHAR(255),
+   UNIQUE (agreement_document_id, event_id)
 );
 
 CREATE TABLE edi_partner (

@@ -57,6 +57,8 @@ class ContingenciesTest
     *******************************************************************************/
    @ParameterizedTest
    @CsvSource({
+      "edi_interchange,originalInterchangeId,partnerId,EQUALS,${input.partnerId}",
+      "edi_interchange,originalInterchangeId,agreementId,EQUALS,${input.agreementId}",
       "edi_agreement,partnerIdentityId,partnerId,EQUALS,${input.partnerId}",
       "edi_agreement,localIdentityId,partnerId,IS_BLANK,",
       "edi_agreement,inboundTransportId,partnerId,EQUALS,${input.partnerId}",

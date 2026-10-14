@@ -58,6 +58,28 @@ public class TransportValidation implements TableCustomizerInterface
             record.addError(new BadInputStatusMessage("type is required"));
          }
       }
+      for(QRecord record : records)
+      {
+         QRecord merged = new QRecord();
+         oldRecords.orElse(List.of()).stream().filter(old -> Objects.equals(old.getValue("id"), record.getValue("id")))
+            .findFirst().ifPresent(old -> merged.getValues().putAll(old.getValues()));
+         merged.getValues().putAll(record.getValues());
+         try
+         {
+            List<String> errors = new java.util.ArrayList<>();
+            com.kingsrook.qbits.edi.transport.EdiTransportPluginsMetaData.current().get(merged.getValueString("type"))
+               .validate(merged.toEntity(com.kingsrook.qbits.edi.model.EdiTransport.class), errors);
+            if(merged.getValueInteger("maxAttempts") != null && merged.getValueInteger("maxAttempts") < 1)
+            {
+               errors.add("maxAttempts must be positive");
+            }
+            errors.forEach(error -> record.addError(new BadInputStatusMessage(error)));
+         }
+         catch(Exception e)
+         {
+            record.addError(new BadInputStatusMessage("Invalid transport configuration"));
+         }
+      }
       return (records);
    }
 }

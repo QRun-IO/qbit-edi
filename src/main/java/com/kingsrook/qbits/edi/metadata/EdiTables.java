@@ -155,7 +155,7 @@ public final class EdiTables
       tables.add(base(config, "edi_map", EdiMap.class, "name", false));
       tables.add(base(config, "edi_map_rule", EdiMapRule.class, "id", false));
       tables.add(base(config, "edi_map_sample", EdiMapSample.class, "name", false));
-      tables.add(base(config, "edi_outbound_request", EdiOutboundRequest.class, "id", true));
+      tables.add(base(config, "edi_outbound_request", EdiOutboundRequest.class, "id", true).withUniqueKey(new UniqueKey("agreementDocumentId", "eventId")));
       tables.add(base(config, "edi_outbound_message", EdiOutboundMessage.class, "id", true));
       for(QTableMetaData table : tables)
       {

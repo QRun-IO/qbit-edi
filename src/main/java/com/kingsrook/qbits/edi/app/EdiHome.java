@@ -77,6 +77,8 @@ public class EdiHome extends AbstractWidgetRenderer
       LABELS.put("overdue", "Overdue acknowledgements");
       LABELS.put("dead", "Dead letters");
       LABELS.put("certificates", "Certificates expiring within 30 days");
+      LABELS.put("outbound", "Outbound queue");
+      LABELS.put("outbound_age", "Oldest outbound age (seconds)");
       LABELS.put("backlog", "Inbox backlog");
       LABELS.put("oldest", "Oldest pending age (seconds)");
       LABELS.put("storage", "Payload storage");
@@ -158,6 +160,11 @@ public class EdiHome extends AbstractWidgetRenderer
          table = "edi_inbox";
          filter.withCriteria("status", QCriteriaOperator.IN, name.equals("dead") ? List.of("DEAD_LETTER") : List.of("PENDING", "PROCESSING", "RETRY_WAIT"));
       }
+      if(List.of("outbound", "outbound_age").contains(name))
+      {
+         table = "edi_outbound_message";
+         filter.withCriteria("status", QCriteriaOperator.IN, "QUEUED", "RETRY_WAIT");
+      }
       if(name.equals("secured"))
       {
          boolean present = com.kingsrook.qqq.backend.core.context.QContext.getQInstance().getQBits().values().stream().anyMatch(q -> "qbit-secured-data".equals(q.getArtifactId()));
@@ -236,10 +243,10 @@ public class EdiHome extends AbstractWidgetRenderer
          return (new RenderWidgetOutput(tableData(columns, rows).withLinkURL(link(table, filter)).withLinkText("View records and actions")));
       }
       Serializable count;
-      if(name.equals("oldest"))
+      if(name.equals("oldest") || name.equals("outbound_age"))
       {
-         var rows = query(table, filter.withOrderBy(new QFilterOrderBy("receivedAt")).withLimit(1));
-         count = rows.isEmpty() ? 0L : Math.max(0L, Duration.between(rows.getFirst().getValueInstant("receivedAt"), now).getSeconds());
+         var rows = query(table, filter.withOrderBy(new QFilterOrderBy(name.equals("outbound_age") ? "createDate" : "receivedAt")).withLimit(1));
+         count = rows.isEmpty() ? 0L : Math.max(0L, Duration.between(rows.getFirst().getValueInstant(name.equals("outbound_age") ? "createDate" : "receivedAt"), now).getSeconds());
       }
       else
       {

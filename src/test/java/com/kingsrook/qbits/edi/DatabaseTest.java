@@ -81,7 +81,7 @@ class DatabaseTest
       {
          assertThatThrownBy(() -> EdiRecords.insert("edi_transport", new QRecord().withValue("name", "Bad Slug").withValue("type", "HTTPS"))).hasMessageContaining("insert failed");
          assertThatThrownBy(() -> EdiRecords.insert("edi_transport", new QRecord().withValue("name", "good-slug"))).hasMessageContaining("insert failed");
-         QRecord row = EdiRecords.insert("edi_transport", new QRecord().withValue("name", "test-https").withValue("type", "HTTPS"));
+         QRecord row = EdiRecords.insert("edi_transport", new QRecord().withValue("name", "test-https").withValue("type", "HTTPS").withValue("direction", "OUTBOUND").withValue("httpsUrl", "https://example.invalid/edi"));
          var result = new com.kingsrook.qqq.backend.core.actions.tables.UpdateAction().execute(new com.kingsrook.qqq.backend.core.model.actions.tables.update.UpdateInput("edi_transport")
             .withRecord(new QRecord().withValue("id", row.getValueInteger("id")).withValue("notes", "Synthetic update"))).getRecords().getFirst();
          assertThat(result.getErrors()).isNullOrEmpty();
@@ -263,7 +263,7 @@ class DatabaseTest
       try(CorePermissionEnforcer.AuthorizedScope ignored = CorePermissionEnforcer.openAuthorizedScope())
       {
          List<Integer> ids = EdiRuntime.current().initialize();
-         assertThat(ids).hasSize(5);
+         assertThat(ids).hasSize(com.kingsrook.qbits.edi.guide.BuiltInGuideLoader.RESOURCES.size());
          assertThat(EdiRuntime.current().initialize()).isEqualTo(ids);
          Guide guide = new GuideRepository().load(ids.getFirst());
          var transaction = X12Test.read(Synthetic850.generate(1, "004010", new X12Separators('*', '~', ':', null))).groups().getFirst().transactions().getFirst();

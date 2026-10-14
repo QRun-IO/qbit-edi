@@ -96,9 +96,19 @@ public class RevisionActions
          }
          for(QRecord rule : EdiRecords.query("edi_map_rule", EdiRecords.equal("mapId", row.getValue("id"))))
          {
-            String[] path = rule.getValueString("qqqPath").split("\\.");
-            var destination = path.length == 1 ? target : QContext.getQInstance().getTable(target.getAssociationByName(path[0]).orElseThrow().getAssociatedTableName());
-            if(path.length > 2 || destination.getField(path[path.length - 1]) == null)
+            String qqqPath = rule.getValueString("qqqPath");
+            if((qqqPath == null || qqqPath.isBlank()) && "OUTBOUND".equals(row.getValueString("direction"))
+               && List.of("CONSTANT", "SEQUENCE", "HL").contains(rule.getValueString("transform")))
+            {
+               continue;
+            }
+            String[] path = Objects.requireNonNull(qqqPath, "Map field path is required").split("\\.");
+            var destination = target;
+            for(int i = 0; i < path.length - 1; i++)
+            {
+               destination = QContext.getQInstance().getTable(destination.getAssociationByName(path[i]).orElseThrow().getAssociatedTableName());
+            }
+            if(!"OUTBOUND".equals(row.getValueString("direction")) && path.length > 2 || destination.getField(path[path.length - 1]) == null)
             {
                throw new IllegalArgumentException("Invalid map target path");
             }

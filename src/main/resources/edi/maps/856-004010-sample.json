@@ -1,0 +1,221 @@
+{
+  "map": {
+    "name": "Sample 856 004010",
+    "direction": "OUTBOUND",
+    "standard": "X12",
+    "version": "004010",
+    "transactionSet": "856",
+    "tableName": "sample_shipment",
+    "businessKeyPath": "BSN02",
+    "businessKeyType": "RETAIL",
+    "revision": 1,
+    "status": "ACTIVE"
+  },
+  "rules": [
+    {
+      "ediPath": "BSN01",
+      "qqqPath": null,
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"00\"}",
+      "sequence": 1
+    },
+    {
+      "ediPath": "BSN02",
+      "qqqPath": "shipmentNumber",
+      "required": true,
+      "sequence": 2
+    },
+    {
+      "ediPath": "BSN03",
+      "qqqPath": "shipDate",
+      "required": false,
+      "transform": "DATE",
+      "sequence": 3
+    },
+    {
+      "ediPath": "BSN04",
+      "qqqPath": "shipTime",
+      "required": false,
+      "transform": "TIME",
+      "sequence": 4
+    },
+    {
+      "ediPath": "Shipment/HL01",
+      "qqqPath": "shipmentNumber",
+      "required": false,
+      "transform": "HL",
+      "transformArgs": "{\"code\": \"S\"}",
+      "sequence": 5
+    },
+    {
+      "ediPath": "Shipment/HL02",
+      "qqqPath": "shipmentNumber",
+      "required": false,
+      "transform": "HL",
+      "transformArgs": "{\"code\": \"S\"}",
+      "sequence": 6
+    },
+    {
+      "ediPath": "Shipment/HL03",
+      "qqqPath": "shipmentNumber",
+      "required": false,
+      "transform": "HL",
+      "transformArgs": "{\"code\": \"S\"}",
+      "sequence": 7
+    },
+    {
+      "ediPath": "Shipment/HL04",
+      "qqqPath": "shipmentNumber",
+      "required": false,
+      "transform": "HL",
+      "transformArgs": "{\"code\": \"S\"}",
+      "sequence": 8
+    },
+    {
+      "ediPath": "Shipment/Order/HL01",
+      "qqqPath": "poNumber",
+      "required": false,
+      "transform": "HL",
+      "transformArgs": "{\"code\": \"O\"}",
+      "sequence": 9
+    },
+    {
+      "ediPath": "Shipment/Order/HL02",
+      "qqqPath": "poNumber",
+      "required": false,
+      "transform": "HL",
+      "transformArgs": "{\"code\": \"O\"}",
+      "sequence": 10
+    },
+    {
+      "ediPath": "Shipment/Order/HL03",
+      "qqqPath": "poNumber",
+      "required": false,
+      "transform": "HL",
+      "transformArgs": "{\"code\": \"O\"}",
+      "sequence": 11
+    },
+    {
+      "ediPath": "Shipment/Order/HL04",
+      "qqqPath": "poNumber",
+      "required": false,
+      "transform": "HL",
+      "transformArgs": "{\"code\": \"O\"}",
+      "sequence": 12
+    },
+    {
+      "ediPath": "Shipment/Order/PRF01",
+      "qqqPath": "poNumber",
+      "required": false,
+      "sequence": 13
+    },
+    {
+      "ediPath": "Shipment/Order/Pack/HL01",
+      "qqqPath": "cartons.sscc",
+      "required": false,
+      "transform": "HL",
+      "transformArgs": "{\"code\": \"P\"}",
+      "sequence": 14
+    },
+    {
+      "ediPath": "Shipment/Order/Pack/HL02",
+      "qqqPath": "cartons.sscc",
+      "required": false,
+      "transform": "HL",
+      "transformArgs": "{\"code\": \"P\"}",
+      "sequence": 15
+    },
+    {
+      "ediPath": "Shipment/Order/Pack/HL03",
+      "qqqPath": "cartons.sscc",
+      "required": false,
+      "transform": "HL",
+      "transformArgs": "{\"code\": \"P\"}",
+      "sequence": 16
+    },
+    {
+      "ediPath": "Shipment/Order/Pack/HL04",
+      "qqqPath": "cartons.sscc",
+      "required": false,
+      "transform": "HL",
+      "transformArgs": "{\"code\": \"P\"}",
+      "sequence": 17
+    },
+    {
+      "ediPath": "Shipment/Order/Pack/MAN01",
+      "qqqPath": "cartons.sscc",
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"GM\"}",
+      "sequence": 18
+    },
+    {
+      "ediPath": "Shipment/Order/Pack/MAN02",
+      "qqqPath": "cartons.sscc",
+      "required": false,
+      "sequence": 19
+    },
+    {
+      "ediPath": "Shipment/Order/Pack/Item/HL01",
+      "qqqPath": "cartons.items.sku",
+      "required": false,
+      "transform": "HL",
+      "transformArgs": "{\"code\": \"I\"}",
+      "sequence": 20
+    },
+    {
+      "ediPath": "Shipment/Order/Pack/Item/HL02",
+      "qqqPath": "cartons.items.sku",
+      "required": false,
+      "transform": "HL",
+      "transformArgs": "{\"code\": \"I\"}",
+      "sequence": 21
+    },
+    {
+      "ediPath": "Shipment/Order/Pack/Item/HL03",
+      "qqqPath": "cartons.items.sku",
+      "required": false,
+      "transform": "HL",
+      "transformArgs": "{\"code\": \"I\"}",
+      "sequence": 22
+    },
+    {
+      "ediPath": "Shipment/Order/Pack/Item/HL04",
+      "qqqPath": "cartons.items.sku",
+      "required": false,
+      "transform": "HL",
+      "transformArgs": "{\"code\": \"I\"}",
+      "sequence": 23
+    },
+    {
+      "ediPath": "Shipment/Order/Pack/Item/LIN02",
+      "qqqPath": "cartons.items.sku",
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"VP\"}",
+      "sequence": 24
+    },
+    {
+      "ediPath": "Shipment/Order/Pack/Item/LIN03",
+      "qqqPath": "cartons.items.sku",
+      "required": false,
+      "sequence": 25
+    },
+    {
+      "ediPath": "Shipment/Order/Pack/Item/SN102",
+      "qqqPath": "cartons.items.quantity",
+      "required": false,
+      "transform": "DECIMAL",
+      "sequence": 26
+    },
+    {
+      "ediPath": "Shipment/Order/Pack/Item/SN103",
+      "qqqPath": "cartons.items.sku",
+      "required": false,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"EA\"}",
+      "sequence": 27
+    }
+  ]
+}
