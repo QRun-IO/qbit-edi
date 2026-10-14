@@ -102,6 +102,35 @@ public class GuideValidator
    }
 
    /*******************************************************************************
+    ** Resolve guide-defined loop occurrences for the mapper using the validator grammar.
+    *******************************************************************************/
+   public Map<String, List<List<X12Segment>>> loops(X12TransactionSet transaction, Guide guide)
+   {
+      State state = new State(transaction.segments(), true);
+      List<Node> roots = new ArrayList<>();
+      Map<String, Node> nodes = new LinkedHashMap<>();
+      for(GuideSegment segment : guide.segments())
+      {
+         List<Node> destination = roots;
+         if(segment.loopId() != null && !segment.loopId().isBlank())
+         {
+            Node loop = nodes.get(segment.loopId());
+            if(loop == null)
+            {
+               loop = new Node(segment.loopId(), null);
+               nodes.put(segment.loopId(), loop);
+               Node parent = nodes.get(segment.parentLoopId());
+               (parent == null ? roots : parent.children).add(loop);
+            }
+            destination = loop.children;
+         }
+         destination.add(new Node(null, segment));
+      }
+      consume(roots, state, false);
+      return (state.loops);
+   }
+
+   /*******************************************************************************
     ** Consume ordered segments and nested loop occurrences.
     *******************************************************************************/
    private static void consume(List<Node> nodes, State state, boolean loopOccurrence)

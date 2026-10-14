@@ -45,7 +45,7 @@ public class EdiIdentity extends QRecordEntity
    @QField(backendName = "interchange_qualifier", maxLength = 255)
    private String interchangeQualifier;
 
-   @QField(backendName = "interchange_id", maxLength = 255, possibleValueSourceName = "edi_interchange")
+   @QField(backendName = "interchange_id", maxLength = 255)
    private String interchangeId;
 
    @QField(backendName = "application_code", maxLength = 255)

@@ -40,6 +40,11 @@ import com.kingsrook.qbits.edi.model.EdiGuideSegment;
 import com.kingsrook.qbits.edi.model.EdiIdentity;
 import com.kingsrook.qbits.edi.model.EdiInbox;
 import com.kingsrook.qbits.edi.model.EdiInterchange;
+import com.kingsrook.qbits.edi.model.EdiMap;
+import com.kingsrook.qbits.edi.model.EdiMapRule;
+import com.kingsrook.qbits.edi.model.EdiMapSample;
+import com.kingsrook.qbits.edi.model.EdiOutboundMessage;
+import com.kingsrook.qbits.edi.model.EdiOutboundRequest;
 import com.kingsrook.qbits.edi.model.EdiPartner;
 import com.kingsrook.qbits.edi.model.EdiPayload;
 import com.kingsrook.qbits.edi.model.EdiTransaction;
@@ -147,6 +152,11 @@ public final class EdiTables
       tables.add(inbox);
       QTableMetaData payload = base(config, EdiPayload.TABLE_NAME, EdiPayload.class, "kind", true);
       tables.add(payload);
+      tables.add(base(config, "edi_map", EdiMap.class, "name", false));
+      tables.add(base(config, "edi_map_rule", EdiMapRule.class, "id", false));
+      tables.add(base(config, "edi_map_sample", EdiMapSample.class, "name", false));
+      tables.add(base(config, "edi_outbound_request", EdiOutboundRequest.class, "id", true));
+      tables.add(base(config, "edi_outbound_message", EdiOutboundMessage.class, "id", true));
       for(QTableMetaData table : tables)
       {
          List<String> guidePath = switch(table.getName())
@@ -170,6 +180,8 @@ public final class EdiTables
                case "edi_functional_group" -> List.of("edi_interchange_interchange_id_edi_functional_group");
                case "edi_transaction_error" -> List.of("edi_transaction_transaction_id_edi_transaction_error");
                case "edi_event" -> List.of("edi_interchange_interchange_id_edi_event");
+               case "edi_map_rule" -> List.of("edi_map_map_id_edi_map_rule");
+               case "edi_map_sample" -> List.of("edi_map_map_id_edi_map_sample");
                case "edi_guide_segment" -> List.of("edi_guide_guide_id_edi_guide_segment");
                case "edi_guide_rule" -> List.of("edi_guide_guide_id_edi_guide_rule");
                case "edi_guide_element" -> List.of("edi_guide_guide_id_edi_guide_segment", "edi_guide_segment_guide_segment_id_edi_guide_element");
@@ -182,6 +194,7 @@ public final class EdiTables
                   case "edi_agreement_document", "edi_control_number" -> "edi_agreement";
                   case "edi_functional_group", "edi_event" -> "edi_interchange";
                   case "edi_transaction_error" -> "edi_transaction";
+                  case "edi_map_rule", "edi_map_sample" -> "edi_map";
                   default -> "edi_guide";
                };
                table.withRecordSecurityLock(new RecordSecurityLock().withFieldName(parent + ".partnerId").withSecurityKeyType("edi_partner").withJoinNameChain(path));
@@ -196,6 +209,15 @@ public final class EdiTables
             }
          }
       }
+      for(QTableMetaData table : tables)
+      {
+         if(com.kingsrook.qbits.edi.app.EdiHome.ACTIVITY.contains(table.getName()) || com.kingsrook.qbits.edi.app.EdiHome.SETUP.contains(table.getName()))
+         {
+            table.withSearchFields(table.getFields().values().stream().filter(f -> List.of("id", "name", "code", "controlNumber", "businessKey", "secondaryKey", "summary", "alias").contains(f.getName())).map(QFieldMetaData::getName).toList());
+         }
+      }
+      tables.forEach(t -> com.kingsrook.qbits.edi.support.EdiIntegrations.configure(t, config.getEsbDestinationName()));
+      EdiContingencies.apply(tables);
       return (tables);
    }
 
@@ -240,7 +262,7 @@ public final class EdiTables
       List<String> dates = new ArrayList<>();
       for(QFieldMetaData field : table.getFields().values())
       {
-         String classification = List.of("phiBusinessKey", "fileName", "ciphertext").contains(field.getName()) ? "PHI"
+         String classification = List.of("phiBusinessKey", "fileName", "ciphertext", "expectedResultJson", "valueExcerpt").contains(field.getName()) ? "PHI"
             : List.of("contactName", "contactEmail", "contactPhone").contains(field.getName()) ? "PII" : "CONFIDENTIAL";
          field.withSupplementalMetaData(new EdiClassifications(classification));
          if(classification.equals("PHI"))
@@ -301,7 +323,7 @@ public final class EdiTables
       sources.add(enumSource("edi_interchange_status", "RECEIVED", "ACCEPTED", "ACCEPTED_WITH_ERRORS", "REJECTED", "DUPLICATE", "ENVELOPED", "SENT", "DELIVERED", "FAILED"));
       sources.add(enumSource("edi_ack_status", "A", "E", "P", "R", "NONE", "PENDING"));
       sources.add(enumSource("edi_transaction_status", "RECEIVED", "VALID", "INVALID", "MAPPED", "APPLIED", "EXCEPTION", "QUEUED", "SENT", "ACKNOWLEDGED", "REJECTED", "IGNORED"));
-      sources.add(enumSource("edi_event_type", "RECEIVED", "STORED", "PARSED", "VALIDATED", "ACK_SENT", "MAPPED", "APPLIED", "ENVELOPED", "SENT", "MDN", "DELIVERED", "ACK_RECEIVED", "EXCEPTION", "REPROCESSED", "RESENT"));
+      sources.add(enumSource("edi_event_type", "RECEIVED", "STORED", "PARSED", "VALIDATED", "ACK_SENT", "ACK_QUEUED", "MAPPED", "APPLIED", "ENVELOPED", "SENT", "MDN", "DELIVERED", "ACK_RECEIVED", "EXCEPTION", "REPROCESSED", "RESENT"));
       sources.add(enumSource("edi_exception_type", "UNKNOWN_PARTNER", "PARTNER_MISMATCH", "NOT_CONFIGURED", "DUPLICATE", "ENVELOPE", "VALIDATION", "MAPPING", "APPLY", "TRANSPORT", "REJECTED_ACK", "OVERDUE_ACK", "DEAD_LETTER"));
       sources.add(enumSource("edi_exception_status", "OPEN", "IN_PROGRESS", "RESOLVED", "IGNORED"));
       sources.add(enumSource("edi_inbox_status", "PENDING", "PROCESSING", "PROCESSED", "RETRY_WAIT", "DEAD_LETTER", "DUPLICATE", "IGNORED"));
@@ -327,6 +349,12 @@ public final class EdiTables
       sources.add(QPossibleValueSource.newForTable("edi_exception"));
       sources.add(QPossibleValueSource.newForTable("edi_inbox"));
       sources.add(QPossibleValueSource.newForTable("edi_payload"));
+      sources.add(enumSource("edi_on_match", "UPDATE", "SKIP", "EXCEPTION"));
+      sources.add(QPossibleValueSource.newForTable("edi_map"));
+      sources.add(QPossibleValueSource.newForTable("edi_map_rule"));
+      sources.add(QPossibleValueSource.newForTable("edi_map_sample"));
+      sources.add(QPossibleValueSource.newForTable("edi_outbound_request"));
+      sources.add(QPossibleValueSource.newForTable("edi_outbound_message"));
       return (sources);
    }
 
@@ -350,7 +378,6 @@ public final class EdiTables
    {
       List<QJoinMetaData> joins = new ArrayList<>();
       joins.add(new QJoinMetaData().withName("edi_partner_partner_id_edi_identity").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_partner").withRightTable("edi_identity").withJoinOn(new JoinOn("id", "partnerId")));
-      joins.add(new QJoinMetaData().withName("edi_interchange_interchange_id_edi_identity").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_interchange").withRightTable("edi_identity").withJoinOn(new JoinOn("id", "interchangeId")));
       joins.add(new QJoinMetaData().withName("edi_partner_partner_id_edi_agreement").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_partner").withRightTable("edi_agreement").withJoinOn(new JoinOn("id", "partnerId")));
       joins.add(new QJoinMetaData().withName("edi_identity_local_identity_id_edi_agreement").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_identity").withRightTable("edi_agreement").withJoinOn(new JoinOn("id", "localIdentityId")));
       joins.add(new QJoinMetaData().withName("edi_identity_partner_identity_id_edi_agreement").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_identity").withRightTable("edi_agreement").withJoinOn(new JoinOn("id", "partnerIdentityId")));
@@ -391,6 +418,14 @@ public final class EdiTables
       joins.add(new QJoinMetaData().withName("edi_transaction_transaction_id_edi_exception").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_transaction").withRightTable("edi_exception").withJoinOn(new JoinOn("id", "transactionId")));
       joins.add(new QJoinMetaData().withName("edi_transport_transport_id_edi_inbox").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_transport").withRightTable("edi_inbox").withJoinOn(new JoinOn("id", "transportId")));
       joins.add(new QJoinMetaData().withName("edi_partner_partner_id_edi_inbox").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_partner").withRightTable("edi_inbox").withJoinOn(new JoinOn("id", "partnerId")));
+      joins.add(new QJoinMetaData().withName("edi_map_map_id_edi_map_rule").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_map").withRightTable("edi_map_rule").withJoinOn(new JoinOn("id", "mapId")));
+      joins.add(new QJoinMetaData().withName("edi_map_map_id_edi_map_sample").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_map").withRightTable("edi_map_sample").withJoinOn(new JoinOn("id", "mapId")));
+      joins.add(new QJoinMetaData().withName("edi_partner_partner_id_edi_map").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_partner").withRightTable("edi_map").withJoinOn(new JoinOn("id", "partnerId")));
+      joins.add(new QJoinMetaData().withName("edi_map_map_id_edi_agreement_document").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_map").withRightTable("edi_agreement_document").withJoinOn(new JoinOn("id", "mapId")));
+      joins.add(new QJoinMetaData().withName("edi_agreement_document_agreement_document_id_edi_outbound_request").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_agreement_document").withRightTable("edi_outbound_request").withJoinOn(new JoinOn("id", "agreementDocumentId")));
+      joins.add(new QJoinMetaData().withName("edi_agreement_agreement_id_edi_outbound_message").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_agreement").withRightTable("edi_outbound_message").withJoinOn(new JoinOn("id", "agreementId")));
+      joins.add(new QJoinMetaData().withName("edi_outbound_message_outbound_message_id_edi_interchange").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_outbound_message").withRightTable("edi_interchange").withJoinOn(new JoinOn("id", "outboundMessageId")));
+      joins.add(new QJoinMetaData().withName("edi_inbox_inbox_id_edi_event").withType(JoinType.ONE_TO_MANY).withLeftTable("edi_inbox").withRightTable("edi_event").withJoinOn(new JoinOn("id", "inboxId")));
       return (joins);
    }
 

@@ -6,6 +6,14 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic
 
 ### Added
 
+- Phase a2 inbound vertical slice: gateway intake, fenced inbox claims/retries, dead letters and core alerts; routing, validation, duplicates, safe events and exception occurrence counts.
+- Versioned inbound maps, wildcard associations, transforms, permission-enforced transactional upsert and original/current revision replay.
+- Queued enveloped TA1/997/999 and inbound acknowledgement reconciliation; outbound request/message tables for phase b.
+- Public-API-only encrypted object-storage adapter and marked file-gateway contract stand-in.
+- EDI app, typed home with permission-scoped counts, main-table search metadata, optional ESB events with identifier-only document payloads, and standard Review/Result actions.
+- Synthetic sample upload, preview comparisons and encrypted JSON downloads; guide overrides and guide/map activation.
+- Contingent possible values on existing/new tables, including actual filtered-search tests.
+- PostgreSQL schema additions and UTC zone-less timestamps matching RC.5 RDBMS bindings.
 - Phase a1 data model: 21 annotated entities, QQQ tables, enum/table value sources, joins, child lists, audit, permissions, partner locks, and PostgreSQL DDL with metadata-derived H2 integration tests.
 - StAEDI 1.26.4 X12 streaming envelopes, separator detection, bounded transaction buffers, structured envelope findings, and fixed-width ISA serialization.
 - Original 850/997/999 baseline guides, versioned database loading, SNIP 1–2 validation, syntax notes, and the documented situational rule language.

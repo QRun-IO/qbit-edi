@@ -33,6 +33,9 @@ public class EdiEvent extends QRecordEntity
 {
    public static final String TABLE_NAME = "edi_event";
 
+   @QField(backendName = "inbox_id", possibleValueSourceName = "edi_inbox")
+   private Integer inboxId;
+
    @QField(backendName = "id", isPrimaryKey = true, isEditable = false)
    private Integer id;
 
@@ -312,4 +315,29 @@ public class EdiEvent extends QRecordEntity
       return (this);
    }
 
+
+   /*******************************************************************************
+    ** Get inboxId.
+    *******************************************************************************/
+   public Integer getInboxId()
+   {
+      return (inboxId);
+   }
+
+   /*******************************************************************************
+    ** Set inboxId.
+    *******************************************************************************/
+   public void setInboxId(Integer value)
+   {
+      inboxId = value;
+   }
+
+   /*******************************************************************************
+    ** Configure inboxId.
+    *******************************************************************************/
+   public EdiEvent withInboxId(Integer value)
+   {
+      inboxId = value;
+      return (this);
+   }
 }

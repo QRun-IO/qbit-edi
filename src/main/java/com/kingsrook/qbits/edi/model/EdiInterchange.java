@@ -33,6 +33,9 @@ public class EdiInterchange extends QRecordEntity
 {
    public static final String TABLE_NAME = "edi_interchange";
 
+   @QField(backendName = "inbound_position")
+   private Integer inboundPosition;
+
    @QField(backendName = "id", isPrimaryKey = true, isEditable = false)
    private Integer id;
 
@@ -808,4 +811,28 @@ public class EdiInterchange extends QRecordEntity
       return (this);
    }
 
+   /*******************************************************************************
+    ** One-based occurrence within the parent payload, interchange or group.
+    *******************************************************************************/
+   public Integer getInboundPosition()
+   {
+      return (inboundPosition);
+   }
+
+   /*******************************************************************************
+    ** Set the stable source position used for retry checkpoints.
+    *******************************************************************************/
+   public void setInboundPosition(Integer inboundPosition)
+   {
+      this.inboundPosition = inboundPosition;
+   }
+
+   /*******************************************************************************
+    ** Fluently set the source position.
+    *******************************************************************************/
+   public EdiInterchange withInboundPosition(Integer inboundPosition)
+   {
+      this.inboundPosition = inboundPosition;
+      return (this);
+   }
 }

@@ -33,6 +33,9 @@ public class EdiFunctionalGroup extends QRecordEntity
 {
    public static final String TABLE_NAME = "edi_functional_group";
 
+   @QField(backendName = "inbound_position")
+   private Integer inboundPosition;
+
    @QField(backendName = "id", isPrimaryKey = true, isEditable = false)
    private Integer id;
 
@@ -436,4 +439,28 @@ public class EdiFunctionalGroup extends QRecordEntity
       return (this);
    }
 
+   /*******************************************************************************
+    ** One-based occurrence within the parent payload, interchange or group.
+    *******************************************************************************/
+   public Integer getInboundPosition()
+   {
+      return (inboundPosition);
+   }
+
+   /*******************************************************************************
+    ** Set the stable source position used for retry checkpoints.
+    *******************************************************************************/
+   public void setInboundPosition(Integer inboundPosition)
+   {
+      this.inboundPosition = inboundPosition;
+   }
+
+   /*******************************************************************************
+    ** Fluently set the source position.
+    *******************************************************************************/
+   public EdiFunctionalGroup withInboundPosition(Integer inboundPosition)
+   {
+      this.inboundPosition = inboundPosition;
+      return (this);
+   }
 }

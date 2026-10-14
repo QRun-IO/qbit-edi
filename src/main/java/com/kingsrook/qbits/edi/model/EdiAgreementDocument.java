@@ -54,7 +54,7 @@ public class EdiAgreementDocument extends QRecordEntity
    @QField(backendName = "guide_id", possibleValueSourceName = "edi_guide")
    private Integer guideId;
 
-   @QField(backendName = "map_id")
+   @QField(backendName = "map_id", possibleValueSourceName = "edi_map")
    private Integer mapId;
 
    @QField(backendName = "ack_expectation", maxLength = 255, possibleValueSourceName = "edi_ack_expectation")

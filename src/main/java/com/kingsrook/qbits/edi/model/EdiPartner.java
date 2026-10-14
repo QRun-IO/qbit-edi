@@ -33,6 +33,9 @@ public class EdiPartner extends QRecordEntity
 {
    public static final String TABLE_NAME = "edi_partner";
 
+   @QField(backendName = "gateway_username", maxLength = 255)
+   private String gatewayUsername;
+
    @QField(backendName = "id", isPrimaryKey = true, isEditable = false)
    private Integer id;
 
@@ -436,4 +439,29 @@ public class EdiPartner extends QRecordEntity
       return (this);
    }
 
+
+   /*******************************************************************************
+    ** Get gatewayUsername.
+    *******************************************************************************/
+   public String getGatewayUsername()
+   {
+      return (gatewayUsername);
+   }
+
+   /*******************************************************************************
+    ** Set gatewayUsername.
+    *******************************************************************************/
+   public void setGatewayUsername(String value)
+   {
+      gatewayUsername = value;
+   }
+
+   /*******************************************************************************
+    ** Configure gatewayUsername.
+    *******************************************************************************/
+   public EdiPartner withGatewayUsername(String value)
+   {
+      gatewayUsername = value;
+      return (this);
+   }
 }

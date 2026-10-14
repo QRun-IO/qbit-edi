@@ -110,15 +110,19 @@ class DatabaseTest
    void metadata() throws Exception
    {
       QInstance instance = H2Support.create();
-      assertThat(instance.getTables()).hasSize(21);
+      assertThat(instance.getTables()).hasSize(27);
       for(QTableMetaData table : instance.getTables().values())
       {
+         if(table.getName().equals("edi_preview_download"))
+         {
+            continue;
+         }
          assertThat(table.getName()).startsWith("edi_");
          assertThat(table.getPermissionRules().getPermissionBaseName()).startsWith("edi.");
          assertThat(table.getSections()).isNotEmpty();
          assertThat(table.getSourceQBitName()).isNotBlank();
       }
-      String ddl = instance.getTables().values().stream().sorted(java.util.Comparator.comparing(QTableMetaData::getName)).map(t -> H2Support.ddl(t, true) + ";").collect(Collectors.joining("\n\n")) + "\n";
+      String ddl = instance.getTables().values().stream().filter(t -> !t.getName().equals("edi_preview_download")).sorted(java.util.Comparator.comparing(QTableMetaData::getName)).map(t -> H2Support.ddl(t, true) + ";").collect(Collectors.joining("\n\n")) + "\n";
       Path path = Path.of("docs/ddl/edi-postgres.sql");
       if(Boolean.getBoolean("edi.generateDdl"))
       {
@@ -147,7 +151,7 @@ class DatabaseTest
    void controlConcurrency() throws Exception
    {
       QInstance instance = H2Support.create();
-      RDBMSBackendMetaData backend = (RDBMSBackendMetaData) instance.getBackends().values().iterator().next();
+      RDBMSBackendMetaData backend = (RDBMSBackendMetaData) instance.getBackend(EdiRuntime.current().config().getBackendName());
       Set<Long> numbers = ConcurrentHashMap.newKeySet();
       CountDownLatch start = new CountDownLatch(1);
       try(ExecutorService executor = Executors.newFixedThreadPool(8))
@@ -193,7 +197,7 @@ class DatabaseTest
       System.setProperty("java.io.tmpdir", tempDirectory.toString());
       try(CorePermissionEnforcer.AuthorizedScope ignored = CorePermissionEnforcer.openAuthorizedScope())
       {
-         DatabasePayloadStore store = EdiRuntime.current().payloads();
+         com.kingsrook.qbits.edi.storage.PayloadStore store = EdiRuntime.current().payloads();
          byte[] content = "Synthetic payload".getBytes(StandardCharsets.UTF_8);
          // Warm QQQ action/audit infrastructure before measuring payload IO.
          PayloadRef warm = store.put(PayloadKind.SAMPLE, new ByteArrayInputStream(content));

@@ -55,7 +55,9 @@ public final class EdiRuntime
    private final X12Writer writer = new X12Writer();
    private final GuideValidator validator = new GuideValidator();
    private final BuiltInGuideLoader guides = new BuiltInGuideLoader();
-   private final DatabasePayloadStore payloads;
+   private final com.kingsrook.qbits.edi.storage.PayloadStore payloads;
+   private final EdiQBitConfig config;
+   private final com.kingsrook.qbits.edi.map.TransformRegistry transforms = new com.kingsrook.qbits.edi.map.TransformRegistry();
    private final DuplicateDetector duplicates = new DuplicateDetector();
    private final ControlNumberAllocator controls;
    private final Ack997Builder ack997 = new Ack997Builder();
@@ -68,8 +70,11 @@ public final class EdiRuntime
     *******************************************************************************/
    private EdiRuntime(QInstance instance, EdiQBitConfig config)
    {
+      this.config = config;
       reader = new X12EnvelopeReader(config.getMaxSegmentsPerTransaction());
-      payloads = new DatabasePayloadStore(new PayloadCrypto(config.getSecretsResolver()));
+      payloads = "OBJECT_STORAGE".equals(config.getPayloadStore())
+         ? new com.kingsrook.qbits.edi.storage.ObjectStoragePayloadStore(new PayloadCrypto(config.getSecretsResolver()), config.getPayloadBucketAlias(), config.getClock())
+         : new DatabasePayloadStore(new PayloadCrypto(config.getSecretsResolver()));
       controls = instance.getBackend(config.getBackendName()) instanceof RDBMSBackendMetaData backend ? new ControlNumberAllocator(backend) : null;
    }
 
@@ -94,7 +99,10 @@ public final class EdiRuntime
     *******************************************************************************/
    public List<Integer> initialize() throws Exception
    {
-      LOG.warn("EDI database payload storage is enabled; object storage is recommended for production");
+      if("DATABASE".equals(config.getPayloadStore()))
+      {
+         LOG.warn("EDI database payload storage is enabled; object storage is recommended for production");
+      }
       return (guides.load());
    }
 
@@ -133,7 +141,7 @@ public final class EdiRuntime
    /*******************************************************************************
     ** Access payloads.
     *******************************************************************************/
-   public DatabasePayloadStore payloads()
+   public com.kingsrook.qbits.edi.storage.PayloadStore payloads()
    {
       return (payloads);
    }
@@ -186,4 +194,19 @@ public final class EdiRuntime
       return (acknowledgements);
    }
 
+   /*******************************************************************************
+    ** Installed host configuration.
+    *******************************************************************************/
+   public EdiQBitConfig config()
+   {
+      return (config);
+   }
+
+   /*******************************************************************************
+    ** Host-extensible inbound transformations.
+    *******************************************************************************/
+   public com.kingsrook.qbits.edi.map.TransformRegistry transforms()
+   {
+      return (transforms);
+   }
 }
