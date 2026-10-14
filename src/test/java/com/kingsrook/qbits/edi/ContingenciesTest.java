@@ -32,6 +32,7 @@ import com.kingsrook.qqq.backend.core.model.actions.tables.query.QFilterCriteria
 import com.kingsrook.qqq.backend.core.model.actions.tables.query.QQueryFilter;
 import com.kingsrook.qqq.backend.core.model.actions.values.SearchPossibleValueSourceInput;
 import com.kingsrook.qqq.backend.core.model.data.QRecord;
+import com.kingsrook.qqq.backend.core.model.metadata.possiblevalues.PossibleValueSearchFilterUseCase;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -39,7 +40,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /*******************************************************************************
- ** Contingent metadata and real RC.5 possible-value searches with form values.
+ ** Contingent metadata and real RC.6 possible-value searches with form values.
  *******************************************************************************/
 class ContingenciesTest
 {
@@ -123,7 +124,7 @@ class ContingenciesTest
       {
          var field = instance.getTable(pair[0]).getField(pair[1]);
          QQueryFilter interpreted = field.getPossibleValueSourceFilter().clone();
-         // RC.5 middleware interprets the field filter before calling the search action.
+         // RC.6 middleware interprets the field filter before calling the search action.
          interpreted.interpretValues(Map.of("partnerId", 1));
          var result = new SearchPossibleValueSourceAction().execute(new SearchPossibleValueSourceInput().withPossibleValueSourceName(field.getPossibleValueSourceName())
             .withDefaultQueryFilter(interpreted).withOtherValues(Map.of("partnerId", 1)).withSearchTerm("").withLimit(100));
@@ -131,6 +132,41 @@ class ContingenciesTest
          assertThat(result.getResults().getFirst().getId()).isEqualTo(1);
       }
       assertThat(instance.getTable("edi_exception").getField("assignedToUserId").getPossibleValueSourceFilter()).isNull();
+   }
+
+   /*******************************************************************************
+    ** RC.6 lacks dependency behavior metadata; shared transports still work with no partner.
+    *******************************************************************************/
+   @Test
+   void sharedTransportBeforeAndAfterPartnerSelection() throws Exception
+   {
+      var instance = H2Support.create();
+      SystemWrites.call(() ->
+      {
+         for(Integer partner : java.util.Arrays.asList(null, 1, 2))
+         {
+            SystemWrites.insert("edi_transport", new QRecord().withValue("name", "van-" + partner).withValue("partnerId", partner)
+               .withValue("type", "GATEWAY").withValue("direction", "BOTH").withValue("gatewayEndpointName", "synthetic-outbox"));
+         }
+         return (null);
+      });
+      for(var values : List.of(Map.<String, java.io.Serializable>of(), Map.<String, java.io.Serializable>of("partnerId", 1)))
+      {
+         var field = instance.getTable("edi_agreement").getField("outboundTransportId");
+         var filter = field.getPossibleValueSourceFilter().clone();
+         filter.interpretValues(Map.of("input", values), PossibleValueSearchFilterUseCase.FORM);
+         var result = new SearchPossibleValueSourceAction().execute(new SearchPossibleValueSourceInput()
+            .withPossibleValueSourceName(field.getPossibleValueSourceName()).withDefaultQueryFilter(filter)
+            .withOtherValues(values).withSearchTerm("").withLimit(100));
+         assertThat(result.getResults()).extracting(value -> value.getId().toString()).contains("1").doesNotContain("3");
+         assertThat(result.getResults()).hasSize(values.isEmpty() ? 1 : 2);
+         filter = field.getPossibleValueSourceFilter().clone();
+         filter.interpretValues(Map.of("input", values), PossibleValueSearchFilterUseCase.FORM);
+         var unrelated = new SearchPossibleValueSourceAction().execute(new SearchPossibleValueSourceInput()
+            .withPossibleValueSourceName(field.getPossibleValueSourceName()).withDefaultQueryFilter(filter)
+            .withOtherValues(values).withSearchTerm("van-2").withLimit(100));
+         assertThat(unrelated.getResults()).isEmpty();
+      }
    }
 
    /*******************************************************************************

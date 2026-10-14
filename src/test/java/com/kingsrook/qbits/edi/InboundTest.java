@@ -67,6 +67,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /*******************************************************************************
  ** Synthetic H2 vertical slice, including permission, retry and UI boundaries.
@@ -337,6 +338,15 @@ class InboundTest
     *******************************************************************************/
    public static class CapturedAlerts implements com.kingsrook.qqq.backend.core.alerts.AlertSinkInterface
    {
+      static final List<com.kingsrook.qqq.backend.core.alerts.NotificationSignal> notifications = new ArrayList<>();
+      /*******************************************************************************
+       ** Capture actual core notification dispatch.
+       *******************************************************************************/
+      @Override
+      public void notify(com.kingsrook.qqq.backend.core.alerts.NotificationSignal signal)
+      {
+         notifications.add(signal);
+      }
       static final List<String> raised = new ArrayList<>();
       static final List<String> resolved = new ArrayList<>();
       /*******************************************************************************
@@ -409,6 +419,9 @@ class InboundTest
          return (null);
       });
       QRecord exception = rows("edi_exception").getFirst();
+      CapturedAlerts.notifications.clear();
+      com.kingsrook.qqq.backend.core.alerts.AlertsInstanceMetaData.ofOrWithNew(QContext.getQInstance())
+         .withSink(new com.kingsrook.qqq.backend.core.model.metadata.code.QCodeReference(CapturedAlerts.class));
       for(String action : List.of("assign", "ignore", "resolve"))
       {
          input = new com.kingsrook.qqq.backend.core.model.actions.processes.RunBackendStepInput().withProcessName("edi_exception_" + action).withRecords(List.of(exception))
@@ -417,6 +430,85 @@ class InboundTest
       }
       assertThat(rows("edi_exception").getFirst().getValueString("status")).isEqualTo("RESOLVED");
       assertThat(rows("edi_exception").getFirst().getValueString("assignedToUserId")).isEqualTo("synthetic-user");
+      assertThat(CapturedAlerts.notifications).singleElement().satisfies(signal ->
+      {
+         assertThat(signal.getAudience().getValues()).containsExactly("synthetic-user");
+         assertThat(signal.getTitle()).isEqualTo("EDI exception assigned");
+         assertThat(signal.getBody()).isEqualTo("An EDI exception has been assigned to you.");
+         assertThat(signal.getSourceTableName()).isEqualTo("edi_exception");
+         assertThat(signal.getSourceRecordId()).isEqualTo(exception.getValueString("id"));
+      });
+      input = new com.kingsrook.qqq.backend.core.model.actions.processes.RunBackendStepInput().withProcessName("edi_exception_assign")
+         .withRecords(List.of(exception)).withValues(Map.of("assignedToUserId", " "));
+      output = new com.kingsrook.qqq.backend.core.model.actions.processes.RunBackendStepOutput();
+      execute.runOnePage(input, output);
+      assertThat(execute.getProcessSummary(output, true).toString()).contains("record could not be processed");
+      assertThat(CapturedAlerts.notifications).hasSize(1);
+      assertThat(rows("edi_exception").getFirst().getValueString("status")).isEqualTo("RESOLVED");
+   }
+
+   /*******************************************************************************
+    ** Newly opened partner failures notify current assignees once, after commit only.
+    *******************************************************************************/
+   @ParameterizedTest
+   @ValueSource(strings = {"REJECTED_ACK", "DEAD_LETTER"})
+   void notifyPartnerAssignees(String type) throws Exception
+   {
+      setup("004010");
+      CapturedAlerts.notifications.clear();
+      com.kingsrook.qqq.backend.core.alerts.AlertsInstanceMetaData.ofOrWithNew(QContext.getQInstance())
+         .withSink(new com.kingsrook.qqq.backend.core.model.metadata.code.QCodeReference(CapturedAlerts.class));
+      Integer partnerId = partner.getValueInteger("id");
+      SystemWrites.call(() ->
+      {
+         for(String status : List.of("OPEN", "IN_PROGRESS", "RESOLVED", "IGNORED"))
+         {
+            SystemWrites.insert("edi_exception", new QRecord().withValue("partnerId", partnerId).withValue("type", "APPLY")
+               .withValue("status", status).withValue("assignedToUserId", List.of("OPEN", "IN_PROGRESS").contains(status) ? "current-user" : "closed-user"));
+         }
+         SystemWrites.insert("edi_exception", new QRecord().withValue("partnerId", partnerId + 1).withValue("type", "APPLY")
+            .withValue("status", "OPEN").withValue("assignedToUserId", "other-partner-user"));
+         return (null);
+      });
+      SystemWrites.call(() -> SystemWrites.transaction(() ->
+      {
+         com.kingsrook.qbits.edi.flow.EdiJournal.exception(100, null, null, partnerId, type, "Synthetic private text");
+         assertThat(CapturedAlerts.notifications).isEmpty();
+         return (null);
+      }));
+      assertThat(CapturedAlerts.notifications).singleElement().satisfies(signal ->
+      {
+         assertThat(signal.getAudience().getValues()).containsExactly("current-user");
+         assertThat(signal.getTitle()).isEqualTo("EDI exception opened");
+         assertThat(signal.getBody()).isEqualTo("An acknowledgement rejection or dead-letter exception needs attention.");
+         assertThat(signal.getSourceTableName()).isEqualTo("edi_exception");
+         assertThat(signal.getSourceRecordId()).isNotBlank();
+      });
+      CapturedAlerts.notifications.clear();
+      SystemWrites.call(() ->
+      {
+         com.kingsrook.qbits.edi.flow.EdiJournal.exception(100, null, null, partnerId, type, "Repeated failure");
+         com.kingsrook.qbits.edi.flow.EdiJournal.exception(101, null, null, null, type, "No partner");
+         com.kingsrook.qbits.edi.flow.EdiJournal.exception(102, null, null, partnerId, "VALIDATION", "Other type");
+         com.kingsrook.qbits.edi.flow.EdiJournal.exception(103, null, null, partnerId + 2, type, "No assignees");
+         return (null);
+      });
+      assertThat(CapturedAlerts.notifications).isEmpty();
+      assertThatThrownBy(() -> SystemWrites.call(() -> SystemWrites.transaction(() ->
+      {
+         com.kingsrook.qbits.edi.flow.EdiJournal.exception(104, null, null, partnerId, type, "Rolled back");
+         throw new IllegalStateException("Synthetic rollback");
+      }))).isInstanceOf(Exception.class);
+      assertThat(CapturedAlerts.notifications).isEmpty();
+      assertThat(EdiRecords.query("edi_exception", EdiRecords.equal("inboxId", 104))).isEmpty();
+      SystemWrites.call(() ->
+      {
+         QRecord row = EdiRecords.query("edi_exception", EdiRecords.equal("inboxId", 100)).getFirst();
+         SystemWrites.update("edi_exception", new QRecord().withValue("id", row.getValue("id")).withValue("status", "RESOLVED"));
+         com.kingsrook.qbits.edi.flow.EdiJournal.exception(100, null, null, partnerId, type, "Reopened");
+         return (null);
+      });
+      assertThat(CapturedAlerts.notifications).hasSize(1);
    }
 
    /*******************************************************************************

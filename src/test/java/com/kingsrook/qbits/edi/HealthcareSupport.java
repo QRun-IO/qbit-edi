@@ -37,6 +37,8 @@ import com.kingsrook.qbits.edi.x12.X12Segment;
 import com.kingsrook.qbits.edi.x12.X12Separators;
 import com.kingsrook.qbits.edi.x12.X12TransactionSet;
 import com.kingsrook.qbits.edi.x12.X12Writer;
+import com.kingsrook.qqq.backend.core.actions.ai.AiFieldMetaData;
+import com.kingsrook.qqq.backend.core.actions.ai.DataClassification;
 import com.kingsrook.qqq.backend.core.context.QContext;
 import com.kingsrook.qqq.backend.core.instances.QInstanceEnricher;
 import com.kingsrook.qqq.backend.core.model.actions.tables.query.QCriteriaOperator;
@@ -93,7 +95,7 @@ public final class HealthcareSupport
       {
          String[] parts = field.split(":");
          table.withField(new QFieldMetaData(parts[0], parts.length > 1 ? QFieldType.valueOf(parts[1]) : QFieldType.STRING).withBackendName(QInstanceEnricher.inferBackendName(parts[0]))
-            .withSupplementalMetaData(new com.kingsrook.qbits.edi.security.EdiClassifications(parts[0].equals("parentId") ? "CONFIDENTIAL" : "PHI")));
+            .withSupplementalMetaData(new AiFieldMetaData().withClassification(parts[0].equals("parentId") ? DataClassification.CONFIDENTIAL : DataClassification.PHI)));
       }
       instance.addTable(table);
       try(Connection connection = ConnectionManager.getConnection((RDBMSBackendMetaData) instance.getBackend(backend)); var statement = connection.createStatement())

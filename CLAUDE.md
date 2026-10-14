@@ -52,7 +52,7 @@ The package layout per phase is in `docs/DESIGN.md`.
 ## Dependencies
 
 Java 21; parent `com.kingsrook:qbit-build-parent:2.0.0`. Default-active `qqq-snapshot` imports QQQ
-`4.1.0-RC.5` ahead of the parent's 4.0.0 BOM (ADR-0007); move to each new RC within a week (G7).
+`4.1.0-RC.6` ahead of the parent's 4.0.0 BOM (ADR-0007); move to each new RC within a week (G7).
 Middleware Javalin is optional. Also StAEDI (X12) and as2-lib with BouncyCastle (AS2), all Apache-2.0/MIT-style licensed.
 
 ## Release

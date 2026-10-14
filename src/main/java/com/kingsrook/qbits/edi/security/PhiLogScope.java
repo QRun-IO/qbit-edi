@@ -35,8 +35,8 @@ import org.apache.logging.log4j.message.Message;
 
 
 /*******************************************************************************
- ** STAND-IN(core=QRun-IO/qqq#1142, removeBy=4.1.0-RC.6).
- ** RC.5 logs query criteria verbatim. Suppress synchronous diagnostic logging only
+ ** STAND-IN(core=QRun-IO/qqq#1147, removeBy=4.1.0-RC.7).
+ ** RC.6 logs query criteria verbatim. Suppress synchronous diagnostic logging only
  ** while PHI mapping/application runs; value-free EDI events remain in the database.
  ** This does not replace host masking or protection of host code outside this scope.
  *******************************************************************************/
@@ -60,7 +60,7 @@ public final class PhiLogScope implements AutoCloseable
    }
 
    /*******************************************************************************
-    ** Open a scope around code that may pass clinical values to RC.5 core actions.
+    ** Open a scope around code that may pass clinical values to RC.6 core actions.
     *******************************************************************************/
    public static PhiLogScope open(boolean enabled)
    {
@@ -74,7 +74,7 @@ public final class PhiLogScope implements AutoCloseable
    {
       if(!(LogManager.getContext(false) instanceof LoggerContext context))
       {
-         throw new IllegalStateException("PHI processing requires the RC.5 Log4j protection bridge");
+         throw new IllegalStateException("PHI processing requires the RC.6 Log4j protection bridge");
       }
       Configuration configuration = context.getConfiguration();
       if(!INSTALLED.containsKey(configuration))
