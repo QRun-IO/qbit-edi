@@ -1,31 +1,21 @@
-# Maven
 target/
-pom.xml.tag
-pom.xml.releaseBackup
-pom.xml.versionsBackup
-pom.xml.next
-release.properties
-
-# IDE
-.idea/
+.env
+.idea
 *.iml
-.project
-.classpath
-.settings/
-.vscode/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Build
 *.class
+*.log
 *.jar
 *.war
+*.nar
 *.ear
-
-# Logs
-*.log
-logs/
+*.zip
+*.tar.gz
+*.rar
+hs_err_pid*
+.DS_Store
+*.sw*
+.flattened-pom.xml
+dependency-reduced-pom.xml
+/.env.local
+/.cache/
+.claude/settings.local.json
