@@ -35,6 +35,10 @@ public class EdiQBitConfig implements QBitConfig
    public static final String TABLE_NAME_PREFIX    = "edi_";
    public static final String PERMISSION_BASE_NAME = "edi";
 
+   private String payloadBucketAlias = "edi";
+   private java.util.function.Supplier<com.kingsrook.qqq.backend.core.model.session.QSession> serviceSessionSupplier = null;
+   private java.time.Clock clock = java.time.Clock.systemUTC();
+   private String esbDestinationName;
    private String schedulerName;
    private Integer maxSegmentsPerTransaction = 100000;
    private String payloadStore = "DATABASE";
@@ -61,9 +65,9 @@ public class EdiQBitConfig implements QBitConfig
       {
          errors.add("maxSegmentsPerTransaction must be at least 2");
       }
-      if(!"DATABASE".equals(payloadStore))
+      if(!List.of("DATABASE", "OBJECT_STORAGE").contains(payloadStore))
       {
-         errors.add("payloadStore must be DATABASE in phase a1");
+         errors.add("payloadStore must be DATABASE or OBJECT_STORAGE");
       }
       if(secretsResolver == null || partnerLocks == null)
       {
@@ -252,6 +256,74 @@ public class EdiQBitConfig implements QBitConfig
    public EdiQBitConfig withPartnerLocks(Boolean value)
    {
       partnerLocks = value;
+      return (this);
+   }
+
+   /*******************************************************************************
+    ** Get payloadBucketAlias.
+    *******************************************************************************/
+   public String getPayloadBucketAlias()
+   {
+      return (payloadBucketAlias);
+   }
+
+   /*******************************************************************************
+    ** Configure payloadBucketAlias.
+    *******************************************************************************/
+   public EdiQBitConfig withPayloadBucketAlias(String value)
+   {
+      payloadBucketAlias = value;
+      return (this);
+   }
+
+   /*******************************************************************************
+    ** Get serviceSessionSupplier.
+    *******************************************************************************/
+   public java.util.function.Supplier<com.kingsrook.qqq.backend.core.model.session.QSession> getServiceSessionSupplier()
+   {
+      return (serviceSessionSupplier);
+   }
+
+   /*******************************************************************************
+    ** Configure serviceSessionSupplier.
+    *******************************************************************************/
+   public EdiQBitConfig withServiceSessionSupplier(java.util.function.Supplier<com.kingsrook.qqq.backend.core.model.session.QSession> value)
+   {
+      serviceSessionSupplier = value;
+      return (this);
+   }
+
+   /*******************************************************************************
+    ** Get clock.
+    *******************************************************************************/
+   public java.time.Clock getClock()
+   {
+      return (clock);
+   }
+
+   /*******************************************************************************
+    ** Configure clock.
+    *******************************************************************************/
+   public EdiQBitConfig withClock(java.time.Clock value)
+   {
+      clock = value;
+      return (this);
+   }
+
+   /*******************************************************************************
+    ** Optional destination for core table events on main tables.
+    *******************************************************************************/
+   public String getEsbDestinationName()
+   {
+      return (esbDestinationName);
+   }
+
+   /*******************************************************************************
+    ** Enable standard table publications to a host-configured destination.
+    *******************************************************************************/
+   public EdiQBitConfig withEsbDestinationName(String value)
+   {
+      esbDestinationName = value;
       return (this);
    }
 }

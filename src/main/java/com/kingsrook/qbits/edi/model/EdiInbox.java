@@ -33,6 +33,18 @@ public class EdiInbox extends QRecordEntity
 {
    public static final String TABLE_NAME = "edi_inbox";
 
+   @QField(backendName = "gateway_user_id", maxLength = 255)
+   private String gatewayUserId;
+
+   @QField(backendName = "username", maxLength = 255)
+   private String username;
+
+   @QField(backendName = "reprocess")
+   private Boolean reprocess;
+
+   @QField(backendName = "use_current_revisions")
+   private Boolean useCurrentRevisions;
+
    @QField(backendName = "id", isPrimaryKey = true, isEditable = false)
    private Integer id;
 
@@ -622,4 +634,104 @@ public class EdiInbox extends QRecordEntity
       return (this);
    }
 
+
+   /*******************************************************************************
+    ** Get gatewayUserId.
+    *******************************************************************************/
+   public String getGatewayUserId()
+   {
+      return (gatewayUserId);
+   }
+
+   /*******************************************************************************
+    ** Set gatewayUserId.
+    *******************************************************************************/
+   public void setGatewayUserId(String value)
+   {
+      gatewayUserId = value;
+   }
+
+   /*******************************************************************************
+    ** Configure gatewayUserId.
+    *******************************************************************************/
+   public EdiInbox withGatewayUserId(String value)
+   {
+      gatewayUserId = value;
+      return (this);
+   }
+
+   /*******************************************************************************
+    ** Get username.
+    *******************************************************************************/
+   public String getUsername()
+   {
+      return (username);
+   }
+
+   /*******************************************************************************
+    ** Set username.
+    *******************************************************************************/
+   public void setUsername(String value)
+   {
+      username = value;
+   }
+
+   /*******************************************************************************
+    ** Configure username.
+    *******************************************************************************/
+   public EdiInbox withUsername(String value)
+   {
+      username = value;
+      return (this);
+   }
+
+   /*******************************************************************************
+    ** Get reprocess.
+    *******************************************************************************/
+   public Boolean getReprocess()
+   {
+      return (reprocess);
+   }
+
+   /*******************************************************************************
+    ** Set reprocess.
+    *******************************************************************************/
+   public void setReprocess(Boolean value)
+   {
+      reprocess = value;
+   }
+
+   /*******************************************************************************
+    ** Configure reprocess.
+    *******************************************************************************/
+   public EdiInbox withReprocess(Boolean value)
+   {
+      reprocess = value;
+      return (this);
+   }
+
+   /*******************************************************************************
+    ** Get useCurrentRevisions.
+    *******************************************************************************/
+   public Boolean getUseCurrentRevisions()
+   {
+      return (useCurrentRevisions);
+   }
+
+   /*******************************************************************************
+    ** Set useCurrentRevisions.
+    *******************************************************************************/
+   public void setUseCurrentRevisions(Boolean value)
+   {
+      useCurrentRevisions = value;
+   }
+
+   /*******************************************************************************
+    ** Configure useCurrentRevisions.
+    *******************************************************************************/
+   public EdiInbox withUseCurrentRevisions(Boolean value)
+   {
+      useCurrentRevisions = value;
+      return (this);
+   }
 }

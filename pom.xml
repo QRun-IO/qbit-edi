@@ -69,6 +69,20 @@
 
    <dependencies>
       <dependency>
+         <groupId>com.kingsrook.qqq</groupId>
+         <artifactId>qqq-esb</artifactId>
+         <optional>true</optional>
+      </dependency>
+      <dependency>
+         <groupId>com.kingsrook.qbits</groupId>
+         <artifactId>qbit-object-storage</artifactId>
+         <version>0.1.0-RC.2</version>
+         <optional>true</optional>
+         <exclusions>
+            <exclusion><groupId>com.kingsrook.qqq</groupId><artifactId>*</artifactId></exclusion>
+         </exclusions>
+      </dependency>
+      <dependency>
          <groupId>io.xlate</groupId>
          <artifactId>staedi</artifactId>
          <version>1.26.4</version>

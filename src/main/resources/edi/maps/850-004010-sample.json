@@ -1,0 +1,47 @@
+{
+  "map": {
+    "name": "Sample 850 004010",
+    "direction": "INBOUND",
+    "standard": "X12",
+    "version": "004010",
+    "transactionSet": "850",
+    "tableName": "sample_order",
+    "matchKeyFields": "poNumber",
+    "onMatch": "UPDATE",
+    "businessKeyPath": "BEG03",
+    "businessKeyType": "PO",
+    "revision": 1,
+    "status": "ACTIVE"
+  },
+  "rules": [
+    {
+      "sequence": 1,
+      "ediPath": "BEG03",
+      "qqqPath": "poNumber",
+      "required": true
+    },
+    {
+      "sequence": 2,
+      "ediPath": "BEG05",
+      "qqqPath": "orderDate",
+      "transform": "DATE"
+    },
+    {
+      "sequence": 3,
+      "ediPath": "PO1[*]/PO107",
+      "qqqPath": "lines.sku"
+    },
+    {
+      "sequence": 4,
+      "ediPath": "PO1[*]/PO102",
+      "qqqPath": "lines.quantity",
+      "transform": "DECIMAL"
+    },
+    {
+      "sequence": 5,
+      "ediPath": "PO1[*]/PO104",
+      "qqqPath": "lines.unitPrice",
+      "transform": "DECIMAL"
+    }
+  ]
+}

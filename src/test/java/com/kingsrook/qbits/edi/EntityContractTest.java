@@ -64,7 +64,7 @@ class EntityContractTest
     *******************************************************************************/
    static Stream<Class<? extends QRecordEntity>> entities()
    {
-      return (Stream.of(EdiPartner.class, EdiIdentity.class, EdiAgreement.class, EdiAgreementDocument.class, EdiControlNumber.class, EdiTransport.class, EdiCertificate.class, EdiGuide.class, EdiGuideSegment.class, EdiGuideElement.class, EdiGuideRule.class, EdiCodeList.class, EdiCodeListValue.class, EdiInterchange.class, EdiFunctionalGroup.class, EdiTransaction.class, EdiTransactionError.class, EdiEvent.class, EdiException.class, EdiInbox.class, EdiPayload.class));
+      return (Stream.of(EdiPartner.class, EdiIdentity.class, EdiAgreement.class, EdiAgreementDocument.class, EdiControlNumber.class, EdiTransport.class, EdiCertificate.class, EdiGuide.class, EdiGuideSegment.class, EdiGuideElement.class, EdiGuideRule.class, EdiCodeList.class, EdiCodeListValue.class, EdiInterchange.class, EdiFunctionalGroup.class, EdiTransaction.class, EdiTransactionError.class, EdiEvent.class, EdiException.class, EdiInbox.class, EdiPayload.class, com.kingsrook.qbits.edi.model.EdiMap.class, com.kingsrook.qbits.edi.model.EdiMapRule.class, com.kingsrook.qbits.edi.model.EdiMapSample.class, com.kingsrook.qbits.edi.model.EdiOutboundRequest.class, com.kingsrook.qbits.edi.model.EdiOutboundMessage.class));
    }
 
    /*******************************************************************************

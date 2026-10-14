@@ -63,7 +63,10 @@ public final class H2Support
       {
          for(QTableMetaData table : instance.getTables().values())
          {
-            statement.execute(ddl(table, false));
+            if(!table.getName().equals("edi_preview_download"))
+            {
+               statement.execute(ddl(table, false));
+            }
          }
       }
       QContext.init(instance, new QSystemUserSession(instance));
@@ -83,7 +86,7 @@ public final class H2Support
             case INTEGER -> "INTEGER";
             case LONG -> "BIGINT";
             case BOOLEAN -> "BOOLEAN";
-            case DATE_TIME -> "TIMESTAMP WITH TIME ZONE";
+            case DATE_TIME -> "TIMESTAMP";
             case DATE -> "DATE";
             case DECIMAL -> "DECIMAL(30,10)";
             case BLOB -> postgres ? "BYTEA" : "BLOB";

@@ -857,3 +857,43 @@ the home and key records in light and dark at 390 and 1440 px.
 - For production use: set `QQQ_EDI_PAYLOAD_KEY`, an object-storage bucket alias `edi`, the service
   user for the applier, AS2 keys and passwords as environment variables, and load licensed TR3
   guides or code sets if healthcare validation beyond the baseline is needed.
+
+
+## Phase a2 implementation notes (2026-10-13)
+
+The inbound pipeline, map/apply service boundary, typed app/home, actions, gateway stand-in and
+queued acknowledgements are implemented. These RC.5 adaptations refine the executable contract:
+
+- Core alert metadata rejects underscore names: use `edi.inbox.dead-letter`, `edi.ack.overdue`
+  and `edi.ack.rejected`.
+- Queued replies emit `ACK_QUEUED`; actual sending remains phase b.
+- `inboundPosition` on interchange/group/transaction distinguishes repeated controls within
+  a payload and makes retries resume the same occurrence.
+- Reprocessing a descendant restarts its containing inbox using original/current definitions,
+  stable checkpoints and idempotent reply queuing; live claims cannot be reset.
+- Targets and associations must share the EDI RDBMS backend for atomic ST application.
+  Cross-backend application fails as APPLY.
+- RC.5 binds UTC LocalDateTime. DATE_TIME DDL uses zone-less UTC TIMESTAMP to prevent
+  host-timezone shifts in leases and due times. Existing timestamp-with-time-zone columns
+  require migration preserving UTC instant values.
+- Typed TABLE supports a table-level link rather than individual count-cell URLs. Volume/queue
+  tables use filtered-table links; STATISTICS links each figure. No HTML widgets are used.
+- `edi_preview_download` is a storage-only metadata alias bridging standard streams to encrypted
+  PayloadStore. It has no SQL table. Hosts configure it as the Javalin upload archive and avoid
+  multipart disk staging. Samples are synthetic only; downloads require session-registered refs.
+- Preview compares structured before/after JSON against expected output and the previous revision.
+  PHI map results and acknowledgement values are suppressed. Selection/upload use the standard Review.
+- [MAPS.md](MAPS.md) defines transform arguments. QUALIFIER selects via path predicates; CODE uses
+  map-local translations; UNIT uses configured factors/pack sizes; DATETIME uses an explicit timezone.
+  Host code-list/pack-field conversions use registered transforms. SEQUENCE/HL remain phase b.
+- Both payload adapters buffer complete envelopes in memory and use no runtime filesystem storage.
+  Object storage uses only its published API.
+- Standard optional ESB publication follows RC.5. Document events use the core envelope/publisher
+  with ID/status only because the standard factory copies every field, including PHI keys.
+- The a1 classification stand-in and host responsibility for PHI field protection remain unchanged.
+
+Synthetic H2 verification covers permissions, association rollback, retry/stale claims, gateway
+storage failures, original/current replay, 997/999, ack reconciliation, previews and home renderers.
+The object-storage facade is final with restricted constructors: key/encryption metadata are tested
+without provider internals. Live S3, deployed gateway/scheduler and light/dark browser layout remain
+deployment validation. Outbound messages intentionally stay QUEUED.

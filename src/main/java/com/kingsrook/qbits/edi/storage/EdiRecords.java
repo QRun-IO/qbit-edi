@@ -44,7 +44,7 @@ public final class EdiRecords
     *******************************************************************************/
    public static QRecord insert(String table, QRecord record) throws QException
    {
-      QRecord result = new InsertAction().execute(new InsertInput(table).withRecord(record)).getRecords().getFirst();
+      QRecord result = new InsertAction().execute(new InsertInput(table).withRecord(record).withTransaction(com.kingsrook.qqq.backend.core.context.QContext.getQBackendTransaction())).getRecords().getFirst();
       if(result.getErrors() != null && !result.getErrors().isEmpty())
       {
          throw new QException("EDI record insert failed for " + table);
@@ -57,7 +57,7 @@ public final class EdiRecords
     *******************************************************************************/
    public static List<QRecord> query(String table, QQueryFilter filter) throws QException
    {
-      return (new QueryAction().execute(new QueryInput(table).withFilter(filter).withShouldFetchHeavyFields(true)).getRecords());
+      return (new QueryAction().execute(new QueryInput(table).withFilter(filter).withShouldFetchHeavyFields(true).withTransaction(com.kingsrook.qqq.backend.core.context.QContext.getQBackendTransaction())).getRecords());
    }
 
    /*******************************************************************************

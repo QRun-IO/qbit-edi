@@ -46,7 +46,7 @@ public class EdiMetaDataProducer extends QBitComponentMetaDataProducer<MetaDataP
    }
 
    /*******************************************************************************
-    ** Produce the a1 metadata without an app or home.
+    ** Produce tables, the typed app home, record actions and alert types.
     *******************************************************************************/
    @Override
    public MetaDataProducerMultiOutput produce(QInstance instance) throws QException
@@ -57,11 +57,34 @@ public class EdiMetaDataProducer extends QBitComponentMetaDataProducer<MetaDataP
       EdiTables.childWidgets().forEach(output::add);
       output.add(new QSecurityKeyType().withName("edi_partner").withAllAccessKeyName("edi.admin"));
       output.add(new QSecurityKeyType().withName("edi_guide_source").withAllAccessKeyName("edi.guide.loader"));
-      for(QTableMetaData table : EdiTables.tables(getQBitConfig()))
+      java.util.List<QTableMetaData> tables = EdiTables.tables(getQBitConfig());
+      for(QTableMetaData table : tables)
       {
          table.setSourceQBitName(instance.getQBits().values().stream().filter(q -> EdiQBitProducer.ARTIFACT_ID.equals(q.getArtifactId())).findFirst().orElseThrow().getName());
          output.add(table);
       }
+      if(getQBitConfig().getEsbDestinationName() != null && !getQBitConfig().getEsbDestinationName().isBlank())
+      {
+         instance.withRecordChangeListener(new com.kingsrook.qqq.backend.core.model.metadata.code.QCodeReference(com.kingsrook.qbits.edi.support.EdiDocumentEvents.class));
+      }
+      output.add(com.kingsrook.qbits.edi.app.EdiHome.app(getQBitConfig(), tables));
+      com.kingsrook.qbits.edi.app.EdiHome.widgets().forEach(output::add);
+      for(String name : java.util.List.of("edi.inbox.dead-letter", "edi.ack.overdue", "edi.ack.rejected"))
+      {
+         output.add(new com.kingsrook.qqq.backend.core.alerts.QAlertTypeMetaData().withName(name).withLabel(name)
+            .withSourceName("edi").withDefaultSeverity(com.kingsrook.qqq.backend.core.alerts.AlertSeverity.ERROR)
+            .withDescription("EDI operational exception").withHowToFix("Review the related EDI records")
+            .withVisibilityPermission("edi.exception.read"));
+      }
+      com.kingsrook.qbits.edi.processes.EdiProcesses.processes(getQBitConfig()).forEach(output::add);
+      output.add(new com.kingsrook.qqq.backend.core.model.metadata.QBackendMetaData().withName("edi_preview_download")
+         .withBackendType(com.kingsrook.qbits.edi.storage.PreviewDownloadBackend.class));
+      output.add(new QTableMetaData().withName("edi_preview_download").withLabel("Preview Download").withBackendName("edi_preview_download")
+         .withPrimaryKeyField("id").withField(new com.kingsrook.qqq.backend.core.model.metadata.fields.QFieldMetaData("id", com.kingsrook.qqq.backend.core.model.metadata.fields.QFieldType.INTEGER))
+         .withPermissionRules(new com.kingsrook.qqq.backend.core.model.metadata.permissions.QPermissionRules().withPermissionBaseName("edi.map.preview")
+            .withLevel(com.kingsrook.qqq.backend.core.model.metadata.permissions.PermissionLevel.HAS_ACCESS_PERMISSION))
+         .withoutCapabilities(com.kingsrook.qqq.backend.core.model.metadata.tables.Capability.TABLE_INSERT,
+            com.kingsrook.qqq.backend.core.model.metadata.tables.Capability.TABLE_UPDATE, com.kingsrook.qqq.backend.core.model.metadata.tables.Capability.TABLE_DELETE));
       return (output);
    }
 }
