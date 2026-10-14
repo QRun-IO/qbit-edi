@@ -6,6 +6,11 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic
 
 ### Added
 
+- Phase g EDIFACT syntax 3/4 envelopes (UNA/UNB, optional UNG/UNE, UNH/UNT, UNZ), release escaping, native envelope findings, UNB identity routing, 14-digit UN control allocation and duplicate detection.
+- Original D96A/D01B ORDERS, ORDRSP, DESADV, INVOIC and CONTRL guides; ORDERS inbound and retail response outbound sample maps with composite fields and segment groups.
+- Standard-neutral document validation/mapping, mixed X12/EDIFACT inbox framing, CONTRL generation and reconciliation with overdue resolution and rejection alerts, native outbound envelopes and archived resend-as-new.
+- Lindqvist Retail AB demo partner with ORDERS application, ORDRSP/DESADV/INVOIC delivery and CONTRL in both directions; EDIFACT map preview and HTTPS media type.
+
 - Phase d warehouse and logistics baseline guides for 940, 945, 214 and 204 in 004010 and 005010 (syntax notes, situational control-total and stop rules, AT7 pairing), inbound/outbound sample maps (940 in, 945 out/in, 214 in, 204 in/out), DATEPART/TIMEPART outbound transforms and `+`-joined inbound paths for date/time pairs, and Harbor Logistics and Ridgeline Freight demo traffic.
 - Phase b retail baseline guides for 855/856/810/846/860 in 004010 and 005010; inbound/outbound sample maps and nested outbound associations with SEQUENCE/HL transforms.
 - Transactional RECORD_CHANGE and manual enqueue, host-wired ESB process, batch schedules, validated encrypted envelopes, send workers, retries and dead-letter alerts.

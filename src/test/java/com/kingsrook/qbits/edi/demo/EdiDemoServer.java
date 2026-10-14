@@ -239,8 +239,46 @@ public class EdiDemoServer extends AbstractQQQApplication implements AutoCloseab
             installOutbox();
          }
          logistics(local, agreements.get(1));
+         edifact();
          return (null);
       });
+   }
+
+   /*******************************************************************************
+    ** Synthetic Swedish retailer exchanges ORDERS, three responses and CONTRL.
+    *******************************************************************************/
+   private void edifact() throws Exception
+   {
+      var agreement = com.kingsrook.qbits.edi.EdifactSupport.install("D96A");
+      for(int i = 0; i < 3; i++)
+      {
+         com.kingsrook.qbits.edi.EdifactSupport.receive(com.kingsrook.qbits.edi.EdifactSupport.orders("L" + i, "D96A"), "lindqvist-orders-" + i);
+      }
+      new InboxWorker().runOnce();
+      for(String table : List.of("sample_order", "sample_shipment", "sample_invoice"))
+      {
+         enqueue(table, RetailSupport.source().withValue("poNumber", "LINDQVIST-DEMO"));
+      }
+      new OutboundWorker().runOnce();
+      new SendWorker().runOnce();
+      var messages = EdiRecords.query("edi_outbound_message", EdiRecords.equal("agreementId", agreement.getValue("id")));
+      for(var message : messages)
+      {
+         try(var stream = EdiRuntime.current().payloads().open(new PayloadRef(message.getValueString("payloadRef"), null, 0)))
+         {
+            var original = new com.kingsrook.qbits.edi.edifact.EdifactEnvelopeReader(10000).read(stream).getFirst();
+            if(original.allMessages().stream().anyMatch(m -> "CONTRL".equals(m.type())))
+            {
+               continue;
+            }
+            var ack = new com.kingsrook.qbits.edi.edifact.ContrlBuilder().build(original, Map.of(), com.kingsrook.qbits.edi.ack.AckLevel.ALL_TRANSACTIONS, "ACK1", "D96A");
+            var reply = com.kingsrook.qbits.edi.edifact.EdifactOutbound.wrap(agreement,
+               OutboundWorker.row("edi_identity", agreement.getValue("partnerIdentityId")), OutboundWorker.row("edi_identity", agreement.getValue("localIdentityId")), List.of(ack),
+               "REPLY" + message.getValue("id"), java.time.LocalDateTime.now(ZoneOffset.UTC));
+            receive(new com.kingsrook.qbits.edi.edifact.EdifactWriter().write(reply), "lindqvist-contrl-" + message.getValue("id"));
+         }
+      }
+      new InboxWorker().runOnce();
    }
 
    /*******************************************************************************

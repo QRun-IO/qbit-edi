@@ -27,6 +27,15 @@ import java.util.List;
 /*******************************************************************************
  ** Buffered transaction set, including its ST and SE.
  *******************************************************************************/
-public record X12TransactionSet(X12Segment st, X12Segment se, List<X12Segment> segments, List<EnvelopeFinding> findings)
+public record X12TransactionSet(X12Segment st, X12Segment se, List<X12Segment> segments, List<EnvelopeFinding> findings) implements com.kingsrook.qbits.edi.document.EdiDocument
 {
+   /*******************************************************************************
+    ** Expose the header to standard-neutral validators and maps.
+    *******************************************************************************/
+   @Override
+   public X12Segment header()
+   {
+      return (st);
+   }
+
 }

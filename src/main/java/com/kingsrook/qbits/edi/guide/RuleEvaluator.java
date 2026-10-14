@@ -189,7 +189,7 @@ public class RuleEvaluator
          String name = selector.group(1);
          String qualifier = selector.group(2);
          Matcher element = Pattern.compile("([A-Z][A-Z0-9]{1,2}?)([0-9]{2})(?:-([0-9]+))?").matcher(name);
-         if(element.matches())
+         if(element.matches() && !loops.containsKey(name))
          {
             List<X12Segment> selected = select(scope, element.group(1), qualifier);
             int position = Integer.parseInt(element.group(2));

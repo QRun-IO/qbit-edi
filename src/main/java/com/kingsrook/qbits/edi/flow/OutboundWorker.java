@@ -93,7 +93,7 @@ public class OutboundWorker
             return (0);
          }
          List<QRecord> accepted = new ArrayList<>();
-         List<X12TransactionSet> sets = new ArrayList<>();
+         List<com.kingsrook.qbits.edi.document.EdiDocument> sets = new ArrayList<>();
          QRecord map = row("edi_map", document.getValueInteger("mapId"));
          var rules = EdiRecords.query("edi_map_rule", EdiRecords.equal("mapId", map.getValue("id")));
          var associations = new java.util.LinkedHashSet<String>();
@@ -117,7 +117,7 @@ public class OutboundWorker
             }
             try
             {
-               X12TransactionSet set = InboundApplier.asPartner(EdiRuntime.current().config().getServiceSessionSupplier(), agreement.getValueInteger("partnerId"), () ->
+               com.kingsrook.qbits.edi.document.EdiDocument set = InboundApplier.asPartner(EdiRuntime.current().config().getServiceSessionSupplier(), agreement.getValueInteger("partnerId"), () ->
                {
                   String table = request.getValueString("sourceTableName");
                   String primaryKey = QContext.getQInstance().getTable(table).getPrimaryKeyField();
@@ -129,7 +129,9 @@ public class OutboundWorker
                   {
                      throw new IllegalArgumentException("Source record or active map unavailable");
                   }
-                  return (new OutboundMapper().build(records.getFirst(), map, rules, String.format("%04d", sets.size() + 1)));
+                  return ("EDIFACT".equals(agreement.getValueString("standard"))
+                     ? new com.kingsrook.qbits.edi.edifact.EdifactMapper(com.kingsrook.qbits.edi.edifact.EdifactSeparators.fromAgreement(agreement).decimal()).message(records.getFirst(), map, rules, com.kingsrook.qbits.edi.edifact.EdifactOutbound.allocate(agreement, "UNH"))
+                     : new OutboundMapper().build(records.getFirst(), map, rules, String.format("%04d", sets.size() + 1)));
                });
                if(EdiRuntime.current().validator().validate(set, guide, Boolean.TRUE.equals(document.getValueBoolean("containsPhi"))).stream().anyMatch(f -> "ERROR".equals(f.severity())))
                {
@@ -170,8 +172,13 @@ public class OutboundWorker
    /*******************************************************************************
     ** Allocate controls once, store exact bytes, then persist all tracking records.
     *******************************************************************************/
-   public static QRecord envelope(QRecord agreement, QRecord document, QRecord map, List<QRecord> requests, List<X12TransactionSet> sets, Integer original) throws Exception
+   public static QRecord envelope(QRecord agreement, QRecord document, QRecord map, List<QRecord> requests, List<? extends com.kingsrook.qbits.edi.document.EdiDocument> sets, Integer original) throws Exception
    {
+      if("EDIFACT".equals(agreement.getValueString("standard")))
+      {
+         return (com.kingsrook.qbits.edi.edifact.EdifactOutbound.envelope(agreement, document, map, requests,
+            sets.stream().map(s -> (com.kingsrook.qbits.edi.edifact.EdifactMessage) s).toList(), original, null));
+      }
       var runtime = EdiRuntime.current();
       QRecord local = row("edi_identity", agreement.getValueInteger("localIdentityId"));
       QRecord partner = row("edi_identity", agreement.getValueInteger("partnerIdentityId"));
@@ -187,7 +194,7 @@ public class OutboundWorker
       X12Segment gs = X12Segment.of("GS", 2, document.getValueString("functionalIdCode"), local.getValueString("applicationCode"), partner.getValueString("applicationCode"), at.format(DateTimeFormatter.BASIC_ISO_DATE),
          at.format(DateTimeFormatter.ofPattern("HHmm")), gsControl, "X", document.getValueString("version"));
       var interchange = new X12Interchange(new X12Separators(value(agreement, "elementSeparator", "*").charAt(0), value(agreement, "segmentTerminator", "~").charAt(0), component.charAt(0), version.compareTo("00501") >= 0 ? repetition.charAt(0) : null),
-         isa, X12Segment.of("IEA", 0, "1", isaControl), List.of(new X12FunctionalGroup(gs, X12Segment.of("GE", 0, String.valueOf(sets.size()), gsControl), List.copyOf(sets), List.of())), List.of(), List.of());
+         isa, X12Segment.of("IEA", 0, "1", isaControl), List.of(new X12FunctionalGroup(gs, X12Segment.of("GE", 0, String.valueOf(sets.size()), gsControl), sets.stream().map(s -> (X12TransactionSet) s).toList(), List.of())), List.of(), List.of());
       String ending = switch(value(agreement, "lineEnding", "NONE"))
       {
          case "LF" -> "\n";
@@ -211,7 +218,7 @@ public class OutboundWorker
          String businessKey = map.getValueString("businessKeyPath") == null ? null : new com.kingsrook.qbits.edi.guide.RuleEvaluator(set.segments(), java.util.Map.of()).values(map.getValueString("businessKeyPath")).stream().findFirst().orElse(null);
          SystemWrites.insert("edi_transaction", new QRecord().withValue("interchangeId", persisted.getValue("id")).withValue("functionalGroupId", group.getValue("id"))
             .withValue("direction", "OUTBOUND").withValue("partnerId", agreement.getValue("partnerId")).withValue("agreementDocumentId", document.getValue("id"))
-            .withValue("transactionSet", set.st().value(1)).withValue("version", gs.value(8)).withValue("controlNumber", set.st().value(2)).withValue("status", "QUEUED")
+            .withValue("transactionSet", set.header().value(1)).withValue("version", gs.value(8)).withValue("controlNumber", set.header().value(2)).withValue("status", "QUEUED")
             .withValue("guideId", document.getValue("guideId")).withValue("guideRevision", document.getValue("guideId") == null ? null : row("edi_guide", document.getValue("guideId")).getValue("revision"))
             .withValue("targetTableName", i < requests.size() ? requests.get(i).getValue("sourceTableName") : null).withValue("targetRecordId", i < requests.size() ? requests.get(i).getValue("sourceRecordId") : null).withValue("mapId", map.getValue("id")).withValue("mapRevision", map.getValue("revision"))
             .withValue("businessKeyType", map.getValue("businessKeyType")).withValue(Boolean.TRUE.equals(document.getValueBoolean("containsPhi")) ? "phiBusinessKey" : "businessKey", businessKey)

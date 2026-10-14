@@ -1,0 +1,128 @@
+{
+  "map": {
+    "name": "DESADV D96A retail sample",
+    "standard": "EDIFACT",
+    "version": "D96A",
+    "transactionSet": "DESADV",
+    "direction": "OUTBOUND",
+    "status": "ACTIVE",
+    "revision": 1,
+    "tableName": "sample_shipment",
+    "businessKeyPath": "BGM02",
+    "businessKeyType": "SHIPMENT"
+  },
+  "rules": [
+    {
+      "sequence": 1,
+      "ediPath": "BGM01-1",
+      "qqqPath": null,
+      "required": true,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"351\"}"
+    },
+    {
+      "sequence": 2,
+      "ediPath": "BGM02",
+      "qqqPath": "shipmentNumber",
+      "required": true
+    },
+    {
+      "sequence": 3,
+      "ediPath": "BGM03",
+      "qqqPath": null,
+      "required": true,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"9\"}"
+    },
+    {
+      "sequence": 4,
+      "ediPath": "DTM01-1",
+      "qqqPath": null,
+      "required": true,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"137\"}"
+    },
+    {
+      "sequence": 5,
+      "ediPath": "DTM01-2",
+      "qqqPath": "shipDate",
+      "required": true,
+      "transform": "DATE"
+    },
+    {
+      "sequence": 6,
+      "ediPath": "DTM01-3",
+      "qqqPath": null,
+      "required": true,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"102\"}"
+    },
+    {
+      "sequence": 7,
+      "ediPath": "SG10/CPS01",
+      "qqqPath": "cartons.sscc",
+      "required": true,
+      "transform": "SEQUENCE"
+    },
+    {
+      "sequence": 8,
+      "ediPath": "SG10/PAC01",
+      "qqqPath": "cartons.sscc",
+      "required": true,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"1\"}"
+    },
+    {
+      "sequence": 9,
+      "ediPath": "SG10/SG17/LIN01",
+      "qqqPath": "cartons.items.sku",
+      "required": true,
+      "transform": "SEQUENCE"
+    },
+    {
+      "sequence": 10,
+      "ediPath": "SG10/SG17/LIN03-1",
+      "qqqPath": "cartons.items.sku",
+      "required": true
+    },
+    {
+      "sequence": 11,
+      "ediPath": "SG10/SG17/LIN03-2",
+      "qqqPath": "cartons.items.sku",
+      "required": true,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"SA\"}"
+    },
+    {
+      "sequence": 12,
+      "ediPath": "SG10/SG17/QTY01-1",
+      "qqqPath": "cartons.items.quantity",
+      "required": true,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"12\"}"
+    },
+    {
+      "sequence": 13,
+      "ediPath": "SG10/SG17/QTY01-2",
+      "qqqPath": "cartons.items.quantity",
+      "required": true,
+      "transform": "DECIMAL"
+    },
+    {
+      "sequence": 14,
+      "ediPath": "SG10/SG17/QTY01-3",
+      "qqqPath": "cartons.items.quantity",
+      "required": true,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"PCE\"}"
+    },
+    {
+      "sequence": 15,
+      "ediPath": "UNS01",
+      "qqqPath": null,
+      "required": true,
+      "transform": "CONSTANT",
+      "transformArgs": "{\"value\": \"S\"}"
+    }
+  ]
+}
