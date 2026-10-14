@@ -1,0 +1,129 @@
+{
+  "map": {
+    "name": "Sample 204 004010",
+    "direction": "INBOUND",
+    "standard": "X12",
+    "version": "004010",
+    "transactionSet": "204",
+    "tableName": "sample_load",
+    "matchKeyFields": "shipmentId",
+    "onMatch": "UPDATE",
+    "businessKeyPath": "B204",
+    "businessKeyType": "LOAD",
+    "revision": 1,
+    "status": "ACTIVE"
+  },
+  "rules": [
+    {
+      "sequence": 1,
+      "ediPath": "B204",
+      "qqqPath": "shipmentId",
+      "required": true
+    },
+    {
+      "sequence": 2,
+      "ediPath": "B202",
+      "qqqPath": "carrierScac",
+      "required": false
+    },
+    {
+      "sequence": 3,
+      "ediPath": "B2A01",
+      "qqqPath": "purpose",
+      "required": false,
+      "transform": "CODE",
+      "transformArgs": "{\"00\": \"ORIGINAL\", \"04\": \"CHANGE\", \"01\": \"CANCEL\"}"
+    },
+    {
+      "sequence": 4,
+      "ediPath": "B206",
+      "qqqPath": "paymentMethod",
+      "required": false
+    },
+    {
+      "sequence": 5,
+      "ediPath": "L11[L1102=BM]/L1101",
+      "qqqPath": "bolNumber",
+      "required": false
+    },
+    {
+      "sequence": 6,
+      "ediPath": "N1[N101=BT]/N102",
+      "qqqPath": "billToName",
+      "required": false
+    },
+    {
+      "sequence": 7,
+      "ediPath": "L301",
+      "qqqPath": "totalWeight",
+      "required": false,
+      "transform": "DECIMAL",
+      "condition": "present(L301)"
+    },
+    {
+      "sequence": 8,
+      "ediPath": "S5[*]/S501",
+      "qqqPath": "stops.stopSequence",
+      "required": false
+    },
+    {
+      "sequence": 9,
+      "ediPath": "S5[*]/S502",
+      "qqqPath": "stops.stopReason",
+      "required": false
+    },
+    {
+      "sequence": 10,
+      "ediPath": "S5[*]/G6202+G6204",
+      "qqqPath": "stops.appointmentAt",
+      "required": false,
+      "transform": "DATETIME",
+      "transformArgs": "{\"timezone\": \"America/Chicago\"}",
+      "condition": "present(G6202)"
+    },
+    {
+      "sequence": 11,
+      "ediPath": "S5[*]/S503",
+      "qqqPath": "stops.weight",
+      "required": false,
+      "transform": "DECIMAL",
+      "condition": "present(S503)"
+    },
+    {
+      "sequence": 12,
+      "ediPath": "S5[*]/S5N1/N102",
+      "qqqPath": "stops.name",
+      "required": false
+    },
+    {
+      "sequence": 13,
+      "ediPath": "S5[*]/S5N1/N301",
+      "qqqPath": "stops.address",
+      "required": false
+    },
+    {
+      "sequence": 14,
+      "ediPath": "S5[*]/S5N1/N401",
+      "qqqPath": "stops.city",
+      "required": false
+    },
+    {
+      "sequence": 15,
+      "ediPath": "S5[*]/S5N1/N402",
+      "qqqPath": "stops.state",
+      "required": false
+    },
+    {
+      "sequence": 16,
+      "ediPath": "S5[*]/S5N1/N403",
+      "qqqPath": "stops.postal",
+      "required": false
+    },
+    {
+      "sequence": 17,
+      "ediPath": "S5[*]/OID/OID01",
+      "qqqPath": "stops.orderNumber",
+      "required": false
+    }
+  ]
+}

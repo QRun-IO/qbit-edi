@@ -1,0 +1,877 @@
+{
+  "name": "QQQ baseline 204 004010",
+  "standard": "X12",
+  "version": "004010",
+  "transactionSet": "204",
+  "functionalIdCode": "SM",
+  "segments": [
+    {
+      "segmentId": "ST",
+      "usage": "REQUIRED",
+      "minUse": 1,
+      "maxUse": 1,
+      "loopId": null,
+      "loopMaxRepeat": 200,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "ID",
+          "usage": "REQUIRED",
+          "minLength": 3,
+          "maxLength": 3
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "usage": "REQUIRED",
+          "minLength": 4,
+          "maxLength": 9
+        }
+      ],
+      "rules": []
+    },
+    {
+      "segmentId": "B2",
+      "usage": "REQUIRED",
+      "minUse": 1,
+      "maxUse": 1,
+      "loopId": null,
+      "loopMaxRepeat": 200,
+      "elements": [
+        {
+          "position": 2,
+          "dataType": "ID",
+          "usage": "REQUIRED",
+          "minLength": 2,
+          "maxLength": 4
+        },
+        {
+          "position": 4,
+          "dataType": "AN",
+          "usage": "REQUIRED",
+          "minLength": 1,
+          "maxLength": 30
+        },
+        {
+          "position": 6,
+          "dataType": "ID",
+          "usage": "REQUIRED",
+          "minLength": 2,
+          "maxLength": 2,
+          "codes": [
+            "CC",
+            "PP",
+            "TP"
+          ]
+        }
+      ],
+      "rules": []
+    },
+    {
+      "segmentId": "B2A",
+      "usage": "REQUIRED",
+      "minUse": 1,
+      "maxUse": 1,
+      "loopId": null,
+      "loopMaxRepeat": 200,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "ID",
+          "usage": "REQUIRED",
+          "minLength": 2,
+          "maxLength": 2,
+          "codes": [
+            "00",
+            "01",
+            "04"
+          ]
+        },
+        {
+          "position": 2,
+          "dataType": "ID",
+          "usage": "SITUATIONAL",
+          "minLength": 2,
+          "maxLength": 2,
+          "codes": [
+            "LT"
+          ]
+        }
+      ],
+      "rules": []
+    },
+    {
+      "segmentId": "L11",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 300,
+      "loopId": null,
+      "loopMaxRepeat": 200,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "AN",
+          "usage": "REQUIRED",
+          "minLength": 1,
+          "maxLength": 30
+        },
+        {
+          "position": 2,
+          "dataType": "ID",
+          "usage": "REQUIRED",
+          "minLength": 2,
+          "maxLength": 3
+        },
+        {
+          "position": 3,
+          "dataType": "AN",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 45
+        }
+      ],
+      "rules": []
+    },
+    {
+      "segmentId": "G62",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 10,
+      "loopId": null,
+      "loopMaxRepeat": 200,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "ID",
+          "usage": "REQUIRED",
+          "minLength": 2,
+          "maxLength": 2,
+          "codes": [
+            "02",
+            "10",
+            "11"
+          ]
+        },
+        {
+          "position": 2,
+          "dataType": "DT",
+          "usage": "SITUATIONAL",
+          "minLength": 8,
+          "maxLength": 8
+        },
+        {
+          "position": 3,
+          "dataType": "ID",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 1
+        },
+        {
+          "position": 4,
+          "dataType": "TM",
+          "usage": "SITUATIONAL",
+          "minLength": 4,
+          "maxLength": 8
+        },
+        {
+          "position": 5,
+          "dataType": "ID",
+          "usage": "SITUATIONAL",
+          "minLength": 2,
+          "maxLength": 2
+        }
+      ],
+      "rules": [
+        {
+          "type": "PAIRED",
+          "positions": [
+            1,
+            2
+          ]
+        },
+        {
+          "type": "PAIRED",
+          "positions": [
+            3,
+            4
+          ]
+        },
+        {
+          "type": "CONDITIONAL",
+          "positions": [
+            5,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "segmentId": "MS3",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 1,
+      "loopId": null,
+      "loopMaxRepeat": 200,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "ID",
+          "usage": "REQUIRED",
+          "minLength": 2,
+          "maxLength": 4
+        },
+        {
+          "position": 2,
+          "dataType": "ID",
+          "usage": "REQUIRED",
+          "minLength": 1,
+          "maxLength": 1
+        },
+        {
+          "position": 3,
+          "dataType": "AN",
+          "usage": "SITUATIONAL",
+          "minLength": 2,
+          "maxLength": 30
+        },
+        {
+          "position": 4,
+          "dataType": "ID",
+          "usage": "REQUIRED",
+          "minLength": 1,
+          "maxLength": 2
+        }
+      ],
+      "rules": []
+    },
+    {
+      "segmentId": "N1",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 1,
+      "loopId": "N1",
+      "loopMaxRepeat": 10,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "ID",
+          "usage": "REQUIRED",
+          "minLength": 2,
+          "maxLength": 3,
+          "codes": [
+            "BT",
+            "SH",
+            "CN"
+          ]
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        {
+          "position": 3,
+          "dataType": "ID",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 2
+        },
+        {
+          "position": 4,
+          "dataType": "AN",
+          "usage": "SITUATIONAL",
+          "minLength": 2,
+          "maxLength": 80
+        }
+      ],
+      "rules": [
+        {
+          "type": "PAIRED",
+          "positions": [
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "segmentId": "N3",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 2,
+      "loopId": "N1",
+      "loopMaxRepeat": 10,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "AN",
+          "usage": "REQUIRED",
+          "minLength": 1,
+          "maxLength": 55
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 55
+        }
+      ],
+      "rules": []
+    },
+    {
+      "segmentId": "N4",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 1,
+      "loopId": "N1",
+      "loopMaxRepeat": 10,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "AN",
+          "usage": "SITUATIONAL",
+          "minLength": 2,
+          "maxLength": 30
+        },
+        {
+          "position": 2,
+          "dataType": "ID",
+          "usage": "SITUATIONAL",
+          "minLength": 2,
+          "maxLength": 2
+        },
+        {
+          "position": 3,
+          "dataType": "ID",
+          "usage": "SITUATIONAL",
+          "minLength": 3,
+          "maxLength": 15
+        },
+        {
+          "position": 4,
+          "dataType": "ID",
+          "usage": "SITUATIONAL",
+          "minLength": 2,
+          "maxLength": 3
+        }
+      ],
+      "rules": []
+    },
+    {
+      "segmentId": "S5",
+      "usage": "REQUIRED",
+      "minUse": 1,
+      "maxUse": 1,
+      "loopId": "S5",
+      "loopMaxRepeat": 999,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "N0",
+          "usage": "REQUIRED",
+          "minLength": 1,
+          "maxLength": 3
+        },
+        {
+          "position": 2,
+          "dataType": "ID",
+          "usage": "REQUIRED",
+          "minLength": 2,
+          "maxLength": 2,
+          "codes": [
+            "LD",
+            "UL"
+          ]
+        },
+        {
+          "position": 3,
+          "dataType": "R",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 10
+        },
+        {
+          "position": 4,
+          "dataType": "ID",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 1,
+          "codes": [
+            "L",
+            "K"
+          ]
+        },
+        {
+          "position": 5,
+          "dataType": "N0",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 7
+        },
+        {
+          "position": 6,
+          "dataType": "ID",
+          "usage": "SITUATIONAL",
+          "minLength": 2,
+          "maxLength": 2
+        }
+      ],
+      "rules": [
+        {
+          "type": "PAIRED",
+          "positions": [
+            3,
+            4
+          ]
+        },
+        {
+          "type": "PAIRED",
+          "positions": [
+            5,
+            6
+          ]
+        }
+      ]
+    },
+    {
+      "segmentId": "L11",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 5,
+      "loopId": "S5",
+      "loopMaxRepeat": 999,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "AN",
+          "usage": "REQUIRED",
+          "minLength": 1,
+          "maxLength": 30
+        },
+        {
+          "position": 2,
+          "dataType": "ID",
+          "usage": "REQUIRED",
+          "minLength": 2,
+          "maxLength": 3
+        },
+        {
+          "position": 3,
+          "dataType": "AN",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 45
+        }
+      ],
+      "rules": []
+    },
+    {
+      "segmentId": "G62",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 10,
+      "loopId": "S5",
+      "loopMaxRepeat": 999,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "ID",
+          "usage": "REQUIRED",
+          "minLength": 2,
+          "maxLength": 2,
+          "codes": [
+            "02",
+            "10",
+            "11"
+          ]
+        },
+        {
+          "position": 2,
+          "dataType": "DT",
+          "usage": "SITUATIONAL",
+          "minLength": 8,
+          "maxLength": 8
+        },
+        {
+          "position": 3,
+          "dataType": "ID",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 1
+        },
+        {
+          "position": 4,
+          "dataType": "TM",
+          "usage": "SITUATIONAL",
+          "minLength": 4,
+          "maxLength": 8
+        },
+        {
+          "position": 5,
+          "dataType": "ID",
+          "usage": "SITUATIONAL",
+          "minLength": 2,
+          "maxLength": 2
+        }
+      ],
+      "rules": [
+        {
+          "type": "PAIRED",
+          "positions": [
+            1,
+            2
+          ]
+        },
+        {
+          "type": "PAIRED",
+          "positions": [
+            3,
+            4
+          ]
+        },
+        {
+          "type": "CONDITIONAL",
+          "positions": [
+            5,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "segmentId": "AT8",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 1,
+      "loopId": "S5",
+      "loopMaxRepeat": 999,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "ID",
+          "usage": "REQUIRED",
+          "minLength": 1,
+          "maxLength": 1,
+          "codes": [
+            "G",
+            "N"
+          ]
+        },
+        {
+          "position": 2,
+          "dataType": "ID",
+          "usage": "REQUIRED",
+          "minLength": 1,
+          "maxLength": 1,
+          "codes": [
+            "L",
+            "K"
+          ]
+        },
+        {
+          "position": 3,
+          "dataType": "R",
+          "usage": "REQUIRED",
+          "minLength": 1,
+          "maxLength": 10
+        },
+        {
+          "position": 4,
+          "dataType": "N0",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 7
+        }
+      ],
+      "rules": []
+    },
+    {
+      "segmentId": "N1",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 1,
+      "loopId": "S5N1",
+      "loopMaxRepeat": 5,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "ID",
+          "usage": "REQUIRED",
+          "minLength": 2,
+          "maxLength": 3,
+          "codes": [
+            "SF",
+            "ST",
+            "SH",
+            "CN"
+          ]
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        {
+          "position": 3,
+          "dataType": "ID",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 2
+        },
+        {
+          "position": 4,
+          "dataType": "AN",
+          "usage": "SITUATIONAL",
+          "minLength": 2,
+          "maxLength": 80
+        }
+      ],
+      "rules": [
+        {
+          "type": "PAIRED",
+          "positions": [
+            3,
+            4
+          ]
+        }
+      ],
+      "parentLoopId": "S5"
+    },
+    {
+      "segmentId": "N3",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 2,
+      "loopId": "S5N1",
+      "loopMaxRepeat": 5,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "AN",
+          "usage": "REQUIRED",
+          "minLength": 1,
+          "maxLength": 55
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 55
+        }
+      ],
+      "rules": [],
+      "parentLoopId": "S5"
+    },
+    {
+      "segmentId": "N4",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 1,
+      "loopId": "S5N1",
+      "loopMaxRepeat": 5,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "AN",
+          "usage": "SITUATIONAL",
+          "minLength": 2,
+          "maxLength": 30
+        },
+        {
+          "position": 2,
+          "dataType": "ID",
+          "usage": "SITUATIONAL",
+          "minLength": 2,
+          "maxLength": 2
+        },
+        {
+          "position": 3,
+          "dataType": "ID",
+          "usage": "SITUATIONAL",
+          "minLength": 3,
+          "maxLength": 15
+        },
+        {
+          "position": 4,
+          "dataType": "ID",
+          "usage": "SITUATIONAL",
+          "minLength": 2,
+          "maxLength": 3
+        }
+      ],
+      "rules": [],
+      "parentLoopId": "S5"
+    },
+    {
+      "segmentId": "OID",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 1,
+      "loopId": "OID",
+      "parentLoopId": "S5",
+      "loopMaxRepeat": 200,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "AN",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 30
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 22
+        },
+        {
+          "position": 4,
+          "dataType": "ID",
+          "usage": "SITUATIONAL",
+          "minLength": 2,
+          "maxLength": 2
+        },
+        {
+          "position": 5,
+          "dataType": "N0",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 7
+        },
+        {
+          "position": 6,
+          "dataType": "ID",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 1
+        },
+        {
+          "position": 7,
+          "dataType": "R",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 10
+        }
+      ],
+      "rules": [
+        {
+          "type": "REQUIRED",
+          "positions": [
+            1,
+            2
+          ]
+        },
+        {
+          "type": "PAIRED",
+          "positions": [
+            4,
+            5
+          ]
+        },
+        {
+          "type": "PAIRED",
+          "positions": [
+            6,
+            7
+          ]
+        }
+      ]
+    },
+    {
+      "segmentId": "L3",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 1,
+      "loopId": null,
+      "loopMaxRepeat": 200,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "R",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 10
+        },
+        {
+          "position": 2,
+          "dataType": "ID",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 1,
+          "codes": [
+            "G",
+            "N"
+          ]
+        },
+        {
+          "position": 13,
+          "dataType": "N0",
+          "usage": "SITUATIONAL",
+          "minLength": 1,
+          "maxLength": 7
+        }
+      ],
+      "rules": [
+        {
+          "type": "PAIRED",
+          "positions": [
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    {
+      "segmentId": "SE",
+      "usage": "REQUIRED",
+      "minUse": 1,
+      "maxUse": 1,
+      "loopId": null,
+      "loopMaxRepeat": 200,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "N0",
+          "usage": "REQUIRED",
+          "minLength": 1,
+          "maxLength": 10
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "usage": "REQUIRED",
+          "minLength": 4,
+          "maxLength": 9
+        }
+      ],
+      "rules": []
+    }
+  ],
+  "rules": [
+    {
+      "type": "SITUATIONAL",
+      "expression": "eq(S5[1]/S502, 'LD')",
+      "snipLevel": 2,
+      "severity": "ERROR",
+      "message": "The first stop must be a pickup",
+      "ak3Code": "8",
+      "ak4Code": "7"
+    },
+    {
+      "type": "SITUATIONAL",
+      "expression": "present(S5[S502=UL]/S502)",
+      "snipLevel": 2,
+      "severity": "ERROR",
+      "message": "At least one delivery stop is required",
+      "ak3Code": "8",
+      "ak4Code": "7"
+    }
+  ]
+}

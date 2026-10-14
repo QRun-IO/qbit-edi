@@ -139,7 +139,7 @@ public class InboundMapper
       {
          return;
       }
-      List<String> values = path == null || path.isBlank() ? List.of() : evaluator.values(path);
+      List<String> values = path == null || path.isBlank() ? List.of() : values(evaluator, path);
       if(values.isEmpty() && rule.getValueString("defaultValue") != null)
       {
          values = List.of(rule.getValueString("defaultValue"));
@@ -150,6 +150,20 @@ public class InboundMapper
          throw new IllegalArgumentException("Required mapping input is absent");
       }
       target.withValue(field, value);
+   }
+
+   /*******************************************************************************
+    ** A path may join several element paths with a plus outside any predicate, in order, so
+    ** a transform such as DATETIME receives a date followed by a time from separate elements.
+    *******************************************************************************/
+   private static List<String> values(RuleEvaluator evaluator, String path)
+   {
+      List<String> values = new ArrayList<>();
+      for(String part : path.split("\\+(?![^\\[]*\\])"))
+      {
+         values.addAll(evaluator.values(part.trim()));
+      }
+      return (values);
    }
 
    /*******************************************************************************

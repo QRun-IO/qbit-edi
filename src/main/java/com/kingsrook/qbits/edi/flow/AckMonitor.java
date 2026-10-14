@@ -30,6 +30,7 @@ import com.kingsrook.qqq.backend.core.alerts.AlertSignal;
 import com.kingsrook.qqq.backend.core.alerts.QAlerts;
 import com.kingsrook.qqq.backend.core.exceptions.QException;
 import com.kingsrook.qqq.backend.core.model.actions.tables.query.QCriteriaOperator;
+import com.kingsrook.qqq.backend.core.model.actions.tables.query.QQueryFilter;
 import com.kingsrook.qqq.backend.core.model.data.QRecord;
 
 /*******************************************************************************
@@ -65,7 +66,7 @@ public class AckMonitor
             }
             count++;
          }
-         for(QRecord certificate : EdiRecords.query("edi_certificate", EdiRecords.equal("status", "ACTIVE")))
+         for(QRecord certificate : EdiRecords.query("edi_certificate", new QQueryFilter().withCriteria("status", QCriteriaOperator.IN, "ACTIVE", "NEXT")))
          {
             if(certificate.getValueInstant("notAfter") == null)
             {
@@ -87,8 +88,49 @@ public class AckMonitor
                }
             }
          }
-         return (count);
+         return (count + overdueMdns(now));
       }));
+   }
+
+   /*******************************************************************************
+    ** SENT messages on an asynchronous-MDN AS2 transport whose MDN has not arrived
+    ** within the agreement document ackDueMinutes (60 when none is set) raise a
+    ** warning, deduplicated per message and resolved when the MDN arrives.
+    *******************************************************************************/
+   private static int overdueMdns(java.time.Instant now) throws QException
+   {
+      List<java.io.Serializable> transports = new java.util.ArrayList<>();
+      for(QRecord transport : EdiRecords.query("edi_transport", EdiRecords.equal("type", "AS2").withCriteria("mdnMode", QCriteriaOperator.EQUALS, "ASYNC")))
+      {
+         transports.add(transport.getValue("id"));
+      }
+      if(transports.isEmpty())
+      {
+         return (0);
+      }
+      int count = 0;
+      for(QRecord message : EdiRecords.query("edi_outbound_message", EdiRecords.equal("status", "SENT").withCriteria("transportId", QCriteriaOperator.IN, transports)
+         .withCriteria("sentAt", QCriteriaOperator.IS_NOT_BLANK)))
+      {
+         int minutes = 60;
+         Integer smallest = null;
+         for(QRecord document : message.getValue("agreementId") == null ? List.<QRecord>of()
+            : EdiRecords.query("edi_agreement_document", EdiRecords.equal("agreementId", message.getValue("agreementId")).withCriteria("direction", QCriteriaOperator.EQUALS, "OUTBOUND")))
+         {
+            Integer due = document.getValueInteger("ackDueMinutes");
+            smallest = due == null ? smallest : smallest == null ? due : Math.min(smallest, due);
+         }
+         minutes = smallest == null ? minutes : smallest;
+         if(message.getValueInstant("sentAt").plus(minutes, ChronoUnit.MINUTES).isAfter(now))
+         {
+            continue;
+         }
+         QAlerts.raise(new AlertSignal("edi.mdn.overdue").withSeverity(AlertSeverity.WARNING).withDedupKey("edi_outbound_message:" + message.getValue("id"))
+            .withRecordRef(new com.kingsrook.qqq.backend.core.alerts.AlertRecordRef("edi_outbound_message", message.getValue("id")))
+            .withTitle("AS2 receipt overdue").withSummary("The asynchronous MDN has not arrived; review the outbound message"));
+         count++;
+      }
+      return (count);
    }
 
    /*******************************************************************************

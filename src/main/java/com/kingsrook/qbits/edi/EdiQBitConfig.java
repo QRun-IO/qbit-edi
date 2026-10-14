@@ -68,6 +68,7 @@ public class EdiQBitConfig implements QBitConfig
    private String appName  = "edi";
    private String appLabel = "EDI";
    private String parentAppName;
+   private String publicBaseUrl;
 
 
 
@@ -348,6 +349,25 @@ public class EdiQBitConfig implements QBitConfig
    public EdiQBitConfig withEsbDestinationName(String value)
    {
       esbDestinationName = value;
+      return (this);
+   }
+
+   /*******************************************************************************
+    ** Public base URL of this deployment (for example https://edi.example.com),
+    ** used to build the asynchronous AS2 receipt address
+    ** {base}/qqq/hooks/edi/as2/{transport}/mdn.
+    *******************************************************************************/
+   public String getPublicBaseUrl()
+   {
+      return (publicBaseUrl);
+   }
+
+   /*******************************************************************************
+    ** Set the public base URL.
+    *******************************************************************************/
+   public EdiQBitConfig withPublicBaseUrl(String value)
+   {
+      publicBaseUrl = value;
       return (this);
    }
 }

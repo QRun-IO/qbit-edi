@@ -39,6 +39,9 @@ public class EdiOutboundMessage extends QRecordEntity
    @QField(backendName = "transport_message_id", maxLength = 255)
    private String transportMessageId;
 
+   @QField(backendName = "transport_mic", maxLength = 255)
+   private String transportMic;
+
    @QField(backendName = "id", isPrimaryKey = true, isEditable = false)
    private Integer id;
 
@@ -96,6 +99,31 @@ public class EdiOutboundMessage extends QRecordEntity
    @QField(backendName = "modify_date")
    private Instant modifyDate;
 
+
+   /*******************************************************************************
+    ** Get transportMic.
+    *******************************************************************************/
+   public String getTransportMic()
+   {
+      return (transportMic);
+   }
+
+   /*******************************************************************************
+    ** Set transportMic.
+    *******************************************************************************/
+   public void setTransportMic(String value)
+   {
+      transportMic = value;
+   }
+
+   /*******************************************************************************
+    ** Configure transportMic.
+    *******************************************************************************/
+   public EdiOutboundMessage withTransportMic(String value)
+   {
+      transportMic = value;
+      return (this);
+   }
 
    /*******************************************************************************
     ** Get id.

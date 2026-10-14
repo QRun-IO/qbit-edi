@@ -1,0 +1,74 @@
+{
+  "map": {
+    "name": "Sample 214 004010",
+    "direction": "INBOUND",
+    "standard": "X12",
+    "version": "004010",
+    "transactionSet": "214",
+    "tableName": "sample_shipment_status",
+    "businessKeyPath": "B1002",
+    "secondaryKeyPath": "B1001",
+    "businessKeyType": "SHIPMENT",
+    "revision": 1,
+    "status": "ACTIVE"
+  },
+  "rules": [
+    {
+      "sequence": 1,
+      "ediPath": "B1002",
+      "qqqPath": "shipmentId",
+      "required": true
+    },
+    {
+      "sequence": 2,
+      "ediPath": "B1001",
+      "qqqPath": "proNumber",
+      "required": false
+    },
+    {
+      "sequence": 3,
+      "ediPath": "B1003",
+      "qqqPath": "carrierScac",
+      "required": false
+    },
+    {
+      "sequence": 4,
+      "ediPath": "LX[1]/AT701",
+      "qqqPath": "statusCode",
+      "required": false
+    },
+    {
+      "sequence": 5,
+      "ediPath": "LX[1]/AT702",
+      "qqqPath": "reasonCode",
+      "required": false
+    },
+    {
+      "sequence": 6,
+      "ediPath": "LX[1]/MS101",
+      "qqqPath": "city",
+      "required": false
+    },
+    {
+      "sequence": 7,
+      "ediPath": "LX[1]/MS102",
+      "qqqPath": "state",
+      "required": false
+    },
+    {
+      "sequence": 8,
+      "ediPath": "LX[1]/MS202",
+      "qqqPath": "equipmentNumber",
+      "required": false
+    },
+    {
+      "sequence": 9,
+      "ediPath": "LX[1]/AT705+LX[1]/AT706",
+      "qqqPath": "eventAt",
+      "required": false,
+      "transform": "DATETIME",
+      "transformArgs": "{\"timezone\": \"America/Chicago\"}",
+      "condition": "present(LX[1]/AT705)"
+    }
+  ]
+}

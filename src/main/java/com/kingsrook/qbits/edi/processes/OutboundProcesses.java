@@ -106,6 +106,10 @@ public class OutboundProcesses implements BackendStep
       {
          new SendWorker().runOnce();
       }
+      else if(name.equals("edi_as2_mdn_sender"))
+      {
+         new com.kingsrook.qbits.edi.as2.As2MdnSender().runOnce();
+      }
       else if(name.equals("edi_ack_monitor"))
       {
          new AckMonitor().runOnce();

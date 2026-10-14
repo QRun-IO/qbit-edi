@@ -6,6 +6,14 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic
 
 ### Added
 
+- Phase d warehouse and logistics baseline guides for 940, 945, 214 and 204 in 004010 and 005010 (syntax notes, situational control-total and stop rules, AT7 pairing), inbound/outbound sample maps (940 in, 945 out/in, 214 in, 204 in/out), DATEPART/TIMEPART outbound transforms and `+`-joined inbound paths for date/time pairs, and Harbor Logistics and Ridgeline Freight demo traffic.
+||||||| parent of bfb63ce (feat: phase c - AS2 transport)
+
+- Phase c AS2: `As2Transport` send and receive (RFC 4130) with S/MIME signing (SHA-256/384/512; SHA1 flagged), encryption (AES-128/256 CBC or GCM; 3DES flagged), optional compression, synchronous and asynchronous signed MDNs with MIC verification, Test Connection, optional TLS pinning and VAN transports with no partner. Built on as2-lib 5.1.8 and BouncyCastle, entirely in memory (no keystore or temporary files).
+- `POST /qqq/hooks/edi/as2/{transport}` and `/{transport}/mdn` route provider: identity, decryption (ACTIVE or NEXT keys), signature and MIC checks, Message-ID dedupe returning the original MDN, error MDNs with no inbox row, and a queued, retried asynchronous MDN sender.
+- Read-only `edi_as2_mdn` table with "AS2 MDNs" child lists on outbound and inbound messages; raw MDNs in the encrypted payload store; `edi_outbound_message.transport_mic`; `edi_transport.weak_crypto`; `EdiQBitConfig.publicBaseUrl`.
+- Certificates: parsed on save (private keys refused), keys from environment PEM PKCS#8 or base64 PKCS#12, ACTIVE/NEXT rollover, record actions Promote Certificate and Export Public Certificate, expiry alerts for ACTIVE and NEXT, and the `edi.mdn.overdue` alert.
+- Demo: Pacific Wholesale over AS2 against an in-process BouncyCastle peer with in-memory certificates; AS2 acceptance tests in both directions against our own route and an independent peer.
 - Phase b retail baseline guides for 855/856/810/846/860 in 004010 and 005010; inbound/outbound sample maps and nested outbound associations with SEQUENCE/HL transforms.
 - Transactional RECORD_CHANGE and manual enqueue, host-wired ESB process, batch schedules, validated encrypted envelopes, send workers, retries and dead-letter alerts.
 - Instance transport registry, MINA SFTP streaming push/poll with pinned host keys, gateway OUTBOX stand-in/download delivery, and authenticated HTTPS ingress/egress using core Standard Webhooks.
@@ -29,3 +37,7 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic
 - Per-instance runtime services and configuration, synthetic generators, exact acknowledgement fixtures, concurrent SQL tests, and payload tests that verify no temporary files are created.
 - Repository scaffold to the QRun qbit repository standard: `qbit-build-parent` 2.0.0, QQQ 4.1.0-RC.5, Maven wrapper, Checkstyle, JaCoCo gate, CircleCI qqq-orb 0.6.8, release-candidate workflow, Dependabot, community files.
 - `EdiQBitProducer` and `EdiQBitConfig` (table prefix `edi_`, permission base `edi`).
+
+### Fixed
+
+- Inbound apply no longer fails with a null-pointer error on a target table that has no associations (flat tables such as the 214 status sample).
