@@ -137,6 +137,8 @@ public final class EdiProcesses
          .withName(table + "_" + operation).withLabel(label).withTableName(table).withIsHidden(true).withMinInputRecords(1).withPermissionRules(permission(permission));
       if(operation.equals("preview"))
       {
+         process.getPermissionRules().withCustomPermissionChecker(
+            com.kingsrook.qqq.backend.core.actions.permissions.UseOtherPermissionNameCustomPermissionChecker.build("edi.map.preview"));
          if(table.equals("edi_map"))
          {
             process.getFrontendStep("review").withFormField(new QFieldMetaData("sampleId", QFieldType.INTEGER)

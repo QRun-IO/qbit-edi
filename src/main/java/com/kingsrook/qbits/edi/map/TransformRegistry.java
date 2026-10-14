@@ -51,6 +51,7 @@ import com.kingsrook.qqq.backend.core.model.actions.tables.query.QueryInput;
 public class TransformRegistry
 {
    private final Map<String, Transform> transforms = new ConcurrentHashMap<>();
+   private final Map<String, Map<String, Object>> argumentSchemas = new ConcurrentHashMap<>();
 
    /*******************************************************************************
     ** Transform a selected path's values in the service session.
@@ -119,8 +120,56 @@ public class TransformRegistry
     *******************************************************************************/
    public TransformRegistry register(String name, Transform transform)
    {
+      return (register(name, transform, schema(name)));
+   }
+
+   /*******************************************************************************
+    ** Host transforms publish their argument contract alongside executable behavior.
+    *******************************************************************************/
+   public TransformRegistry register(String name, Transform transform, Map<String, Object> argumentSchema)
+   {
       transforms.put(name.toUpperCase(Locale.ROOT), transform);
+      argumentSchemas.put(name.toUpperCase(Locale.ROOT), Map.copyOf(argumentSchema));
       return (this);
+   }
+
+   /*******************************************************************************
+    ** Sorted snapshot for mapper clients and static validation.
+    *******************************************************************************/
+   public Map<String, Map<String, Object>> argumentSchemas()
+   {
+      return (java.util.Collections.unmodifiableMap(new java.util.TreeMap<>(argumentSchemas)));
+   }
+
+   /*******************************************************************************
+    ** Built-ins accept strings, matching the persisted transformArgs representation.
+    *******************************************************************************/
+   private static Map<String, Object> schema(String name)
+   {
+      List<String> keys = switch(name.toUpperCase(Locale.ROOT))
+      {
+         case "CONSTANT" -> List.of("value");
+         case "LOOKUP" -> List.of("table", "key", "result");
+         case "DATETIME" -> List.of("time", "timezone");
+         case "DATEPART", "TIMEPART" -> List.of("timezone");
+         case "DECIMAL" -> List.of("scale");
+         case "CONCAT" -> List.of("separator");
+         case "SPLIT" -> List.of("separator", "index");
+         case "SUBSTRING" -> List.of("start", "end");
+         case "UNIT" -> List.of("factor", "divisor", "scale");
+         case "SEQUENCE" -> List.of("start");
+         case "HL" -> List.of("code");
+         default -> List.of();
+      };
+      Map<String, Object> properties = new java.util.TreeMap<>();
+      keys.forEach(key -> properties.put(key, Map.of("type", "string")));
+      List<String> required = switch(name.toUpperCase(Locale.ROOT))
+      {
+         case "CONSTANT" -> List.of("value");
+         case "LOOKUP" -> List.of("table", "key");
+         default -> List.of();
+      };
+      return (Map.of("type", "object", "properties", properties, "required", required, "additionalProperties", Map.of("type", "string")));
    }
 
    /*******************************************************************************

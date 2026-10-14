@@ -61,6 +61,17 @@ public final class EdiRecords
    }
 
    /*******************************************************************************
+    ** UI-facing reads enforce permissions even when the host disables default enforcement.
+    *******************************************************************************/
+   public static List<QRecord> queryEnforced(String table, QQueryFilter filter) throws QException
+   {
+      QueryInput input = new QueryInput(table).withFilter(filter).withShouldFetchHeavyFields(true)
+         .withTransaction(com.kingsrook.qqq.backend.core.context.QContext.getQBackendTransaction());
+      input.setPermissionEnforcement(com.kingsrook.qqq.backend.core.actions.permissions.PermissionEnforcement.ENFORCE);
+      return (new QueryAction().execute(input).getRecords());
+   }
+
+   /*******************************************************************************
     ** Match one field by exact value.
     *******************************************************************************/
    public static QQueryFilter equal(String field, Serializable value)
