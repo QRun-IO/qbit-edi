@@ -220,7 +220,8 @@ public class InboundProcessor
       {
          QRecord sender = row("edi_identity", agreement.getValueInteger("partnerIdentityId"));
          QRecord receiver = row("edi_identity", agreement.getValueInteger("localIdentityId"));
-         if(sender != null && receiver != null && Objects.equals(sender.getValueInteger("partnerId"), agreement.getValueInteger("partnerId"))
+         if(sender != null && receiver != null && !Boolean.FALSE.equals(sender.getValueBoolean("isActive")) && !Boolean.FALSE.equals(receiver.getValueBoolean("isActive"))
+            && Objects.equals(sender.getValueInteger("partnerId"), agreement.getValueInteger("partnerId"))
             && receiver.getValue("partnerId") == null && x12.isa().value(5).equals(sender.getValueString("interchangeQualifier"))
             && x12.isa().value(6).trim().equals(sender.getValueString("interchangeId")) && x12.isa().value(7).equals(receiver.getValueString("interchangeQualifier"))
             && x12.isa().value(8).trim().equals(receiver.getValueString("interchangeId")))
