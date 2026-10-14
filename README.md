@@ -1,16 +1,36 @@
 # QBit EDI
 
-EDI for QQQ: trading partners, agreements, X12 validation, encrypted payloads, inbound mapping
-and application, and TA1/997/999 acknowledgements. See [the design](docs/DESIGN.md).
+EDI for QQQ: trading partners, agreements, X12 and EDIFACT validation, encrypted payloads, inbound mapping
+and application, and TA1/997/999/CONTRL acknowledgements. See [the design](docs/DESIGN.md).
 
 ## Status
 
-Phases a1, a2, b and c implement inbound/outbound retail EDI over gateway, SFTP, HTTPS and AS2. Original baseline guides cover
+Phases a1 to e and g implement inbound/outbound retail, logistics and healthcare EDI (X12 and EDIFACT) over gateway, SFTP, HTTPS and AS2. Original baseline guides cover
 850, 855, 856, 810, 846 and 860 in 004010/005010, plus 997/999. Source records and associations
 produce validated, encrypted outbound interchanges, with control-number tracking, retries,
 acknowledgement monitoring and operator resend/cancel actions. AS2 (signed, encrypted, compressed, synchronous and
 asynchronous MDN, certificate rollover) is built in; email sending remains disabled until the qbit-email API ships.
 A runnable synthetic [demo](docs/DEMO.md) includes Next UI and needs no external services.
+
+EDIFACT syntax versions 3 and 4 support UNA/UNB, optional UNG groups, UNH messages and their
+trailers, release-character escaping, mixed-standard payloads, and CONTRL syntax responses.
+Original D96A/D01B baselines cover ORDERS, ORDRSP, DESADV, INVOIC and CONTRL. ORDERS maps to
+sample orders and lines; the other three retail documents map outbound. APERAK remains future work.
+
+Configure `standard=EDIFACT` on identities and agreements. `interchangeId` and
+`interchangeQualifier` carry the UNB party identifiers and qualifiers. Set `interchangeVersion`
+to `3` or `4`, `syntaxIdentifier` to `UNOC`, and outbound separators explicitly: element `+`,
+component `:`, segment `'`, release `?`, decimal `.` (or `,`); syntax 4 also uses the configured
+repetition separator. Document versions are `D96A` or `D01B`, with `ackExpectation=CONTRL`.
+UNB11=`1` uses a test agreement and respects `applyTestDocuments`.
+
+Existing schemas need these additional nullable agreement columns before using this version:
+
+```sql
+ALTER TABLE edi_agreement ADD COLUMN release_character VARCHAR(255);
+ALTER TABLE edi_agreement ADD COLUMN decimal_mark VARCHAR(255);
+ALTER TABLE edi_agreement ADD COLUMN syntax_identifier VARCHAR(255);
+```
 
 ## Requirements and installation
 
@@ -66,10 +86,10 @@ Storage failure requests retry in one minute.
 
 `InboxWorker.runOnce()` processes up to 20 messages with compare-and-set claims, fenced database
 checkpoints and five-minute stale-claim recovery. Retry delays are 1m, 5m, 15m, 1h and 6h; the next
-failure becomes DEAD_LETTER. Each mapped accepted ST applies in its own transaction through QQQ
-actions with explicit permission enforcement. ISA15=T applies only with `applyTestDocuments`.
+failure becomes DEAD_LETTER. Each mapped accepted ST or UNH applies in its own transaction through QQQ
+actions with explicit permission enforcement. ISA15=T or UNB11=1 applies only with `applyTestDocuments`.
 
-Routing checks ISA identities, qualifiers, standard and usage. Linked gateway usernames must match
+Routing checks ISA or UNB identities, qualifiers, standard and usage. Linked gateway usernames must match
 the routed partner. Findings and failures become exceptions with occurrence counts and value-free
 timeline events. Replies allocate controls and remain QUEUED, recording `ACK_QUEUED`. Incoming
 acknowledgements reconcile outbound groups and resolve overdue alerts.

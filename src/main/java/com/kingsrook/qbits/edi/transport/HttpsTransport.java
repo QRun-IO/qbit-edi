@@ -105,7 +105,7 @@ public class HttpsTransport implements EdiTransportPlugin
          bytes = stream.readAllBytes();
       }
       HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(transport.getHttpsUrl())).timeout(Duration.ofSeconds(60))
-         .header("Content-Type", "application/edi-x12").POST(HttpRequest.BodyPublishers.ofByteArray(bytes));
+         .header("Content-Type", new String(bytes, java.nio.charset.StandardCharsets.US_ASCII).stripLeading().startsWith("UN") ? "application/EDIFACT" : "application/edi-x12").POST(HttpRequest.BodyPublishers.ofByteArray(bytes));
       if(transport.getHttpsHeadersJson() != null)
       {
          Map<String, String> headers = new ObjectMapper().readValue(transport.getHttpsHeadersJson(), new TypeReference<Map<String, String>>() {});

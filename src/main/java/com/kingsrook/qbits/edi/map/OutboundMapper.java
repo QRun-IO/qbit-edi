@@ -75,7 +75,7 @@ public class OutboundMapper
    /*******************************************************************************
     ** Walk each loop once per associated record, retaining the nearest HL parent.
     *******************************************************************************/
-   private void emit(QRecord source, List<QRecord> rules, String prefix, String qPrefix, int sequence, String parent,
+   protected void emit(QRecord source, List<QRecord> rules, String prefix, String qPrefix, int sequence, String parent,
       int[] hierarchy, List<X12Segment> output) throws Exception
    {
       Map<String, List<QRecord>> nodes = new LinkedHashMap<>();
@@ -112,13 +112,13 @@ public class OutboundMapper
             }
             continue;
          }
-         List<String> elements = new ArrayList<>();
+         List<List<String>> elements = new ArrayList<>();
          String segmentId = null;
          for(QRecord rule : node.getValue())
          {
             String path = rule.getValueString("ediPath");
             var match = ELEMENT.matcher(path.substring(path.lastIndexOf('/') + 1));
-            if(!match.matches() || match.group(3) != null)
+            if(!match.matches())
             {
                throw new IllegalArgumentException("Unsupported outbound element path");
             }
@@ -130,7 +130,7 @@ public class OutboundMapper
             }
             while(elements.size() < position)
             {
-               elements.add("");
+               elements.add(new ArrayList<>());
             }
             String condition = rule.getValueString("condition");
             if(condition != null && !condition.isBlank() && !new RuleEvaluator(output, Map.of()).test(condition))
@@ -172,7 +172,7 @@ public class OutboundMapper
             }
             else if(transform.equals("DECIMAL"))
             {
-               value = new java.math.BigDecimal(raw.toString()).movePointRight(Integer.parseInt(args.getOrDefault("scale", "0"))).stripTrailingZeros().toPlainString();
+               value = decimal(new java.math.BigDecimal(raw.toString()).movePointRight(Integer.parseInt(args.getOrDefault("scale", "0"))).stripTrailingZeros().toPlainString());
             }
             else
             {
@@ -183,16 +183,35 @@ public class OutboundMapper
             {
                throw new IllegalArgumentException("Required outbound field is missing");
             }
-            elements.set(position - 1, Objects.requireNonNullElse(value, ""));
+            int component = match.group(3) == null ? 1 : Integer.parseInt(match.group(3));
+            if(component < 1 || component > 99)
+            {
+               throw new IllegalArgumentException("Invalid outbound component position");
+            }
+            var components = elements.get(position - 1);
+            while(components.size() < component)
+            {
+               components.add("");
+            }
+            components.set(component - 1, Objects.requireNonNullElse(value, ""));
          }
-         if(elements.stream().anyMatch(v -> !v.isEmpty()))
+         if(elements.stream().flatMap(List::stream).anyMatch(v -> !v.isEmpty()))
          {
-            output.add(X12Segment.of(segmentId, output.size() + 1, elements.toArray(String[]::new)));
+            output.add(new X12Segment(segmentId, output.size() + 1, elements.stream().map(e -> List.of(e.isEmpty() ? List.of("") : e)).toList()));
             if("HL".equals(segmentId))
             {
-               currentParent = elements.getFirst();
+               currentParent = elements.getFirst().getFirst();
             }
          }
       }
    }
+
+   /*******************************************************************************
+    ** X12 uses a period; EDIFACT can override the numeric service character.
+    *******************************************************************************/
+   protected String decimal(String value)
+   {
+      return (value);
+   }
+
 }

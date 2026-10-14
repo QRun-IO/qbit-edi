@@ -42,10 +42,17 @@ and sends three valid 940 shipping orders and one with a bad unit; the orders an
 four 214 status events (one rejected with a bad status code) that build `sample_shipment_status`.
 The in-memory gateway accepts every send, and the rejected documents produce rejecting 997s.
 
+Phase g adds a fifth partner, **Lindqvist Retail AB** (LINDQVIST), after the existing scenarios.
+Its D96A test agreement receives three synthetic ORDERS documents through the durable inbox;
+orders and lines appear in `sample_order`, and CONTRLs enter the gateway queue. ORDRSP, DESADV
+and INVOIC are mapped from the retail sample records, delivered through the in-memory gateway,
+and reconciled by incoming accepted CONTRLs. Look for ORDERS with status APPLIED and the three
+outbound message types with status ACKNOWLEDGED. Released delimiters in buyer/item identifiers
+exercise the same parser used for partner input. All contacts remain synthetic `example.invalid`.
+
 The SFTP/HTTPS partner settings are illustrative `.invalid` destinations. Their agreements have
 no outbound transport, so they cannot contact a real partner; resulting acknowledgement send
-retries are visible. Northwind has the retail outbound documents; the logistics and healthcare
-scenarios add their own outbound configurations. The in-memory gateway
+retries are visible. Northwind, Harbor, Ridgeline and Lindqvist have configured outbound documents; the healthcare scenario adds its own. The in-memory gateway
 is restored after the intentional dead-letter scenario. Standard Send As EDI, Test Connection,
 Resend, Resend As New and Cancel actions are available. The gateway stores bytes in memory;
 it does not expose a separate partner download UI.

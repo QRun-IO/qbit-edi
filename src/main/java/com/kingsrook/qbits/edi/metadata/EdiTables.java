@@ -281,11 +281,11 @@ public final class EdiTables
       sources.add(enumSource("edi_on_duplicate", "REJECT_TA1", "IGNORE", "PROCESS"));
       sources.add(enumSource("edi_direction", "INBOUND", "OUTBOUND"));
       sources.add(enumSource("edi_transport_direction", "INBOUND", "OUTBOUND", "BOTH"));
-      sources.add(enumSource("edi_ack_expectation", "NONE", "997", "999"));
+      sources.add(enumSource("edi_ack_expectation", "NONE", "997", "999", "CONTRL"));
       sources.add(enumSource("edi_ack_level", "GROUP_ONLY", "ALL_TRANSACTIONS", "ERRORS_ONLY"));
       sources.add(enumSource("edi_batch_mode", "IMMEDIATE", "BATCH"));
       sources.add(enumSource("edi_outbound_trigger", "ESB_EVENT", "RECORD_CHANGE", "MANUAL"));
-      sources.add(enumSource("edi_level", "ISA", "GS"));
+      sources.add(enumSource("edi_level", "ISA", "GS", "UNB", "UNG", "UNH"));
       sources.add(enumSource("edi_transport_type", "AS2", "SFTP", "GATEWAY", "HTTPS", "EMAIL"));
       sources.add(enumSource("edi_sign_algorithm", "SHA256", "SHA384", "SHA512", "SHA1"));
       sources.add(enumSource("edi_encrypt_algorithm", "AES128_CBC", "AES256_CBC", "AES128_GCM", "AES256_GCM", "3DES"));

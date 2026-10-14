@@ -25,8 +25,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import com.kingsrook.qbits.edi.document.EdiDocument;
 import com.kingsrook.qbits.edi.x12.X12Segment;
-import com.kingsrook.qbits.edi.x12.X12TransactionSet;
 
 
 /*******************************************************************************
@@ -55,9 +55,9 @@ public class GuideValidator
    /*******************************************************************************
     ** Validate one transaction; diagnostic text never contains submitted values.
     *******************************************************************************/
-   public List<ValidationFinding> validate(X12TransactionSet transaction, Guide guide, boolean containsPhi)
+   public List<ValidationFinding> validate(EdiDocument transaction, Guide guide, boolean containsPhi)
    {
-      State state = new State(transaction.segments(), containsPhi);
+      State state = new State(transaction.segments(), containsPhi, "EDIFACT".equals(guide.standard()));
       List<Node> roots = tree(guide);
       consume(roots, state, false);
       while(state.index < state.segments.size())
@@ -86,7 +86,7 @@ public class GuideValidator
       }
       for(GuideRule rule : list(guide.rules()))
       {
-         rule(rule, transaction.st(), null, evaluator, state);
+         rule(rule, transaction.header(), null, evaluator, state);
       }
       for(Binding binding : state.bindings)
       {
@@ -109,9 +109,9 @@ public class GuideValidator
    /*******************************************************************************
     ** Resolve guide-defined loop occurrences for the mapper using the validator grammar.
     *******************************************************************************/
-   public Map<String, List<List<X12Segment>>> loops(X12TransactionSet transaction, Guide guide)
+   public Map<String, List<List<X12Segment>>> loops(EdiDocument transaction, Guide guide)
    {
-      State state = new State(transaction.segments(), true);
+      State state = new State(transaction.segments(), true, "EDIFACT".equals(guide.standard()));
       List<Node> roots = tree(guide);
       consume(roots, state, false);
       return (state.loops);
@@ -271,7 +271,7 @@ public class GuideValidator
             {
                state.add(segment, definition.loopId(), element, "8", "5", "Element too long", value);
             }
-            if(!validType(element.dataType(), value))
+            if(!validType(element.dataType(), state.edifact && "R".equals(element.dataType()) ? value.replace(',', '.') : value))
             {
                String code = "DT".equals(element.dataType()) ? "8" : "TM".equals(element.dataType()) ? "9" : "6";
                state.add(segment, definition.loopId(), element, "8", code, "Invalid element data type", value);
@@ -453,6 +453,7 @@ public class GuideValidator
    {
       private final List<X12Segment> segments;
       private final boolean phi;
+      private final boolean edifact;
       private final List<ValidationFinding> findings = new ArrayList<>();
       private final List<Binding> bindings = new ArrayList<>();
       private final Map<String, List<List<X12Segment>>> loops = new LinkedHashMap<>();
@@ -461,10 +462,11 @@ public class GuideValidator
       /*******************************************************************************
        ** Initialize a transaction validation.
        *******************************************************************************/
-      private State(List<X12Segment> segments, boolean phi)
+      private State(List<X12Segment> segments, boolean phi, boolean edifact)
       {
          this.segments = segments;
          this.phi = phi;
+         this.edifact = edifact;
       }
 
       /*******************************************************************************

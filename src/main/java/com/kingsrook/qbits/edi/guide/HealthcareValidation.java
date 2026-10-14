@@ -28,8 +28,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import com.kingsrook.qbits.edi.document.EdiDocument;
 import com.kingsrook.qbits.edi.x12.X12Segment;
-import com.kingsrook.qbits.edi.x12.X12TransactionSet;
 
 
 /*******************************************************************************
@@ -40,7 +40,7 @@ public class HealthcareValidation
    /*******************************************************************************
     ** Exact decimal arithmetic; every diagnostic contains only positions and codes.
     *******************************************************************************/
-   public List<ValidationFinding> validate(X12TransactionSet transaction, Guide guide, Map<String, List<List<X12Segment>>> loops)
+   public List<ValidationFinding> validate(EdiDocument transaction, Guide guide, Map<String, List<List<X12Segment>>> loops)
    {
       List<ValidationFinding> findings = new ArrayList<>();
       List<X12Segment> segments = transaction.segments();

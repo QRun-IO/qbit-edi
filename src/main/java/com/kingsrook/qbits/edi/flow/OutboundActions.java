@@ -73,6 +73,11 @@ public final class OutboundActions
     *******************************************************************************/
    private static void reEnvelope(QRecord message) throws Exception
    {
+      if("EDIFACT".equals(OutboundWorker.row("edi_agreement", message.getValue("agreementId")).getValueString("standard")))
+      {
+         com.kingsrook.qbits.edi.edifact.EdifactOutbound.resendAsNew(message);
+         return;
+      }
       var runtime = EdiRuntime.current();
       QRecord originalRow = OutboundWorker.row("edi_interchange", message.getValue("interchangeId"));
       QRecord agreement = OutboundWorker.row("edi_agreement", message.getValue("agreementId"));

@@ -420,10 +420,10 @@ in memory; no keystore, key or temporary file is written, and as2-lib's file-bac
 - **Email in:** through qbit-email's phase 2 inbound (an `InboundEmailHandler` registered by EDI).
   Designed here, built when qbit-email inbound ships.
 
-## 6. Parsing (X12 now, EDIFACT later)
+## 6. Parsing (X12 and EDIFACT)
 
-- StAEDI (`EDIInputFactory`, `EDIStreamReader`) reads X12 as a stream, with no whole-document tree,
-  so a 50 MB 837 batch is processed in bounded memory per transaction set.
+- StAEDI (`EDIInputFactory`, `EDIStreamReader`) tokenizes X12 and EDIFACT. Inbox framing buffers
+  one interchange at a time, capped at 50 MiB, and each transaction retains a bounded segment list.
 - One payload may hold several interchanges; each ISA/IEA becomes an `edi_interchange` row. Each
   ST/SE is buffered as its own segment list (bounded by the guide's maximum segment count, default
   100,000) for validation, ack building and mapping.
@@ -433,9 +433,15 @@ in memory; no keystore, key or temporary file is written, and as2-lib's file-bac
   (005010 extended). Unrecognised bytes are an envelope error, never silently replaced.
 - Writing uses an in-memory serializer with the agreement's separators, fixed-width ISA
   padding, component/repetition handling, and optional line endings.
-- EDIFACT: StAEDI reads UNA/UNB/UNG/UNH and validates against EDIFACT schemas. It is designed into
-  the model now (`standard` columns, UNB fields on `edi_identity`, CONTRL as an ack type) and built
-  in phase g.
+- EDIFACT is built: StAEDI reads syntax 3/4 UNA/UNB/UNG/UNH envelopes. UNA advice and release
+  characters survive round trips; UNT/UNE/UNZ counts and references produce findings. A payload
+  may contain both X12 and EDIFACT interchanges. In-house D96A/D01B ORDERS/ORDRSP/DESADV/INVOIC
+  and CONTRL guides use the shared composite and loop grammar.
+- EDIFACT routing uses the identity's `interchangeId`/`interchangeQualifier` as UNB identifiers;
+  UNB11=1 selects test usage. The agreement's syntax identifier, version and service characters
+  control output. UNB/UNH control references use the allocator's EDIFACT levels (up to 14 digits).
+  CONTRL reconciles outbound status and resolves overdue alerts; rejected responses open
+  REJECTED_ACK and raise `edi.ack.rejected`. APERAK remains a later document type.
 
 ## 7. Implementation guides as data
 
@@ -1014,3 +1020,18 @@ RC.5 adaptations implemented in this worktree:
   otherwise bypasses field locks inside the already-authorized widget action scope.
 - MASKED-user response scanning and Quick Search indexing are not available on the pinned RC.5
   test classpath. FULL and actual HIDDEN-field-lock scans run now; no simulated masking is used.
+
+## Phase g implementation notes (2026-10-14)
+
+- Outbound EDIFACT is ungrouped. Readers/writers preserve optional UNG/UNE groups. Ungrouped
+  interchanges have a logical `edi_functional_group` tracking row, keyed by UNB reference, so
+  the existing send-time deadline/overdue monitor also covers CONTRL. `groupCount` remains zero
+  for those wire envelopes. GROUP_ONLY means an interchange-level CONTRL in this case.
+- Payload framing buffers one interchange (hard cap 50 MiB) before StAEDI; retained message
+  segments respect `maxSegmentsPerTransaction`. It uses no filesystem. This follows the existing
+  buffered storage adapters rather than the original bounded-memory streaming aspiration.
+- Retail SG labels are local guide identifiers shared by the two baseline versions, as documented
+  in GUIDE-FORMAT.md; the baselines are deliberately small, not complete directory content.
+- Existing databases require the three agreement columns listed in README.md. Existing X12
+  separator defaults remain unchanged; EDIFACT agreements explicitly select their outbound UNA
+  characters. CONTRL action 8 is receipt-only and does not clear a functional acknowledgement deadline.

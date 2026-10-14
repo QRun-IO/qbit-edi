@@ -56,6 +56,18 @@ public class DuplicateDetector
    }
 
    /*******************************************************************************
+    ** EDIFACT duplicates use complete UNB identities, reference and test indicator.
+    *******************************************************************************/
+   public boolean edifact(Integer agreementId, com.kingsrook.qbits.edi.edifact.EdifactInterchange input, int days, Instant now) throws QException
+   {
+      return (!EdiRecords.query("edi_interchange", EdiRecords.equal("agreementId", agreementId).withCriteria("direction", QCriteriaOperator.EQUALS, "INBOUND")
+         .withCriteria("standard", QCriteriaOperator.EQUALS, "EDIFACT").withCriteria("senderId", QCriteriaOperator.EQUALS, input.unb().value(2))
+         .withCriteria("senderQualifier", QCriteriaOperator.EQUALS, input.unb().value(2, 1, 2)).withCriteria("receiverId", QCriteriaOperator.EQUALS, input.unb().value(3))
+         .withCriteria("receiverQualifier", QCriteriaOperator.EQUALS, input.unb().value(3, 1, 2)).withCriteria("controlNumber", QCriteriaOperator.EQUALS, input.unb().value(5))
+         .withCriteria("usageIndicator", QCriteriaOperator.EQUALS, input.usage()).withCriteria("createDate", QCriteriaOperator.GREATER_THAN_OR_EQUALS, now.minus(days, ChronoUnit.DAYS))).isEmpty());
+   }
+
+   /*******************************************************************************
     ** Check GS06 for a sender in the duplicate window.
     *******************************************************************************/
    public boolean group(String senderId, String controlNumber, int days, Instant now) throws QException

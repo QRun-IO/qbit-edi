@@ -6,6 +6,10 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic
 
 ### Added
 
+- Phase g EDIFACT syntax 3/4 envelopes (UNA/UNB, optional UNG/UNE, UNH/UNT, UNZ), release escaping, native envelope findings, UNB identity routing, 14-digit UN control allocation and duplicate detection.
+- Original D96A/D01B ORDERS, ORDRSP, DESADV, INVOIC and CONTRL guides; ORDERS inbound and retail response outbound sample maps with composite fields and segment groups.
+- Standard-neutral document validation/mapping, mixed X12/EDIFACT inbox framing, CONTRL generation and reconciliation with overdue resolution and rejection alerts, native outbound envelopes and archived resend-as-new.
+- Lindqvist Retail AB demo partner with ORDERS application, ORDRSP/DESADV/INVOIC delivery and CONTRL in both directions; EDIFACT map preview and HTTPS media type.
 - Phase e original HIPAA baselines for 837P/I, 835, 270/271, 276/277 and 834; exact SNIP 3 balancing, occurrence-scoped SNIP 4 rules, SNIP 5 formats and a host `ExternalCodeSetProvider` SPI.
 - Test-only healthcare maps, classified sample tables, seeded synthetic fixtures, Cedar Health Clearinghouse demo traffic and a PHI canary scanner covering both ingress paths, 999s, apply/replay/resend, widgets, query exports, alerts and logs.
 - Permission-checked, session-bound Download Raw Document actions for inbox/interchange rows, with a value-free user audit event.

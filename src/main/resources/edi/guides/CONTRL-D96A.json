@@ -1,0 +1,474 @@
+{
+  "name": "QQQ baseline CONTRL D96A",
+  "standard": "EDIFACT",
+  "version": "D96A",
+  "transactionSet": "CONTRL",
+  "functionalIdCode": "CONTRL",
+  "segments": [
+    {
+      "segmentId": "UNH",
+      "usage": "REQUIRED",
+      "minUse": 1,
+      "maxUse": 1,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 14,
+          "usage": "REQUIRED"
+        },
+        {
+          "position": 2,
+          "dataType": "ID",
+          "minLength": 1,
+          "maxLength": 6,
+          "usage": "REQUIRED",
+          "componentPosition": 1,
+          "codes": [
+            "CONTRL"
+          ]
+        },
+        {
+          "position": 2,
+          "dataType": "ID",
+          "minLength": 1,
+          "maxLength": 1,
+          "usage": "REQUIRED",
+          "componentPosition": 2,
+          "codes": [
+            "D"
+          ]
+        },
+        {
+          "position": 2,
+          "dataType": "ID",
+          "minLength": 1,
+          "maxLength": 3,
+          "usage": "REQUIRED",
+          "componentPosition": 3,
+          "codes": [
+            "96A"
+          ]
+        },
+        {
+          "position": 2,
+          "dataType": "ID",
+          "minLength": 1,
+          "maxLength": 2,
+          "usage": "REQUIRED",
+          "componentPosition": 4,
+          "codes": [
+            "UN"
+          ]
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 6,
+          "usage": "SITUATIONAL",
+          "componentPosition": 5
+        }
+      ]
+    },
+    {
+      "segmentId": "UCI",
+      "usage": "REQUIRED",
+      "minUse": 1,
+      "maxUse": 1,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 14,
+          "usage": "REQUIRED"
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 35,
+          "usage": "REQUIRED",
+          "componentPosition": 1
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 4,
+          "usage": "SITUATIONAL",
+          "componentPosition": 2
+        },
+        {
+          "position": 3,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 35,
+          "usage": "REQUIRED",
+          "componentPosition": 1
+        },
+        {
+          "position": 3,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 4,
+          "usage": "SITUATIONAL",
+          "componentPosition": 2
+        },
+        {
+          "position": 4,
+          "dataType": "ID",
+          "minLength": 1,
+          "maxLength": 1,
+          "usage": "REQUIRED",
+          "codes": [
+            "4",
+            "7",
+            "8"
+          ]
+        },
+        {
+          "position": 5,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 3,
+          "usage": "SITUATIONAL"
+        }
+      ]
+    },
+    {
+      "segmentId": "UCM",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 1,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 14,
+          "usage": "REQUIRED"
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 35,
+          "usage": "REQUIRED",
+          "componentPosition": 1
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 35,
+          "usage": "REQUIRED",
+          "componentPosition": 2
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 35,
+          "usage": "REQUIRED",
+          "componentPosition": 3
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 35,
+          "usage": "REQUIRED",
+          "componentPosition": 4
+        },
+        {
+          "position": 3,
+          "dataType": "ID",
+          "minLength": 1,
+          "maxLength": 1,
+          "usage": "REQUIRED",
+          "codes": [
+            "4",
+            "7",
+            "8"
+          ]
+        },
+        {
+          "position": 4,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 3,
+          "usage": "SITUATIONAL"
+        }
+      ],
+      "loopId": "SG1",
+      "loopMaxRepeat": 999
+    },
+    {
+      "segmentId": "UCS",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 1,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "N0",
+          "minLength": 1,
+          "maxLength": 6,
+          "usage": "REQUIRED"
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 3,
+          "usage": "SITUATIONAL"
+        }
+      ],
+      "loopId": "SG2",
+      "loopMaxRepeat": 999,
+      "parentLoopId": "SG1"
+    },
+    {
+      "segmentId": "UCD",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 99,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "ID",
+          "minLength": 1,
+          "maxLength": 3,
+          "usage": "REQUIRED",
+          "codes": [
+            "12",
+            "13",
+            "14",
+            "15"
+          ]
+        },
+        {
+          "position": 2,
+          "dataType": "N0",
+          "minLength": 1,
+          "maxLength": 3,
+          "usage": "REQUIRED",
+          "componentPosition": 1
+        },
+        {
+          "position": 2,
+          "dataType": "N0",
+          "minLength": 1,
+          "maxLength": 3,
+          "usage": "SITUATIONAL",
+          "componentPosition": 2
+        }
+      ],
+      "loopId": "SG2",
+      "loopMaxRepeat": 999,
+      "parentLoopId": "SG1"
+    },
+    {
+      "segmentId": "UCF",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 1,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 14,
+          "usage": "REQUIRED"
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 35,
+          "usage": "REQUIRED"
+        },
+        {
+          "position": 3,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 35,
+          "usage": "REQUIRED"
+        },
+        {
+          "position": 4,
+          "dataType": "ID",
+          "minLength": 1,
+          "maxLength": 1,
+          "usage": "REQUIRED",
+          "codes": [
+            "4",
+            "7",
+            "8"
+          ]
+        }
+      ],
+      "loopId": "SG3",
+      "loopMaxRepeat": 999
+    },
+    {
+      "segmentId": "UCM",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 1,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 14,
+          "usage": "REQUIRED"
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 35,
+          "usage": "REQUIRED",
+          "componentPosition": 1
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 35,
+          "usage": "REQUIRED",
+          "componentPosition": 2
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 35,
+          "usage": "REQUIRED",
+          "componentPosition": 3
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 35,
+          "usage": "REQUIRED",
+          "componentPosition": 4
+        },
+        {
+          "position": 3,
+          "dataType": "ID",
+          "minLength": 1,
+          "maxLength": 1,
+          "usage": "REQUIRED",
+          "codes": [
+            "4",
+            "7",
+            "8"
+          ]
+        },
+        {
+          "position": 4,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 3,
+          "usage": "SITUATIONAL"
+        }
+      ],
+      "loopId": "SG4",
+      "loopMaxRepeat": 999,
+      "parentLoopId": "SG3"
+    },
+    {
+      "segmentId": "UCS",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 1,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "N0",
+          "minLength": 1,
+          "maxLength": 6,
+          "usage": "REQUIRED"
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 3,
+          "usage": "SITUATIONAL"
+        }
+      ],
+      "loopId": "SG5",
+      "loopMaxRepeat": 999,
+      "parentLoopId": "SG4"
+    },
+    {
+      "segmentId": "UCD",
+      "usage": "SITUATIONAL",
+      "minUse": 0,
+      "maxUse": 99,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "ID",
+          "minLength": 1,
+          "maxLength": 3,
+          "usage": "REQUIRED",
+          "codes": [
+            "12",
+            "13",
+            "14",
+            "15"
+          ]
+        },
+        {
+          "position": 2,
+          "dataType": "N0",
+          "minLength": 1,
+          "maxLength": 3,
+          "usage": "REQUIRED",
+          "componentPosition": 1
+        },
+        {
+          "position": 2,
+          "dataType": "N0",
+          "minLength": 1,
+          "maxLength": 3,
+          "usage": "SITUATIONAL",
+          "componentPosition": 2
+        }
+      ],
+      "loopId": "SG5",
+      "loopMaxRepeat": 999,
+      "parentLoopId": "SG4"
+    },
+    {
+      "segmentId": "UNT",
+      "usage": "REQUIRED",
+      "minUse": 1,
+      "maxUse": 1,
+      "elements": [
+        {
+          "position": 1,
+          "dataType": "N0",
+          "minLength": 1,
+          "maxLength": 10,
+          "usage": "REQUIRED"
+        },
+        {
+          "position": 2,
+          "dataType": "AN",
+          "minLength": 1,
+          "maxLength": 14,
+          "usage": "REQUIRED"
+        }
+      ]
+    }
+  ]
+}

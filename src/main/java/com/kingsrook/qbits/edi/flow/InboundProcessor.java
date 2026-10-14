@@ -315,7 +315,7 @@ public class InboundProcessor
    /*******************************************************************************
     ** Replays select original persisted definitions or the currently active revision.
     *******************************************************************************/
-   private QRecord revisions(QRecord document, QRecord transaction) throws Exception
+   protected QRecord revisions(QRecord document, QRecord transaction) throws Exception
    {
       if(document == null)
       {
@@ -383,7 +383,7 @@ public class InboundProcessor
    /*******************************************************************************
     ** Persist findings without repeatedly adding error rows on storage retries.
     *******************************************************************************/
-   private void validation(QRecord tx, List<ValidationFinding> findings, QRecord document) throws Exception
+   protected void validation(QRecord tx, List<ValidationFinding> findings, QRecord document) throws Exception
    {
       boolean rejected = findings.stream().anyMatch(f -> "ERROR".equals(f.severity()) && f.snipLevel() <= 2);
       if(!"APPLIED".equals(tx.getValueString("status")) || Boolean.TRUE.equals(inbox.getValueBoolean("reprocess")))
@@ -421,7 +421,7 @@ public class InboundProcessor
    /*******************************************************************************
     ** A failed target write rolls back only this set, then records an APPLY exception.
     *******************************************************************************/
-   private void apply(X12TransactionSet x12, QRecord tx, QRecord document, QRecord agreement) throws Exception
+   protected void apply(com.kingsrook.qbits.edi.document.EdiDocument x12, QRecord tx, QRecord document, QRecord agreement) throws Exception
    {
       if("APPLIED".equals(tx.getValueString("status")) && !Boolean.TRUE.equals(inbox.getValueBoolean("reprocess")))
       {

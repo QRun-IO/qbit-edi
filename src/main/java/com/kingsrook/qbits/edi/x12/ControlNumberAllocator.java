@@ -50,7 +50,8 @@ public class ControlNumberAllocator
     *******************************************************************************/
    public long allocate(Integer agreementId, Integer localIdentityId, String level, long min, long max, boolean wrap) throws SQLException
    {
-      if((agreementId == null) == (localIdentityId == null) || !List.of("ISA", "GS").contains(level) || min < 1 || max < min || max > 999999999)
+      long ceiling = List.of("UNB", "UNG", "UNH").contains(level) ? 99999999999999L : 999999999;
+      if((agreementId == null) == (localIdentityId == null) || !List.of("ISA", "GS", "UNB", "UNG", "UNH").contains(level) || min < 1 || max < min || max > ceiling)
       {
          throw new IllegalArgumentException("Invalid control number scope or bounds");
       }
@@ -100,7 +101,7 @@ public class ControlNumberAllocator
                      return (min);
                   }
                }
-               if(minimum < 1 || maximum < minimum || maximum > 999999999 || previous < minimum - 1 || previous > maximum)
+               if(minimum < 1 || maximum < minimum || maximum > ceiling || previous < minimum - 1 || previous > maximum)
                {
                   throw new IllegalStateException("Stored control number range is invalid");
                }
