@@ -256,6 +256,52 @@ the agreement document `ackDueMinutes` (60 when unset).
 Existing databases need the new `edi_as2_mdn` table, `edi_outbound_message.transport_mic` and
 `edi_transport.weak_crypto` (see `docs/ddl/edi-postgres.sql`).
 
+## HIPAA and PHI
+
+Original **QQQ baseline guides** cover 837P (005010X222A1), 837I (005010X223A2),
+835 (005010X221A1), 270/271 (005010X279A1), 276/277 (005010X212), 834 (005010X220A1)
+and 999 (005010X231A1). These are in-house structure and usage baselines, not licensed TR3s.
+No TR3 text or full licensed code lists ship. Hosts may import their licensed guides.
+
+SNIP 1–2 covers envelopes and the active guide. SNIP 3 uses exact decimals for claim charges,
+claim/line CAS adjustments and payments less signed PLB adjustments (zero tolerance). SNIP 4
+rules run per loop occurrence, including dependent patients, claim/line dates, diagnoses,
+subscriber demographics and benefits-or-rejection responses. SNIP 3+ findings produce `E` and
+an exception; SNIP 1–2 errors produce `R`. HIPAA replies use 999 when acknowledgement is enabled.
+SNIP 5 includes ICD-10 diagnosis shape, NPI Luhn with the 80840 prefix, and US ZIP shape.
+`ExternalCodeSetProvider.isValid(codeSet, code, asOf)` supplies licensed membership checks for
+EXTERNAL code lists; without it, only formats are checked. The System widget reports that state.
+
+Healthcare agreement documents default to PHI and SNIP 4. Clinical keys go only to
+`edi_transaction.phiBusinessKey`; validation excerpts, acknowledgements, events, exceptions,
+alerts and process summaries contain no submitted clinical values. Healthcare sample maps and
+host tables live **only in test sources/resources** and use seeded synthetic patients and claims.
+Their NPI `1234567893` is a checksum test fixture, not an asserted provider identity.
+
+**The host must encrypt the database at rest and should install qbit-secured-data.** Payloads
+are always AES-GCM encrypted; PHI columns rely on host database encryption. RC.5's
+`EdiClassifications` stand-in marks PHI/PII/CONFIDENTIAL and denies PHI AI exposure, but does not
+mask values. Without secured-data policies, a user with table access can read PHI columns.
+The home explicitly reports this limitation. Use record-level audits on host PHI target tables
+until core classified-value audit protection is available.
+
+RC.5 also logs query criteria verbatim. The marked `PhiLogScope` bridge suppresses synchronous
+logger diagnostics during PHI mapping/application and preview; ordinary value-free EDI events
+remain persisted. It changes no logger levels and does not suppress other threads. Replace both
+bridges with core secured-data support at 4.1.0-RC.6. Map samples use record-level audits to avoid
+copying expected-result PHI into audit details. Host code outside these scopes must protect its
+own logging, audits and asynchronous work.
+
+Download Raw Document uses a session-bound process grant, rechecks `edi.raw.download` and record
+read/partner access at download time, streams decrypted bytes without local files, and records
+`RAW_DOWNLOADED` with the user and row references, never content. Download filenames are generic.
+
+`PhiCanaryTest` scans every five-character marker window through gateway/HTTPS intake, forced
+SNIP 2/3/4 errors, mapping/apply, 999, replay/resend, Review/Result, alerts, DEBUG logs, all EDI
+query exports and all home/child widgets. FULL exports exempt only PHI-classified columns;
+RC.5 HIDDEN field-lock exports have no exemptions. MASKED tiers and the optional Quick Search
+qbit require the newer secured-data integration and are not claimed by these RC.5 tests.
+
 ## Build and verification
 
 ```bash

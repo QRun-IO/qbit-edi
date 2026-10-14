@@ -87,6 +87,7 @@ public class EdiDemoServer extends AbstractQQQApplication implements AutoCloseab
       EdiRuntime.current().config().withSecretsResolver(name -> secrets.getOrDefault(name, Base64.getEncoder().encodeToString(new byte[32])));
       RetailSupport.tables();
       LogisticsSupport.tables();
+      com.kingsrook.qbits.edi.HealthcareSupport.tables();
       instance.setHomeAppName("edi");
       for(String table : List.of("sample_order", "sample_shipment", "sample_invoice", "sample_inventory", "sample_wms_shipment", "sample_load"))
       {
@@ -245,8 +246,32 @@ public class EdiDemoServer extends AbstractQQQApplication implements AutoCloseab
          }
          logistics(local, agreements.get(1));
          seedAs2(local);
+         healthcare();
          return (null);
       });
+   }
+
+   /*******************************************************************************
+    ** Synthetic clearinghouse claims, remittance and batch eligibility exchange.
+    *******************************************************************************/
+   private void healthcare() throws Exception
+   {
+      var agreement = com.kingsrook.qbits.edi.HealthcareSupport.configure();
+      int control = 500;
+      for(String key : List.of("837P", "837I", "835"))
+      {
+         com.kingsrook.qbits.edi.HealthcareSupport.receive(key, ++control, com.kingsrook.qbits.edi.HealthcareSupport.body(key, control));
+      }
+      com.kingsrook.qbits.edi.HealthcareSupport.receive("837P", ++control, com.kingsrook.qbits.edi.HealthcareSupport.body("837P", control).replace("*150***", "*151***"));
+      com.kingsrook.qbits.edi.HealthcareSupport.receive("837P", ++control, com.kingsrook.qbits.edi.HealthcareSupport.body("837P", control).replace("SBR*P*18", "SBR*P*19"));
+      QRecord source = SystemWrites.insert("sample_eligibility_request", new QRecord().withValue("trace", "SYNTRACE506").withValue("memberId", "SYN000123").withValue("patientName", "Testpatient Alpha"));
+      com.kingsrook.qbits.edi.flow.OutboundEnqueue.enqueue("sample_eligibility_request", source, "MANUAL", null);
+      new OutboundWorker().runOnce();
+      com.kingsrook.qbits.edi.HealthcareSupport.receive("271", ++control, com.kingsrook.qbits.edi.HealthcareSupport.body("271", control));
+      while(new SendWorker().runOnce() > 0)
+      {
+         // Drain only the configured in-memory outboxes.
+      }
    }
 
    /*******************************************************************************

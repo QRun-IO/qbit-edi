@@ -62,7 +62,10 @@ public class OutboundMapper
          throw new IllegalArgumentException("An outbound map is required");
       }
       List<X12Segment> segments = new ArrayList<>();
-      segments.add(X12Segment.of("ST", 1, map.getValueString("transactionSet"), control));
+      String version = map.getValueString("version");
+      segments.add(version != null && version.startsWith("005010X")
+         ? X12Segment.of("ST", 1, map.getValueString("transactionSet"), control, version)
+         : X12Segment.of("ST", 1, map.getValueString("transactionSet"), control));
       List<QRecord> sorted = rules.stream().sorted(Comparator.comparing(r -> r.getValueInteger("sequence"))).toList();
       emit(source, sorted, "", "", 1, "", new int[] {0}, segments);
       segments.add(X12Segment.of("SE", segments.size() + 1, String.valueOf(segments.size() + 1), control));

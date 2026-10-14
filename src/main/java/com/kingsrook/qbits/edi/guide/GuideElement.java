@@ -27,6 +27,13 @@ import java.util.List;
 /*******************************************************************************
  ** An element or composite component constraint.
  *******************************************************************************/
-public record GuideElement(Integer position, Integer componentPosition, String elementId, String dataType, Integer minLength, Integer maxLength, String usage, List<String> codes, String fixedValue, Integer repeatMax, String condition)
+public record GuideElement(Integer position, Integer componentPosition, String elementId, String dataType, Integer minLength, Integer maxLength, String usage, List<String> codes, String fixedValue, Integer repeatMax, String condition, String source, String externalCodeSet)
 {
+   /*******************************************************************************
+    ** Preserve the original constructor for host-authored inline constraints.
+    *******************************************************************************/
+   public GuideElement(Integer position, Integer componentPosition, String elementId, String dataType, Integer minLength, Integer maxLength, String usage, List<String> codes, String fixedValue, Integer repeatMax, String condition)
+   {
+      this(position, componentPosition, elementId, dataType, minLength, maxLength, usage, codes, fixedValue, repeatMax, condition, null, null);
+   }
 }

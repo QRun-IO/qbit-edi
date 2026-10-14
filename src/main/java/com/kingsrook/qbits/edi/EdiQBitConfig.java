@@ -55,6 +55,26 @@ public class EdiQBitConfig implements QBitConfig
       return (java.util.Set.copyOf(sendAsEdiTables));
    }
 
+   private com.kingsrook.qbits.edi.guide.ExternalCodeSetProvider externalCodeSetProvider;
+
+   /*******************************************************************************
+    ** Optional host provider for licensed external code sets.
+    *******************************************************************************/
+   @JsonIgnore
+   public com.kingsrook.qbits.edi.guide.ExternalCodeSetProvider getExternalCodeSetProvider()
+   {
+      return (externalCodeSetProvider);
+   }
+
+   /*******************************************************************************
+    ** Register a provider; null retains format-only validation.
+    *******************************************************************************/
+   public EdiQBitConfig withExternalCodeSetProvider(com.kingsrook.qbits.edi.guide.ExternalCodeSetProvider value)
+   {
+      externalCodeSetProvider = value;
+      return (this);
+   }
+
    private String payloadBucketAlias = "edi";
    private java.util.function.Supplier<com.kingsrook.qqq.backend.core.model.session.QSession> serviceSessionSupplier = null;
    private java.time.Clock clock = java.time.Clock.systemUTC();

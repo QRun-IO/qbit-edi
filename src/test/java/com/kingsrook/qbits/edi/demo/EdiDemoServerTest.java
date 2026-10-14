@@ -86,7 +86,7 @@ class EdiDemoServerTest
          demo.seed();
          demo.seed();
          assertThat(demo.defineQInstance().getHomeAppName()).isEqualTo("edi");
-         assertThat(SystemWrites.call(() -> EdiRecords.query("edi_partner", new QQueryFilter()))).hasSize(5);
+         assertThat(SystemWrites.call(() -> EdiRecords.query("edi_partner", new QQueryFilter()))).hasSize(6);
          assertThat(SystemWrites.call(() -> EdiRecords.query("edi_certificate", new QQueryFilter()))).hasSize(5);
          assertThat(SystemWrites.call(() -> EdiRecords.query("edi_inbox", new QQueryFilter()))).hasSizeGreaterThanOrEqualTo(40);
          assertThat(SystemWrites.call(() -> EdiRecords.query("edi_transaction", new QQueryFilter()))).anyMatch(row -> "OUTBOUND".equals(row.getValueString("direction")));
@@ -94,7 +94,7 @@ class EdiDemoServerTest
          assertThat(SystemWrites.call(() -> EdiRecords.query("edi_functional_group", new QQueryFilter()))).anyMatch(row -> row.getValueInstant("ackReceivedAt") != null);
          assertThat(SystemWrites.call(() -> EdiRecords.query("edi_exception", new QQueryFilter()))).anyMatch(row -> "OVERDUE_ACK".equals(row.getValueString("type")));
          var partners = SystemWrites.call(() -> EdiRecords.query("edi_partner", new QQueryFilter()));
-         assertThat(partners).extracting(row -> row.getValueString("code")).containsExactlyInAnyOrder("NORTHWIND", "HARBOR", "SUMMIT", "RIDGELINE", "PACIFIC");
+         assertThat(partners).extracting(row -> row.getValueString("code")).containsExactlyInAnyOrder("NORTHWIND", "HARBOR", "SUMMIT", "RIDGELINE", "PACIFIC", "CEDAR");
          assertThat(partners).allSatisfy(row -> assertThat(row.getValueString("contactEmail")).endsWith("@example.invalid"));
          assertThat(SystemWrites.call(() -> EdiRecords.query("sample_wms_order", new QQueryFilter()))).hasSize(3);
          assertThat(SystemWrites.call(() -> EdiRecords.query("sample_shipment_status", new QQueryFilter()))).hasSize(3);

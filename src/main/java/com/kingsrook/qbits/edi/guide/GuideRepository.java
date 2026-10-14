@@ -59,8 +59,10 @@ public class GuideRepository
          for(QRecord element : rows("edi_guide_element", "guideSegmentId", segmentId))
          {
             List<String> codes = null;
+            QRecord codeList = null;
             if(element.getValueInteger("codeListId") != null)
             {
+               codeList = rows("edi_code_list", "id", element.getValueInteger("codeListId")).getFirst();
                codes = new ArrayList<>();
                for(QRecord code : rows("edi_code_list_value", "codeListId", element.getValueInteger("codeListId")))
                {
@@ -72,7 +74,7 @@ public class GuideRepository
             }
             elements.add(new GuideElement(element.getValueInteger("position"), element.getValueInteger("componentPosition"), element.getValueString("elementId"),
                element.getValueString("dataType"), element.getValueInteger("minLength"), element.getValueInteger("maxLength"), element.getValueString("usage"), codes,
-               element.getValueString("fixedValue"), element.getValueInteger("repeatMax"), condition(rules, element.getValueInteger("situationalRuleId"))));
+               element.getValueString("fixedValue"), element.getValueInteger("repeatMax"), condition(rules, element.getValueInteger("situationalRuleId")), codeList == null ? null : codeList.getValueString("source"), codeList == null ? null : codeList.getValueString("externalCodeSet")));
          }
          List<GuideRule> segmentRules = rules.stream().filter(r -> segmentId.equals(r.getValueInteger("guideSegmentId")) && !"condition".equals(r.getValueString("message"))).map(GuideRepository::rule).toList();
          segments.add(new GuideSegment(definition.getValueString("segmentId"), definition.getValueString("loopId"), definition.getValueString("parentLoopId"),
@@ -107,11 +109,11 @@ public class GuideRepository
                for(GuideElement element : list(segment.elements()))
                {
                   Integer codeListId = null;
-                  if(element.codes() != null)
+                  if(element.codes() != null || "EXTERNAL".equals(element.source()))
                   {
                      codeListId = insert("edi_code_list", new QRecord().withValue("name", guide.name() + "/" + revision + "/" + sequence + "/" + element.position())
-                        .withValue("elementId", element.elementId()).withValue("source", "BUILT_IN"), transaction).getValueInteger("id");
-                     for(String code : element.codes())
+                        .withValue("elementId", element.elementId()).withValue("source", element.source() == null ? "BUILT_IN" : element.source()).withValue("externalCodeSet", element.externalCodeSet()), transaction).getValueInteger("id");
+                     for(String code : list(element.codes()))
                      {
                         insert("edi_code_list_value", new QRecord().withValue("codeListId", codeListId).withValue("code", code).withValue("isActive", true), transaction);
                      }
