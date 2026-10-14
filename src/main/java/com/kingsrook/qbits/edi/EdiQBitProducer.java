@@ -129,6 +129,7 @@ public class EdiQBitProducer implements QBitMetaDataProducer<EdiQBitConfig>
       qBitConfig.validate(instance);
       MetaDataProducerMultiOutput output = QBitMetaDataProducer.super.produce(instance);
       output.addSelfToInstance(instance);
+      EdiRuntime.install(instance, qBitConfig);
       return (new MetaDataProducerMultiOutput());
    }
 }
