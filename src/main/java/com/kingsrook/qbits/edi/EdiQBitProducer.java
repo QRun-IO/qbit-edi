@@ -135,11 +135,12 @@ public class EdiQBitProducer implements QBitMetaDataProducer<EdiQBitConfig>
       instance.withSupplementalMetaData(new com.kingsrook.qbits.edi.transport.EdiTransportPluginsMetaData()
          .withPlugin(new com.kingsrook.qbits.edi.transport.gateway.GatewayTransport())
          .withPlugin(new com.kingsrook.qbits.edi.transport.HttpsTransport()).withPlugin(new com.kingsrook.qbits.edi.transport.SftpTransport())
-         .withPlugin(new com.kingsrook.qbits.edi.transport.UnavailableTransport("AS2")).withPlugin(new com.kingsrook.qbits.edi.transport.UnavailableTransport("EMAIL")));
+         .withPlugin(new com.kingsrook.qbits.edi.as2.As2Transport()).withPlugin(new com.kingsrook.qbits.edi.transport.UnavailableTransport("EMAIL")));
       try
       {
          com.kingsrook.qqq.middleware.javalin.QJavalinMetaData.ofOrWithNew(instance).withAdditionalRouteProviderReference(
-            new com.kingsrook.qqq.backend.core.model.metadata.code.QCodeReference(com.kingsrook.qbits.edi.transport.HttpsRouteProvider.class));
+            new com.kingsrook.qqq.backend.core.model.metadata.code.QCodeReference(com.kingsrook.qbits.edi.transport.HttpsRouteProvider.class))
+            .withAdditionalRouteProviderReference(new com.kingsrook.qqq.backend.core.model.metadata.code.QCodeReference(com.kingsrook.qbits.edi.as2.As2RouteProvider.class));
       }
       catch(NoClassDefFoundError optionalMiddlewareAbsent)
       {

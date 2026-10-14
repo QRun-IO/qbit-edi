@@ -81,6 +81,9 @@ public class EdiTransport extends QRecordEntity
    @QField(backendName = "mdn_signed")
    private Boolean mdnSigned;
 
+   @QField(backendName = "weak_crypto", isEditable = false)
+   private Boolean weakCrypto;
+
    @QField(backendName = "local_certificate_id", possibleValueSourceName = "edi_certificate")
    private Integer localCertificateId;
 
@@ -1583,4 +1586,29 @@ public class EdiTransport extends QRecordEntity
       return (this);
    }
 
+
+   /*******************************************************************************
+    ** Get weakCrypto: true when SHA1 or 3DES is configured. Set by the qbit on save.
+    *******************************************************************************/
+   public Boolean getWeakCrypto()
+   {
+      return (weakCrypto);
+   }
+
+   /*******************************************************************************
+    ** Set weakCrypto.
+    *******************************************************************************/
+   public void setWeakCrypto(Boolean weakCrypto)
+   {
+      this.weakCrypto = weakCrypto;
+   }
+
+   /*******************************************************************************
+    ** Set weakCrypto fluently.
+    *******************************************************************************/
+   public EdiTransport withWeakCrypto(Boolean weakCrypto)
+   {
+      this.weakCrypto = weakCrypto;
+      return (this);
+   }
 }

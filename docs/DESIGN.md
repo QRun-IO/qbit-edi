@@ -349,30 +349,61 @@ For partners and VANs that host their own SFTP, EDI connects out with core's SFT
   not depend on it (G1) but uses the same core client, so behaviour and host-key handling match.
 
 ### 5.5 AS2 (phase c)
-Built on as2-lib (Apache-2.0):
-- **Send:** `AS2Client` with partnership settings built from `edi_transport` and `edi_certificate`
-  (a custom partnership factory and certificate factory backed by our tables, keys from env vars, no
-  keystore file). Sign, then encrypt, optional compression; the `Message-ID` is recorded. Sync MDN:
-  verify the signature and the MIC against the sent content; a mismatch or a failed disposition
-  fails the send. Async MDN: `Receipt-Delivery-Option` is
-  `https://<host>/qqq/hooks/edi/as2/{transport}/mdn`; the message stays SENT until the MDN arrives,
-  then becomes DELIVERED or FAILED. An MDN not received within `ackDueMinutes` raises
-  `edi_mdn_overdue`.
-- **Receive:** `POST /qqq/hooks/edi/as2/{transport}` (a route provider outside `/qqq/v1`). The
-  handler reads the body up to the agreement's `maxInterchangeBytes` (in memory up to 8 MB, then
-  streamed to object storage, never to a temp file), uses as2-lib's receive helpers to decrypt,
-  verify the signature against the partner's certificate, decompress and compute the MIC, then calls
-  `InboundSink.receive` and returns the signed sync MDN, or sends the async MDN after commit. A
-  message that cannot be stored gets a failure MDN (`processed/error:
-  unexpected-processing-error`) so the partner retries.
-- The AS2 `Message-ID` is the inbox dedupe key: a retransmitted message gets the original MDN again
-  and is not reprocessed.
-- MDNs, sent and received, are stored in **`edi_as2_mdn`** [AS2 MDN] (child of the outbound message
-  or the inbox row): `direction`, `messageId`, `originalMessageId`, `disposition`, `micAlgorithm`,
-  `micValue`, `signed`, `signatureValid`, `payloadRef` (the raw MDN in object storage),
-  `receivedAt`.
-- TLS: outbound uses the JVM trust store plus optional pinning (`partnerTlsCertificateId`). Inbound
-  TLS terminates at the host's ingress.
+Implemented by `As2Transport` (send, Test Connection) and `As2RouteProvider` (receive). All of it is
+in memory; no keystore, key or temporary file is written, and as2-lib's file-backed pieces are not used.
+- **Libraries.** as2-lib 5.1.8 supplies the algorithm tables (`ECryptoAlgorithmSign/Crypt`), the
+  `MIC` and `DispositionOptions` types and its BouncyCastle S/MIME signer. as2-lib's decrypt and
+  verify stage content through `AS2ResourceHelper` temporary files and its receive side needs
+  servlet classes, so decryption, signature verification, compression, encryption and the MIC
+  (RFC 4130, RFC 5751, RFC 5402) use BouncyCastle (`bcpkix`, `bcjmail`) directly in `As2Crypto`,
+  and MDNs are built and parsed in `As2Mdn`. The MIC is the digest of the exact bytes of the signed
+  MIME entity (headers included), or of the transmitted entity when unsigned, so any partner
+  transfer encoding (binary or base64) agrees.
+- **Send:** the message is compressed (optional), signed, then encrypted; `Message-ID` is stable per
+  outbound message (`edi-<id>-<digest>@<as2LocalId>`) and recorded as `transportMessageId`, and the MIC
+  we computed is kept in `edi_outbound_message.transportMic`. Configuration problems (a missing key
+  variable, an expired certificate) are RETRY results that name only the problem. Sync MDN: verify the
+  signature (required when `mdnSigned`), compare Received-Content-MIC, and require disposition
+  `processed`; a mismatch or failed disposition is FAILED with the (sanitized) disposition text.
+  `NONE` leaves the message SENT. Async MDN: `Receipt-Delivery-Option` is
+  `{publicBaseUrl}/qqq/hooks/edi/as2/{transport}/mdn`; the message stays SENT until the MDN arrives,
+  then becomes DELIVERED or FAILED; an MDN not received within the agreement document `ackDueMinutes`
+  (60 when unset) raises the warning `edi.mdn.overdue`, resolved by the MDN.
+- **Receive:** `POST /qqq/hooks/edi/as2/{transport}` (outside `/qqq/v1`). The handler checks
+  `AS2-From`/`AS2-To` against the transport (403 otherwise), reads the body up to the largest
+  `maxInterchangeBytes` of the agreements on the transport (50 MB default, in memory), decrypts with any
+  of our ACTIVE or NEXT keys, verifies the signature against the partner's ACTIVE and NEXT certificates
+  (signed is required when `signAlgorithm` is set, encrypted when `encryptAlgorithm` is set), unwraps
+  compression, computes the MIC, calls `InboundSink.receive` (`transportType` AS2, `externalId` =
+  Message-ID, scoped by transport id if another partner already used the same id), and answers with the
+  MDN: synchronous in the response (signed with our ACTIVE key when requested or `mdnSigned`), or, when
+  `Receipt-Delivery-Option` is present, 200 at once and a queued `edi_as2_mdn` row that
+  `As2MdnSender` (scheduled `edi_as2_mdn_sender`, every 15 seconds) posts with the send backoff and
+  `maxAttempts`, failing with `edi.send.failed`. An asynchronous receipt address must be HTTPS
+  (loopback excepted) and, unless signatures are required, on the partner's own host; failures before
+  the sender is authenticated are always answered synchronously.
+- A retransmitted Message-ID returns the original MDN again, byte for byte, and is not reprocessed
+  (an asynchronous one is queued again). Failures return MDNs with `processed/error:
+  authentication-failed` (bad or unverifiable signature), `integrity-check-failed` (digest mismatch),
+  `decryption-failed`, `insufficient-message-security` or `unexpected-processing-error` (storage, or a
+  key we cannot load, so the partner retries); no inbox row exists for a rejected message.
+- **Certificates:** `CertificateService` resolves our key from the `privateKeyEnvVar` variable (PEM
+  PKCS#8 or base64 PKCS#12 with `privateKeyPasswordEnvVar`), proves it matches the certificate, and
+  never caches or logs it. Outbound signs and encrypts with the ACTIVE certificate (the referenced one
+  when ACTIVE, otherwise the ACTIVE one of the same partner and usage), inbound accepts ACTIVE and NEXT.
+  "Promote Certificate" makes NEXT ACTIVE and retires the previous ACTIVE one of the same partner and
+  usage. A VAN transport (`isVan`, no `partnerId`) has its partner certificate on the VAN operator's
+  partner record, or with no partner for a shared certificate (no rollover candidates).
+- MDNs, sent and received, are stored in **`edi_as2_mdn`** [AS2 MDN] (read-only; child list "AS2 MDNs"
+  of the outbound message and the inbox row; record label `<direction> MDN <originalMessageId>`):
+  `direction` (INBOUND = received, OUTBOUND = we sent it), `messageId`, `originalMessageId`,
+  `disposition`, `micAlgorithm`, `micValue`, `signed`, `signatureValid`, `payloadRef` (the raw MDN,
+  encrypted), `receivedAt`, `transportId`, `partnerId`, `outboundMessageId`, `inboxId`, and the
+  queue columns `deliveryUrl`, `deliveryStatus` (NONE, PENDING, SENT, FAILED), `deliveryAttempts`,
+  `nextAttemptAt`, `deliveredAt`.
+- TLS: outbound uses the JVM trust store, or only the pinned certificate when `partnerTlsCertificateId`
+  is set. Inbound TLS terminates at the host's ingress. SHA1 and 3DES are accepted only when set
+  explicitly and set the read-only `weakCrypto` flag on the transport.
 
 ### 5.6 HTTPS and email
 - **HTTPS out:** POST the interchange (`application/edi-x12` or `application/EDIFACT`) with the
@@ -924,3 +955,25 @@ RC.5 adaptations implemented in this worktree:
 - `InboundApplier` assumed every target table has associations; a flat table (the 214 status sample) hit a null pointer. It is now null-safe.
 - The 214 sample map records the first LX event per transaction into a flat status table and always inserts (no match key), so repeated statuses form a history; a host that wants every LX event maps an association.
 - Demo: Harbor Logistics gets a gateway OUTBOX transport for 945s (the partner pulls over SFTP, per 5.3) after the retail seed has run, so its earlier acknowledgements keep their visible retries; the fourth partner Ridgeline Freight is added, so `EdiDemoServerTest` now expects four partners.
+||||||| parent of bfb63ce (feat: phase c - AS2 transport)
+
+## Phase c implementation notes (2026-10-14)
+
+- as2-lib's decrypt and verify write temporary files and its receive helpers need servlet classes, so only
+  its enum tables, `MIC`, `DispositionOptions` and signer are used; the rest is BouncyCastle in memory
+  (section 5.5). Its dependency tree pulls `bcjmail` 1.85 (Jakarta Mail), so `bcpkix` is pinned to 1.85 and
+  promoted from test scope; no other QQQ dependency changed.
+- The MIC is computed over the exact signed bytes (headers included) instead of as2-lib's
+  decode-then-re-encode, which differs for base64 content; verified against an independent
+  BouncyCastle peer with base64 and binary transfer encodings.
+- Encryption wraps the exact bytes that were hashed (CMS enveloped data over the serialized signed
+  entity), so the MIC cannot drift between signing and encryption.
+- `edi_as2_mdn` doubles as the asynchronous MDN queue (`deliveryStatus`, `deliveryAttempts`,
+  `nextAttemptAt`) instead of a separate table; the scheduled step is `edi_as2_mdn_sender`.
+- New columns: `edi_outbound_message.transport_mic` (the MIC we sent, for asynchronous comparison) and
+  `edi_transport.weak_crypto`. New config: `EdiQBitConfig.publicBaseUrl`.
+- The alert is `edi.mdn.overdue` (RC.5 rejects underscores); `SendWorker` now records the transport
+  failure reason (value-free by contract: an HTTP status, an AS2 disposition or a variable name) in
+  `lastError` instead of a generic text.
+- Not implemented: EC and RSA-PSS signing keys (RSA only), MIC comparison under a different algorithm than
+  the one requested, CAQH/Peppol profiles, and AS2 over a host-mounted client certificate (`MTLS`).

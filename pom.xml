@@ -69,7 +69,8 @@
 
    <dependencies>
       <dependency><groupId>com.kingsrook.qqq</groupId><artifactId>qqq-frontend-next</artifactId><version>1.0.0-RC.14</version><scope>test</scope></dependency>
-      <dependency><groupId>org.bouncycastle</groupId><artifactId>bcpkix-jdk18on</artifactId><version>1.81</version><scope>test</scope></dependency>
+      <dependency><groupId>org.bouncycastle</groupId><artifactId>bcpkix-jdk18on</artifactId><version>1.85</version></dependency>
+      <dependency><groupId>com.helger.as2</groupId><artifactId>as2-lib</artifactId><version>5.1.8</version></dependency>
       <dependency><groupId>com.kingsrook.qqq</groupId><artifactId>qqq-backend-module-filesystem</artifactId></dependency>
       <dependency>
          <groupId>com.kingsrook.qqq</groupId>

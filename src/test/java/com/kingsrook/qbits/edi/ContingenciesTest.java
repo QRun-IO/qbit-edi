@@ -114,7 +114,8 @@ class ContingenciesTest
          {
             EdiRecords.insert("edi_identity", new QRecord().withValue("partnerId", partner).withValue("standard", "X12").withValue("interchangeQualifier", "ZZ")
                .withValue("interchangeId", "SYNTH" + partner).withValue("applicationCode", "APP" + partner));
-            EdiRecords.insert("edi_certificate", new QRecord().withValue("partnerId", partner).withValue("alias", "Synthetic " + partner));
+            EdiRecords.insert("edi_certificate", new QRecord().withValue("partnerId", partner).withValue("alias", "Synthetic " + partner)
+               .withValue("certificatePem", As2Support.party("contingency-" + partner, 365).certificatePem()));
          }
          return (null);
       });
