@@ -86,7 +86,7 @@ class EdiDemoServerTest
          demo.seed();
          demo.seed();
          assertThat(demo.defineQInstance().getHomeAppName()).isEqualTo("edi");
-         assertThat(SystemWrites.call(() -> EdiRecords.query("edi_partner", new QQueryFilter()))).hasSize(3);
+         assertThat(SystemWrites.call(() -> EdiRecords.query("edi_partner", new QQueryFilter()))).hasSize(4);
          assertThat(SystemWrites.call(() -> EdiRecords.query("edi_certificate", new QQueryFilter()))).hasSize(2);
          assertThat(SystemWrites.call(() -> EdiRecords.query("edi_inbox", new QQueryFilter()))).hasSizeGreaterThanOrEqualTo(40);
          assertThat(SystemWrites.call(() -> EdiRecords.query("edi_transaction", new QQueryFilter()))).anyMatch(row -> "OUTBOUND".equals(row.getValueString("direction")));
@@ -94,8 +94,15 @@ class EdiDemoServerTest
          assertThat(SystemWrites.call(() -> EdiRecords.query("edi_functional_group", new QQueryFilter()))).anyMatch(row -> row.getValueInstant("ackReceivedAt") != null);
          assertThat(SystemWrites.call(() -> EdiRecords.query("edi_exception", new QQueryFilter()))).anyMatch(row -> "OVERDUE_ACK".equals(row.getValueString("type")));
          var partners = SystemWrites.call(() -> EdiRecords.query("edi_partner", new QQueryFilter()));
-         assertThat(partners).extracting(row -> row.getValueString("code")).containsExactlyInAnyOrder("NORTHWIND", "HARBOR", "SUMMIT");
+         assertThat(partners).extracting(row -> row.getValueString("code")).containsExactlyInAnyOrder("NORTHWIND", "HARBOR", "SUMMIT", "RIDGELINE");
          assertThat(partners).allSatisfy(row -> assertThat(row.getValueString("contactEmail")).endsWith("@example.invalid"));
+         assertThat(SystemWrites.call(() -> EdiRecords.query("sample_wms_order", new QQueryFilter()))).hasSize(3);
+         assertThat(SystemWrites.call(() -> EdiRecords.query("sample_shipment_status", new QQueryFilter()))).hasSize(3);
+         var transactions = SystemWrites.call(() -> EdiRecords.query("edi_transaction", new QQueryFilter()));
+         assertThat(transactions).anyMatch(row -> "945".equals(row.getValueString("transactionSet")) && "SENT".equals(row.getValueString("status")));
+         assertThat(transactions).anyMatch(row -> "204".equals(row.getValueString("transactionSet")) && "SENT".equals(row.getValueString("status")));
+         assertThat(transactions).anyMatch(row -> "940".equals(row.getValueString("transactionSet")) && "INVALID".equals(row.getValueString("status")));
+         assertThat(transactions).anyMatch(row -> "214".equals(row.getValueString("transactionSet")) && "INVALID".equals(row.getValueString("status")));
          int port = demo.start(0);
          assertThat(client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/app/edi")).GET().build(), HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(200);
          for(String table : java.util.List.of("edi_partner", "edi_transaction", "edi_exception"))

@@ -6,6 +6,7 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic
 
 ### Added
 
+- Phase d warehouse and logistics baseline guides for 940, 945, 214 and 204 in 004010 and 005010 (syntax notes, situational control-total and stop rules, AT7 pairing), inbound/outbound sample maps (940 in, 945 out/in, 214 in, 204 in/out), DATEPART/TIMEPART outbound transforms and `+`-joined inbound paths for date/time pairs, and Harbor Logistics and Ridgeline Freight demo traffic.
 - Phase b retail baseline guides for 855/856/810/846/860 in 004010 and 005010; inbound/outbound sample maps and nested outbound associations with SEQUENCE/HL transforms.
 - Transactional RECORD_CHANGE and manual enqueue, host-wired ESB process, batch schedules, validated encrypted envelopes, send workers, retries and dead-letter alerts.
 - Instance transport registry, MINA SFTP streaming push/poll with pinned host keys, gateway OUTBOX stand-in/download delivery, and authenticated HTTPS ingress/egress using core Standard Webhooks.
@@ -29,3 +30,7 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic
 - Per-instance runtime services and configuration, synthetic generators, exact acknowledgement fixtures, concurrent SQL tests, and payload tests that verify no temporary files are created.
 - Repository scaffold to the QRun qbit repository standard: `qbit-build-parent` 2.0.0, QQQ 4.1.0-RC.5, Maven wrapper, Checkstyle, JaCoCo gate, CircleCI qqq-orb 0.6.8, release-candidate workflow, Dependabot, community files.
 - `EdiQBitProducer` and `EdiQBitConfig` (table prefix `edi_`, permission base `edi`).
+
+### Fixed
+
+- Inbound apply no longer fails with a null-pointer error on a target table that has no associations (flat tables such as the 214 status sample).

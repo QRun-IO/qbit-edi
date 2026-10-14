@@ -107,7 +107,7 @@ public class InboundApplier
       var targetTable = QContext.getQInstance().getTable(table);
       String backend = com.kingsrook.qbits.edi.EdiRuntime.current().config().getBackendName();
       if(targetTable == null || !backend.equals(targetTable.getBackendName())
-         || targetTable.getAssociations().stream().anyMatch(a -> !backend.equals(QContext.getQInstance().getTable(a.getAssociatedTableName()).getBackendName())))
+         || targetTable.getAssociations() != null && targetTable.getAssociations().stream().anyMatch(a -> !backend.equals(QContext.getQInstance().getTable(a.getAssociatedTableName()).getBackendName())))
       {
          throw new IllegalArgumentException("Inbound targets and associations must share the EDI transactional backend");
       }

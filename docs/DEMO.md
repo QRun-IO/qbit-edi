@@ -21,6 +21,14 @@ pass the outbound worker and an in-memory gateway; incoming 997s reconcile some 
 An overdue group, an exhausted send and several open exceptions provide operational examples.
 Two public self-signed certificates are generated in memory; private keys are never persisted.
 
+Phase d adds warehouse and logistics traffic, seeded last so the retail scenarios above are
+unchanged. Harbor Logistics (the 3PL) gets a gateway OUTBOX transport (the partner pulls over SFTP)
+and sends three valid 940 shipping orders and one with a bad unit; the orders and lines land in
+`sample_wms_order`, and two shipments (one short) go out as 945s. A fourth partner, Ridgeline Freight
+(code RIDGELINE, gateway transport), receives two 204 load tenders (the second a change) and sends
+four 214 status events (one rejected with a bad status code) that build `sample_shipment_status`.
+The in-memory gateway accepts every send, and the rejected documents produce rejecting 997s.
+
 The SFTP/HTTPS partner settings are illustrative `.invalid` destinations. Their agreements have
 no outbound transport, so they cannot contact a real partner; resulting acknowledgement send
 retries are visible. Northwind alone has configured outbound documents. The in-memory gateway

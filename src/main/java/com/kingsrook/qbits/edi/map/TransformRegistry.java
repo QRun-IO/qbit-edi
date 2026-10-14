@@ -23,9 +23,14 @@ package com.kingsrook.qbits.edi.map;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
@@ -71,6 +76,8 @@ public class TransformRegistry
       register("TIME", (v, a) -> time(first(v)).toString());
       register("DATETIME", (v, a) -> date(first(v)).atTime(time(v.size() > 1 ? v.get(1) : a.getOrDefault("time", "0000")))
          .atZone(ZoneId.of(a.getOrDefault("timezone", "UTC"))).toInstant());
+      register("DATEPART", (v, a) -> zoned(first(v), a).format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+      register("TIMEPART", (v, a) -> zoned(first(v), a).format(DateTimeFormatter.ofPattern("HHmmss")));
       register("DECIMAL", (v, a) -> new BigDecimal(first(v)).movePointLeft(Integer.parseInt(a.getOrDefault("scale", "0"))));
       register("CONCAT", (v, a) -> String.join(a.getOrDefault("separator", ""), v));
       register("SPLIT", (v, a) -> first(v).split(java.util.regex.Pattern.quote(a.getOrDefault("separator", ",")), -1)[Integer.parseInt(a.getOrDefault("index", "0"))]);
@@ -144,6 +151,15 @@ public class TransformRegistry
          throw new IllegalArgumentException("Transform input is missing");
       }
       return (values.getFirst());
+   }
+
+   /*******************************************************************************
+    ** Outbound DATETIME halves: an instant, or a zone-less timestamp read as UTC, in the partner zone.
+    *******************************************************************************/
+   private static ZonedDateTime zoned(String value, Map<String, String> args)
+   {
+      Instant instant = value.endsWith("Z") || value.matches(".*[+-][0-9]{2}:[0-9]{2}$") ? OffsetDateTime.parse(value).toInstant() : LocalDateTime.parse(value).toInstant(ZoneOffset.UTC);
+      return (instant.atZone(ZoneId.of(args.getOrDefault("timezone", "UTC"))));
    }
 
    /*******************************************************************************

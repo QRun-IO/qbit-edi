@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import com.kingsrook.qbits.edi.EdiRuntime;
 import com.kingsrook.qbits.edi.H2Support;
+import com.kingsrook.qbits.edi.LogisticsSupport;
 import com.kingsrook.qbits.edi.RetailSupport;
 import com.kingsrook.qbits.edi.Synthetic850;
 import com.kingsrook.qbits.edi.flow.InboundSink;
@@ -80,8 +81,9 @@ public class EdiDemoServer extends AbstractQQQApplication implements AutoCloseab
    {
       instance = H2Support.create();
       RetailSupport.tables();
+      LogisticsSupport.tables();
       instance.setHomeAppName("edi");
-      for(String table : List.of("sample_order", "sample_shipment", "sample_invoice", "sample_inventory"))
+      for(String table : List.of("sample_order", "sample_shipment", "sample_invoice", "sample_inventory", "sample_wms_shipment", "sample_load"))
       {
          EdiRuntime.current().config().withSendAsEdiTable(table);
       }
@@ -236,8 +238,85 @@ public class EdiDemoServer extends AbstractQQQApplication implements AutoCloseab
             new SendWorker().runOnce();
             installOutbox();
          }
+         logistics(local, agreements.get(1));
          return (null);
       });
+   }
+
+   /*******************************************************************************
+    ** Warehouse and logistics traffic: Harbor Logistics (3PL) sends 940s and receives 945s,
+    ** and Ridgeline Freight (carrier) receives 204 tenders and sends 214 statuses.
+    *******************************************************************************/
+   private void logistics(QRecord local, QRecord harbor) throws Exception
+   {
+      QRecord harborTransport = SystemWrites.insert("edi_transport", new QRecord().withValue("partnerId", harbor.getValue("partnerId")).withValue("name", "harbor-outbox").withValue("type", "GATEWAY")
+         .withValue("direction", "OUTBOUND").withValue("gatewayEndpointName", "harbor-outbox").withValue("isActive", true).withValue("maxAttempts", 3));
+      SystemWrites.update("edi_agreement", new QRecord().withValue("id", harbor.getValue("id")).withValue("outboundTransportId", harborTransport.getValue("id")));
+      agreementDocument(harbor, "INBOUND", "940", "940", "sample_wms_order");
+      agreementDocument(harbor, "OUTBOUND", "945", "945", "sample_wms_shipment");
+      QRecord partner = SystemWrites.insert("edi_partner", new QRecord().withValue("name", "Ridgeline Freight").withValue("code", "RIDGELINE").withValue("contactName", "Ridgeline Freight Demo Contact")
+         .withValue("contactEmail", "ridgeline@example.invalid").withValue("contactPhone", "202-555-0103").withValue("status", "ACTIVE").withValue("defaultTimezone", "America/Chicago"));
+      QRecord remote = SystemWrites.insert("edi_identity", new QRecord().withValue("partnerId", partner.getValue("id")).withValue("standard", "X12").withValue("interchangeQualifier", "ZZ").withValue("interchangeId", "RIDGELINE").withValue("applicationCode", "RIDGELINE").withValue("isActive", true));
+      QRecord transport = SystemWrites.insert("edi_transport", new QRecord().withValue("partnerId", partner.getValue("id")).withValue("name", "ridgeline-gateway").withValue("type", "GATEWAY").withValue("direction", "BOTH")
+         .withValue("gatewayEndpointName", "ridgeline-outbox").withValue("isActive", true).withValue("maxAttempts", 3));
+      QRecord carrier = SystemWrites.insert("edi_agreement", new QRecord().withValue("partnerId", partner.getValue("id")).withValue("localIdentityId", local.getValue("id")).withValue("partnerIdentityId", remote.getValue("id"))
+         .withValue("standard", "X12").withValue("usageIndicator", "T").withValue("interchangeVersion", "00401").withValue("isActive", true).withValue("applyTestDocuments", true).withValue("outboundTransportId", transport.getValue("id")));
+      agreementDocument(carrier, "OUTBOUND", "204", "204-out", "sample_load");
+      agreementDocument(carrier, "INBOUND", "214", "214", "sample_shipment_status");
+      int control = 300;
+      receive(LogisticsSupport.interchange("940", "004010", "HARBORLOG", String.format("%09d", ++control), LogisticsSupport.body940("ORD-8001", "PO-8001", 10, 5)), "demo-940-" + control);
+      receive(LogisticsSupport.interchange("940", "004010", "HARBORLOG", String.format("%09d", ++control), LogisticsSupport.body940("ORD-8002", "PO-8002", 24)), "demo-940-" + control);
+      receive(LogisticsSupport.interchange("940", "004010", "HARBORLOG", String.format("%09d", ++control), LogisticsSupport.body940("ORD-8003", "PO-8003", 3, 3, 3)), "demo-940-" + control);
+      receive(LogisticsSupport.interchange("940", "004010", "HARBORLOG", String.format("%09d", ++control), invalidUnit(LogisticsSupport.body940("ORD-8004", "PO-8004", 2))), "demo-940-" + control);
+      enqueue("sample_wms_shipment", LogisticsSupport.shipmentFor(LogisticsSupport.orderRecord("ORD-8001", "PO-8001", 10, 5), false));
+      enqueue("sample_wms_shipment", LogisticsSupport.shipmentFor(LogisticsSupport.orderRecord("ORD-8002", "PO-8002", 24), true));
+      enqueue("sample_load", LogisticsSupport.load("SHIP-4001"));
+      enqueue("sample_load", LogisticsSupport.load("SHIP-4002").withValue("purpose", "CHANGE"));
+      for(String[] status : new String[][] {{"SHIP-4001", "X3"}, {"SHIP-4001", "AF"}, {"SHIP-4001", "D1"}, {"SHIP-4002", "ZZ"}})
+      {
+         receive(LogisticsSupport.interchange("214", "004010", "RIDGELINE", String.format("%09d", ++control), LogisticsSupport.body214(status[0], "PRO-" + status[0], status[1], "NS", "Testville")), "demo-214-" + control);
+      }
+      new OutboundWorker().runOnce();
+      while(new InboxWorker().runOnce() + new SendWorker().runOnce() > 0)
+      {
+         // Drain intake and delivery together; the in-memory gateway accepts every send.
+      }
+   }
+
+   /*******************************************************************************
+    ** Replace the unit with a code outside the guide so the demo has a rejected 940.
+    *******************************************************************************/
+   private static List<com.kingsrook.qbits.edi.x12.X12Segment> invalidUnit(List<com.kingsrook.qbits.edi.x12.X12Segment> body)
+   {
+      return (body.stream().map(s -> s.id().equals("W01") ? LogisticsSupport.s("W01", s.value(1), "ZZ", "", s.value(4), s.value(5)) : s).toList());
+   }
+
+   /*******************************************************************************
+    ** Persist a source record with its children and queue it for the outbound worker.
+    *******************************************************************************/
+   private static void enqueue(String table, QRecord source) throws Exception
+   {
+      QRecord saved = SystemWrites.transaction(() -> RetailSupport.saveSource(table, source));
+      OutboundEnqueue.enqueue(table, saved, "MANUAL", null);
+   }
+
+   /*******************************************************************************
+    ** Attach a baseline guide and sample map as one agreement document.
+    *******************************************************************************/
+   private static void agreementDocument(QRecord agreement, String direction, String set, String mapKey, String table) throws Exception
+   {
+      QRecord map = LogisticsSupport.installMap(mapKey, "004010");
+      QRecord document = new QRecord().withValue("agreementId", agreement.getValue("id")).withValue("direction", direction).withValue("transactionSet", set).withValue("version", "004010")
+         .withValue("functionalIdCode", LogisticsSupport.groupCode(set)).withValue("guideId", map.getValue("guideId")).withValue("mapId", map.getValue("id")).withValue("isActive", true);
+      if(direction.equals("INBOUND"))
+      {
+         document.withValue("ackExpectation", "997").withValue("ackLevel", "ALL_TRANSACTIONS");
+      }
+      else
+      {
+         document.withValue("sourceTableName", table).withValue("outboundTrigger", "MANUAL").withValue("batchMode", "IMMEDIATE").withValue("ackExpectation", "997").withValue("ackDueMinutes", 1440);
+      }
+      SystemWrites.insert("edi_agreement_document", document);
    }
 
    /*******************************************************************************
