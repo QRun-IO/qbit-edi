@@ -34,7 +34,7 @@ ALTER TABLE edi_agreement ADD COLUMN syntax_identifier VARCHAR(255);
 
 ## Requirements and installation
 
-Java 21, QQQ **4.1.0-RC.6+**, an RDBMS backend, and `com.kingsrook.qbits:qbit-edi:0.1.0-SNAPSHOT`.
+Java 21, QQQ **4.1.0-RC.7+**, an RDBMS backend, and `com.kingsrook.qbits:qbit-edi:0.1.0-SNAPSHOT`.
 Apply [the PostgreSQL schema](docs/ddl/edi-postgres.sql). Targets and their associations must
 share the EDI backend so each transaction set can commit or roll back atomically.
 
@@ -59,6 +59,23 @@ produces an APPLY exception: `no service session configured`.
 The `edi` app has Activity/Setup sections, typed home widgets, record screens and standard
 Review/Result actions. Main tables have RC.6 search-field metadata; `EdiIntegrations.mainTables()`
 also exposes the list for host search registration.
+
+## In-app help
+
+The producer registers [help/qbit-edi.yaml](src/main/resources/help/qbit-edi.yaml), a `QBIT`
+bundle versioned with this artifact. It covers the EDI app, tables, fields, actions, widgets,
+and possible-value sources. Live `{{...}}` references follow the current metadata.
+
+Hosts can register their own `layer: HOST` bundle with `HelpBundles.register(qInstance,
+"help/my-host.yaml")`, using the same keys and roles to override selected entries. Enable
+core's `helpContent` provider with provenance fields, then call
+`QInstanceHelpContentManager.loadHelpContent(qInstance)` and `HelpBundles.syncOnStartup(qInstance)`
+after defining metadata. Core preserves user edits during sync. If you configure a different
+EDI app name, use that name in your host's app help key.
+
+Registration is safe without `helpContent`; those hosts retain the table/app help fallback.
+`EdiHelpBundleTest` runs the core `HelpBundleAssertions` coverage gate and checks widget and
+possible-value-source coverage during `./mvnw verify`, without host-specific exclusions.
 
 ## Tables
 

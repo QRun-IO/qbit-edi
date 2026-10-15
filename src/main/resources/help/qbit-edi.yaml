@@ -1,148 +1,1837 @@
 bundle: qbit-edi
-version: 1
+version: 0.1.0-SNAPSHOT
 layer: QBIT
-# Help for the EDI app and every edi_* table, in the QQQ help-bundle format
-# (qqq#1198). Each table entry says what the table is for and how its rows get
-# created, so an empty table explains itself. EdiHelp applies it until the core
-# HelpBundles registry ships in a QQQ release.
-# Summaries stay under 120 characters (EdiTablesGuardrailTest).
 entries:
-  - key: app:edi;slot:help
-    summary: "Exchange X12 and EDIFACT documents with trading partners: set up, then watch the activity."
-    content: |
-      Built-in guides and code lists load at startup. You set up the rest in this order: 1) a Partner; 2) Identities, one for your own ISA or UNB ID (no partner) and one for the partner; 3) an Agreement that pairs the two identities for a standard and usage (test or production); 4) Agreement Documents, one per transaction set and direction, with the guide and optionally a map; 5) a Transport (AS2, SFTP, HTTPS) and link it on the agreement. Certificates are only needed for AS2 signing and encryption. The Setup status section on the home shows which step is next. Everything after that (inbox, interchanges, transactions, exceptions, outbound messages) is written by the system as documents flow.
+- key: app:edi;slot:help
+  summary: Manage trading partners, document exchanges, validation, mapping, and delivery exceptions.
+  content: |
+    Use EDI to set up trading partners and monitor the documents you exchange.
 
-  - key: table:edi_partner;slot:help
-    summary: "A trading partner you exchange documents with. The first setup step: identities, agreements and transports hang off it."
-    content: |
-      **How rows get created:** an administrator adds one with New: a name and a short code. It is host data, so it starts empty. Next add the partner's identity and your own, then an agreement.
+    1. Add a Partner and Identities for your organization and the partner.
+    2. Add an Agreement that pairs those identities, then Agreement Documents for each document type and direction.
+    3. Configure a Transport and link it on the agreement. Add certificates if you use AS2 signing or encryption.
+    4. Choose guides and maps for validation and conversion. Use synthetic samples to preview your maps before activation.
 
-  - key: table:edi_identity;slot:help
-    summary: "An interchange identity: qualifier and ID (ISA or UNB). Yours has no partner; each partner has its own."
-    content: |
-      **How rows get created:** an administrator adds them with New, after the partner. Add one with no partner for your own ID, and one per partner for theirs. Inbound documents are routed by matching these qualifiers and IDs, so they must match what the partner sends exactly. It is host data and starts empty.
+    Your administrator initializes the built-in guides and code lists. Use Setup status to see what still needs attention. In Activity, review Documents, Interchanges, and Exceptions; the home lists highlight failures, overdue acknowledgements, and expiring certificates.
+- key: table:edi_partner;slot:help
+  summary: Manage the trading partners you exchange documents with.
+  content: |
+    Start with your partner’s name, code, and contact details. Review Status and Contains PHI before you configure exchanges. Open the related Identities, Agreements, and Transports to connect the partner to document addressing and delivery settings. Use the related Documents, Interchanges, and Exceptions to investigate activity for that partner.
 
-  - key: table:edi_agreement;slot:help
-    summary: "The agreement with one partner: your identity, theirs, the standard, test or production, separators and acks."
-    content: |
-      **How rows get created:** an administrator adds one with New after the partner and both identities exist: pick your identity, the partner's identity, the standard and the usage indicator. Then set the inbound and outbound transports and add its documents. Without an agreement, inbound documents from that sender are rejected as unknown. It is host data and starts empty.
+    **How rows get created:** you add one with New: a name and a short code. It is host data, so it starts empty. Next add the partner's identity and your own, then an agreement.
+- key: table:edi_partner;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_partner;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_partner;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_partner;section:edi_partner_partner_id_edi_identity
+  summary: Review the related identities for this record.
+- key: table:edi_partner;section:edi_partner_partner_id_edi_agreement
+  summary: Review the related agreements for this record.
+- key: table:edi_partner;section:edi_partner_partner_id_edi_transport
+  summary: Review the related transports for this record.
+- key: table:edi_partner;section:edi_partner_partner_id_edi_certificate
+  summary: Review the related certificates for this record.
+- key: table:edi_partner;section:edi_partner_partner_id_edi_guide
+  summary: Review the related guides for this record.
+- key: table:edi_partner;section:edi_partner_partner_id_edi_interchange
+  summary: Review the related interchanges for this record.
+- key: table:edi_partner;section:edi_partner_partner_id_edi_transaction
+  summary: Review the related documents for this record.
+- key: table:edi_partner;section:edi_partner_partner_id_edi_exception
+  summary: Review the related exceptions for this record.
+- key: table:edi_partner;section:edi_partner_partner_id_edi_inbox
+  summary: Review the related inbound messages for this record.
+- key: table:edi_partner;section:edi_partner_partner_id_edi_map
+  summary: Review the related maps for this record.
+- key: table:edi_partner;field:name
+  summary: Your display name for this record.
+- key: table:edi_partner;field:code
+  summary: The code that identifies this record.
+- key: table:edi_partner;field:status
+  summary: The current state of this record.
+- key: table:edi_partner;field:contactName
+  summary: The person you contact about exchanges with this partner.
+- key: table:edi_partner;field:contactEmail
+  summary: The email address for your trading partner contact.
+- key: table:edi_partner;field:contactPhone
+  summary: The phone number for your trading partner contact.
+- key: table:edi_partner;field:containsPhi
+  summary: Whether the documents contain protected health information.
+- key: table:edi_partner;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_partner;field:modifiedBy
+  summary: The user recorded as making the latest change.
+- key: table:edi_partner;field:notes
+  summary: Your notes about this configuration.
+- key: table:edi_partner;field:defaultTimezone
+  summary: The default time zone recorded for this trading partner.
+- key: table:edi_partner;field:gatewayUsername
+  summary: The gateway account name associated with this trading partner.
+- key: table:edi_partner;field:createDate
+  summary: When this record was created.
+- key: table:edi_partner;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_identity;slot:help
+  summary: Identify your organization and partners in document envelopes.
+  content: |
+    Use an identity to describe one side of an exchange. Partner links it to a trading partner; a local identity represents your organization. Match Interchange Qualifier, Interchange ID, and Application Code to the values agreed with your partner. Agreements then pair your local identity with the partner identity.
 
-  - key: table:edi_agreement_document;slot:help
-    summary: "One document type on an agreement: transaction set, version, direction, guide, map and acknowledgement rules."
-    content: |
-      **How rows get created:** an administrator adds one per transaction set and direction with New, after the agreement: pick the set, version and direction, then the guide (built-in guides are ready) and the map that turns it into records. A document with no row here is not processed. It is host data and starts empty.
+    **How rows get created:** you add them with New, after the partner. Add one with no partner for your own ID, and one per partner for theirs. Inbound documents are routed by matching these qualifiers and IDs, so they must match what the partner sends exactly. It is host data and starts empty.
+- key: table:edi_identity;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_identity;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_identity;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_identity;section:edi_identity_local_identity_id_edi_agreement
+  summary: Review the related local agreements for this record.
+- key: table:edi_identity;section:edi_identity_partner_identity_id_edi_agreement
+  summary: Review the related partner agreements for this record.
+- key: table:edi_identity;section:edi_identity_local_identity_id_edi_control_number
+  summary: Review the related control numbers for this record.
+- key: table:edi_identity;field:interchangeId
+  summary: The sender or receiver identity carried in the interchange header.
+- key: table:edi_identity;field:interchangeQualifier
+  summary: The code describing the type of interchange identity.
+- key: table:edi_identity;field:applicationCode
+  summary: The sender or receiver application code used in document groups.
+- key: table:edi_identity;field:partnerId
+  summary: The linked partner record.
+- key: table:edi_identity;field:standard
+  summary: The document standard used for this exchange.
+- key: table:edi_identity;field:isActive
+  summary: Whether this configuration is enabled for use.
+- key: table:edi_identity;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_identity;field:description
+  summary: Your description of this record and its purpose.
+- key: table:edi_identity;field:modifiedBy
+  summary: The user recorded as making the latest change.
+- key: table:edi_identity;field:createDate
+  summary: When this record was created.
+- key: table:edi_identity;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_agreement;slot:help
+  summary: Set the identities, delivery methods, and exchange rules for a trading partner.
+  content: |
+    Choose the Partner, Local Identity, and Partner Identity, then check Standard and Usage Indicator. Configure the inbound and outbound delivery methods and the separators expected by the partner. Agreement Documents hold the rules for individual document types. Review duplicate handling and Apply Test Documents before enabling an agreement for use.
 
-  - key: table:edi_control_number;slot:help
-    summary: "The last interchange, group or document control number sent, per agreement or identity scope."
-    content: |
-      **How rows get created:** automatically, the first time a document is sent for a scope; the system then advances the number on every send. An administrator edits the last value only to resume numbering after a partner or system change.
+    **How rows get created:** you add one with New after the partner and both identities exist: pick your identity, the partner's identity, the standard and the usage indicator. Then set the inbound and outbound transports and add its documents. Without an agreement, inbound documents from that sender are rejected as unknown. It is host data and starts empty.
 
-  - key: table:edi_transport;slot:help
-    summary: "How documents travel to and from a partner: AS2, SFTP, HTTPS or a gateway, with secrets as variable names."
-    content: |
-      **How rows get created:** an administrator adds one with New, after the partner: pick the type and fill in its address and the NAMES of the environment variables holding passwords or keys (secrets are never stored). Then link it on the agreement as the inbound or outbound transport and run "Test Connection". It is host data and starts empty.
+    Available standards: {{values:edi_standard}}. Check {{label:edi_agreement.usageIndicator}} before exchanging test or production documents.
+- key: table:edi_agreement;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_agreement;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_agreement;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_agreement;section:edi_agreement_agreement_id_edi_agreement_document
+  summary: Review the related agreement documents for this record.
+- key: table:edi_agreement;section:edi_agreement_agreement_id_edi_control_number
+  summary: Review the related control numbers for this record.
+- key: table:edi_agreement;section:edi_agreement_agreement_id_edi_interchange
+  summary: Review the related interchanges for this record.
+- key: table:edi_agreement;section:edi_agreement_agreement_id_edi_outbound_message
+  summary: Review the related outbound messages for this record.
+- key: table:edi_agreement;field:partnerId
+  summary: The linked partner record.
+- key: table:edi_agreement;field:localIdentityId
+  summary: The linked local identity record.
+- key: table:edi_agreement;field:partnerIdentityId
+  summary: The linked partner identity record.
+- key: table:edi_agreement;field:standard
+  summary: The document standard used for this exchange.
+- key: table:edi_agreement;field:usageIndicator
+  summary: Whether the exchange carries test or production documents.
+- key: table:edi_agreement;field:isActive
+  summary: Whether this configuration is enabled for use.
+- key: table:edi_agreement;field:inboundTransportId
+  summary: The linked inbound transport record.
+- key: table:edi_agreement;field:outboundTransportId
+  summary: The linked outbound transport record.
+- key: table:edi_agreement;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_agreement;field:modifiedBy
+  summary: The user recorded as making the latest change.
+- key: table:edi_agreement;field:sendTa1
+  summary: When to send an interchange acknowledgement to your partner.
+- key: table:edi_agreement;field:notes
+  summary: Your notes about this configuration.
+- key: table:edi_agreement;field:interchangeVersion
+  summary: The version used for the interchange envelope.
+- key: table:edi_agreement;field:elementSeparator
+  summary: The character separating individual data elements.
+- key: table:edi_agreement;field:segmentTerminator
+  summary: The character marking the end of each document segment.
+- key: table:edi_agreement;field:componentSeparator
+  summary: The character separating components within a data element.
+- key: table:edi_agreement;field:maxInterchangeBytes
+  summary: The maximum permitted interchange size in bytes.
+- key: table:edi_agreement;field:duplicateWindowDays
+  summary: How many days to look back when checking for duplicate interchanges.
+- key: table:edi_agreement;field:repetitionSeparator
+  summary: The character separating repeated values within an element.
+- key: table:edi_agreement;field:releaseCharacter
+  summary: The character that escapes a separator in EDIFACT content.
+- key: table:edi_agreement;field:syntaxIdentifier
+  summary: The EDIFACT syntax identifier used in the interchange header.
+- key: table:edi_agreement;field:controlNumberScope
+  summary: Whether control numbers are shared by local identity or assigned per agreement.
+- key: table:edi_agreement;field:applyTestDocuments
+  summary: Whether test documents may create or update business records.
+  content: |
+    Keep this setting off when test documents should be validated without changing business records. Enabling it allows the incoming flow to apply test documents as records. Check Usage Indicator and the selected Map before changing this setting, especially when your test and production exchanges share the same application.
+- key: table:edi_agreement;field:decimalMark
+  summary: The character used for decimal numbers in EDIFACT documents.
+- key: table:edi_agreement;field:onDuplicate
+  summary: How to handle an interchange identified as a duplicate.
+- key: table:edi_agreement;field:requestTa1
+  summary: Whether to request an interchange acknowledgement from your partner.
+- key: table:edi_agreement;field:lineEnding
+  summary: The line ending added between document segments.
+- key: table:edi_agreement;field:createDate
+  summary: When this record was created.
+- key: table:edi_agreement;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_agreement_document;slot:help
+  summary: Choose validation, mapping, and acknowledgement rules for one document type and direction.
+  content: |
+    Define one document type, direction, and version under an Agreement. Select the Guide and Map that should validate and convert those documents. Check Ack Expectation and Ack Due Minutes against your partner’s requirements. For outgoing documents, review the source records, trigger, and batch settings before making the configuration active.
 
-  - key: table:edi_certificate;slot:help
-    summary: "Certificates for AS2 signing and encryption: yours and your partners', with expiry tracking."
-    content: |
-      **How rows get created:** an administrator adds one with New: paste a partner's public certificate, or register your own with the environment variable NAMES that hold its private key. Only AS2 needs them. Expiring certificates raise an alert, and "Promote Certificate" switches a NEXT certificate to current. It is host data and starts empty.
+    **How rows get created:** you add one per transaction set and direction with New, after the agreement: pick the set, version and direction, then the guide (built-in guides are ready) and the map that turns it into records. A document with no row here is not processed. It is host data and starts empty.
+- key: table:edi_agreement_document;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_agreement_document;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_agreement_document;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_agreement_document;section:edi_agreement_document_agreement_document_id_edi_transaction
+  summary: Review the related documents for this record.
+- key: table:edi_agreement_document;section:edi_agreement_document_agreement_document_id_edi_outbound_request
+  summary: Review the related outbound requests for this record.
+- key: table:edi_agreement_document;field:transactionSet
+  summary: The document type code, such as 850 for a purchase order.
+- key: table:edi_agreement_document;field:direction
+  summary: Whether documents are received or sent.
+- key: table:edi_agreement_document;field:version
+  summary: The document standard version used for validation or mapping.
+- key: table:edi_agreement_document;field:agreementId
+  summary: The linked agreement record.
+- key: table:edi_agreement_document;field:isActive
+  summary: Whether this configuration is enabled for use.
+- key: table:edi_agreement_document;field:guideId
+  summary: The linked guide record.
+- key: table:edi_agreement_document;field:mapId
+  summary: The linked map record.
+- key: table:edi_agreement_document;field:ackExpectation
+  summary: The acknowledgement type expected for this document agreement.
+- key: table:edi_agreement_document;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_agreement_document;field:modifiedBy
+  summary: The user recorded as making the latest change.
+- key: table:edi_agreement_document;field:sourceTableName
+  summary: The application table supplying records for outgoing documents.
+- key: table:edi_agreement_document;field:functionalIdCode
+  summary: The code identifying the document group type.
+- key: table:edi_agreement_document;field:containsPhi
+  summary: Whether the documents contain protected health information.
+- key: table:edi_agreement_document;field:batchSchedule
+  summary: The schedule for assembling documents when Batch Mode is BATCH.
+- key: table:edi_agreement_document;field:ackDueMinutes
+  summary: The number of minutes allowed for the expected acknowledgement.
+- key: table:edi_agreement_document;field:targetTableName
+  summary: The application table receiving records from incoming documents.
+- key: table:edi_agreement_document;field:outboundTrigger
+  summary: What causes an outgoing document request to be created.
+- key: table:edi_agreement_document;field:batchMode
+  summary: Whether outgoing documents are assembled immediately or on a batch schedule.
+- key: table:edi_agreement_document;field:snipLevel
+  summary: The healthcare validation level recorded for these checks.
+- key: table:edi_agreement_document;field:triggerFilter
+  summary: The record selection filter used by the outgoing document trigger.
+- key: table:edi_agreement_document;field:ackLevel
+  summary: Which document results to include in an acknowledgement.
+- key: table:edi_agreement_document;field:createDate
+  summary: When this record was created.
+- key: table:edi_agreement_document;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_control_number;slot:help
+  summary: Track the envelope number sequences used for your exchanges.
+  content: |
+    Use these records to inspect the envelope numbers allocated for an agreement or local identity. Level identifies the envelope being numbered, and Last Value shows the latest allocation. Min Value, Max Value, and Wrap Allowed define the sequence boundaries. Coordinate any changes with your partner so that new exchanges are not mistaken for duplicates.
 
-  - key: table:edi_guide;slot:help
-    summary: "Implementation guides: the segments, elements and rules a document is validated against."
-    content: |
-      **How rows get created:** the qbit installs 41 built-in guides (X12 004010 and 005010, EDIFACT D96A and D01B, HIPAA) when the host starts, and updates them when the qbit changes. Built-ins are read-only: use "Create Partner Override" to copy one for a partner, edit the draft, then "Activate Guide".
+    **How rows get created:** automatically, the first time a document is sent for a scope; the system then advances the number on every send. An administrator edits the last value only to resume numbering after a partner or system change.
+- key: table:edi_control_number;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_control_number;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_control_number;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_control_number;field:level
+  summary: The envelope level whose control numbers are allocated.
+- key: table:edi_control_number;field:lastValue
+  summary: The last control number allocated at this level.
+- key: table:edi_control_number;field:agreementId
+  summary: The linked agreement record.
+- key: table:edi_control_number;field:localIdentityId
+  summary: The linked local identity record.
+- key: table:edi_control_number;field:minValue
+  summary: The lowest value in the control number sequence.
+- key: table:edi_control_number;field:maxValue
+  summary: The highest value in the control number sequence.
+- key: table:edi_control_number;field:wrapAllowed
+  summary: Whether the sequence may restart after reaching its maximum.
+- key: table:edi_control_number;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_control_number;field:modifiedBy
+  summary: The user recorded as making the latest change.
+- key: table:edi_control_number;field:scopeKey
+  summary: The stored identity of the control number allocation scope.
+- key: table:edi_control_number;field:createDate
+  summary: When this record was created.
+- key: table:edi_control_number;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_transport;slot:help
+  summary: Configure how you send and receive documents with a trading partner.
+  content: |
+    Select Type and Direction before filling in the connection settings for that delivery method. AS2 uses partner identities and certificates; SFTP uses a host, account, paths, and server fingerprint. HTTPS has its own address and authentication settings. Email delivery is not implemented. Store secret environment variable names in the reference fields, then use Test Connection to check the configured method.
 
-  - key: table:edi_guide_segment;slot:help
-    summary: "The segments of a guide, in order, with usage, repeat limits and loop position."
-    content: |
-      **How rows get created:** automatically with the guide, when a built-in guide loads or a partner override is created. Edit them only on a draft override.
+    **How rows get created:** you add one with New, after the partner: pick the type and fill in its address and the NAMES of the environment variables holding passwords or keys (secrets are never stored). Then link it on the agreement as the inbound or outbound transport and run "Test Connection". It is host data and starts empty.
+- key: table:edi_transport;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_transport;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_transport;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_transport;section:edi_transport_inbound_transport_id_edi_agreement
+  summary: Review the related inbound agreements for this record.
+- key: table:edi_transport;section:edi_transport_outbound_transport_id_edi_agreement
+  summary: Review the related outbound agreements for this record.
+- key: table:edi_transport;section:edi_transport_transport_id_edi_interchange
+  summary: Review the related interchanges for this record.
+- key: table:edi_transport;section:edi_transport_transport_id_edi_inbox
+  summary: Review the related inbound messages for this record.
+- key: table:edi_transport;field:name
+  summary: Your display name for this record.
+- key: table:edi_transport;field:type
+  summary: The delivery method used to exchange documents.
+- key: table:edi_transport;field:direction
+  summary: Whether this connection receives documents, sends documents, or supports both directions.
+- key: table:edi_transport;field:partnerId
+  summary: The linked partner record.
+- key: table:edi_transport;field:isActive
+  summary: Whether this configuration is enabled for use.
+- key: table:edi_transport;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_transport;field:modifiedBy
+  summary: The user recorded as making the latest change.
+- key: table:edi_transport;field:emailTo
+  summary: The destination email address for document attachments.
+- key: table:edi_transport;field:isVan
+  summary: Whether this connection is identified as a value-added network service.
+- key: table:edi_transport;field:mdnMode
+  summary: Whether an AS2 delivery receipt is immediate, separate, or not requested.
+- key: table:edi_transport;field:vanName
+  summary: The name of the value-added network service used by this connection.
+- key: table:edi_transport;field:as2Url
+  summary: The partner address that receives outgoing AS2 messages.
+- key: table:edi_transport;field:notes
+  summary: Your notes about this configuration.
+- key: table:edi_transport;field:encryptAlgorithm
+  summary: The encryption method used to protect outgoing AS2 messages.
+- key: table:edi_transport;field:localCertificateId
+  summary: The linked local certificate record.
+- key: table:edi_transport;field:partnerCertificateId
+  summary: The linked partner certificate record.
+- key: table:edi_transport;field:httpAuthPasswordEnvVar
+  summary: The environment variable name holding the HTTP authentication password.
+  content: |
+    Enter the name of the server environment variable that holds this value. Do not enter the password, secret, or private key itself. The connection resolves the named variable when it needs the credential. Coordinate the variable name with your administrator and check the connection after changing its reference.
+- key: table:edi_transport;field:sftpPasswordEnvVar
+  summary: The environment variable name holding the SFTP password.
+  content: |
+    Enter the name of the server environment variable that holds this value. Do not enter the password, secret, or private key itself. The connection resolves the named variable when it needs the credential. Coordinate the variable name with your administrator and check the connection after changing its reference.
+- key: table:edi_transport;field:sftpPrivateKeyEnvVar
+  summary: The environment variable name holding the SFTP private key.
+  content: |
+    Enter the name of the server environment variable that holds this value. Do not enter the password, secret, or private key itself. The connection resolves the named variable when it needs the credential. Coordinate the variable name with your administrator and check the connection after changing its reference.
+- key: table:edi_transport;field:gatewayEndpointName
+  summary: The configured gateway endpoint used for incoming files.
+- key: table:edi_transport;field:httpsSecretEnvVar
+  summary: The environment variable name holding the HTTPS authentication secret.
+  content: |
+    Enter the name of the server environment variable that holds this value. Do not enter the password, secret, or private key itself. The connection resolves the named variable when it needs the credential. Coordinate the variable name with your administrator and check the connection after changing its reference.
+- key: table:edi_transport;field:httpsHeadersJson
+  summary: Additional HTTPS request headers expressed as a JSON object.
+- key: table:edi_transport;field:partnerTlsCertificateId
+  summary: The linked partner tls certificate record.
+- key: table:edi_transport;field:sftpOutboundPath
+  summary: The remote folder where outgoing files are placed.
+- key: table:edi_transport;field:emailProviderName
+  summary: The configured email provider used to send documents.
+- key: table:edi_transport;field:sftpHostKeyFingerprint
+  summary: The expected server key fingerprint used to verify the SFTP host.
+- key: table:edi_transport;field:httpAuthUserEnvVar
+  summary: The environment variable name holding the HTTP authentication username.
+  content: |
+    Enter the name of the server environment variable that holds this value. Do not enter the password, secret, or private key itself. The connection resolves the named variable when it needs the credential. Coordinate the variable name with your administrator and check the connection after changing its reference.
+- key: table:edi_transport;field:emailAttachmentName
+  summary: The filename used for the outgoing email attachment.
+- key: table:edi_transport;field:httpsInboundAuth
+  summary: The authentication method required for incoming HTTPS documents.
+- key: table:edi_transport;field:mdnSigned
+  summary: Whether a signed AS2 delivery receipt is requested.
+- key: table:edi_transport;field:sftpUsername
+  summary: The account name used to connect to the SFTP server.
+- key: table:edi_transport;field:sftpInboundPath
+  summary: The remote folder checked for incoming files.
+- key: table:edi_transport;field:as2PartnerId
+  summary: Your partner's AS2 identity used in message headers.
+- key: table:edi_transport;field:sftpArchivePath
+  summary: The remote folder used to archive files after pickup.
+- key: table:edi_transport;field:sftpFilePattern
+  summary: The filename pattern used to select incoming files.
+- key: table:edi_transport;field:sftpAfterPickup
+  summary: Whether successfully collected files are deleted or moved.
+- key: table:edi_transport;field:sftpTempSuffix
+  summary: The temporary filename suffix used while uploading outgoing files.
+- key: table:edi_transport;field:sftpHost
+  summary: The hostname of the SFTP server.
+- key: table:edi_transport;field:as2Subject
+  summary: The subject included in outgoing AS2 messages.
+- key: table:edi_transport;field:signAlgorithm
+  summary: The signature method used for AS2 messages.
+- key: table:edi_transport;field:as2LocalId
+  summary: Your local AS2 identity used in message headers.
+- key: table:edi_transport;field:sftpPort
+  summary: The network port used to connect to the SFTP server.
+- key: table:edi_transport;field:compress
+  summary: Whether outgoing AS2 content is compressed.
+- key: table:edi_transport;field:sftpPollCron
+  summary: The schedule for checking the SFTP server for incoming files.
+- key: table:edi_transport;field:httpsUrl
+  summary: The address that receives outgoing HTTPS documents.
+- key: table:edi_transport;field:weakCrypto
+  summary: Whether legacy AS2 encryption or signature methods are explicitly permitted.
+- key: table:edi_transport;field:httpsAuthType
+  summary: The authentication method used for outgoing HTTPS requests.
+- key: table:edi_transport;field:emailFromAlias
+  summary: The configured sender alias used for outgoing email.
+- key: table:edi_transport;field:maxAttempts
+  summary: The maximum number of delivery attempts before failure handling.
+- key: table:edi_transport;field:createDate
+  summary: When this record was created.
+- key: table:edi_transport;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_certificate;slot:help
+  summary: Manage public certificates and private key references used to secure exchanges.
+  content: |
+    Review the public certificate, Subject, Issuer, and validity dates before using it for an exchange. Private Key Env Var and Private Key Password Env Var refer to server environment variables. Promote Certificate handles a certificate marked NEXT. Export Public Certificate provides the public certificate for sharing with your trading partner.
 
-  - key: table:edi_guide_element;slot:help
-    summary: "The elements of a guide segment: data type, length, usage and the code list it is checked against."
-    content: |
-      **How rows get created:** automatically with the guide, when a built-in guide loads or a partner override is created. Edit them only on a draft override.
+    **How rows get created:** you add one with New: paste a partner's public certificate, or register your own with the environment variable NAMES that hold its private key. Only AS2 needs them. Expiring certificates raise an alert, and "Promote Certificate" switches a NEXT certificate to current. It is host data and starts empty.
+- key: table:edi_certificate;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_certificate;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_certificate;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_certificate;section:edi_certificate_local_certificate_id_edi_transport
+  summary: Review the related local certificate transports for this record.
+- key: table:edi_certificate;section:edi_certificate_partner_certificate_id_edi_transport
+  summary: Review the related partner certificate transports for this record.
+- key: table:edi_certificate;section:edi_certificate_partner_tls_certificate_id_edi_transport
+  summary: Review the related partner tls transports for this record.
+- key: table:edi_certificate;field:alias
+  summary: Your short name for identifying this certificate.
+- key: table:edi_certificate;field:status
+  summary: The current state of this record.
+- key: table:edi_certificate;field:usage
+  summary: Whether the certificate is used for signing, encryption, both, or a secure connection.
+- key: table:edi_certificate;field:partnerId
+  summary: The linked partner record.
+- key: table:edi_certificate;field:notAfter
+  summary: When this certificate expires.
+- key: table:edi_certificate;field:subject
+  summary: The identity named in the certificate.
+- key: table:edi_certificate;field:issuer
+  summary: The authority that issued the certificate.
+- key: table:edi_certificate;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_certificate;field:serialNumber
+  summary: The serial number assigned by the certificate issuer.
+- key: table:edi_certificate;field:modifiedBy
+  summary: The user recorded as making the latest change.
+- key: table:edi_certificate;field:privateKeyEnvVar
+  summary: The environment variable name holding the certificate's private key.
+  content: |
+    Enter the name of the server environment variable that holds this value. Do not enter the password, secret, or private key itself. The connection resolves the named variable when it needs the credential. Coordinate the variable name with your administrator and check the connection after changing its reference.
+- key: table:edi_certificate;field:fingerprintSha256
+  summary: The SHA256 fingerprint identifying this certificate.
+- key: table:edi_certificate;field:certificatePem
+  summary: The public certificate in PEM text format.
+- key: table:edi_certificate;field:privateKeyPasswordEnvVar
+  summary: The environment variable name holding the private key password.
+  content: |
+    Enter the name of the server environment variable that holds this value. Do not enter the password, secret, or private key itself. The connection resolves the named variable when it needs the credential. Coordinate the variable name with your administrator and check the connection after changing its reference.
+- key: table:edi_certificate;field:notBefore
+  summary: When this certificate becomes valid.
+- key: table:edi_certificate;field:createDate
+  summary: When this record was created.
+- key: table:edi_certificate;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_guide;slot:help
+  summary: Define the document structure and validation rules agreed with your partner.
+  content: |
+    Use an implementation guide to describe the segments, elements, and validation rules for a document type and version. Review its child records before activation. Create Partner Override makes a draft copy for a particular partner. Activate Guide checks the draft and assigns a new revision, retiring the previous active revision with the same name and partner.
 
-  - key: table:edi_guide_rule;slot:help
-    summary: "Conditional rules in a guide, such as required-if and exclusion rules, evaluated during validation."
-    content: |
-      **How rows get created:** automatically with the guide, when a built-in guide loads or a partner override is created. Edit them only on a draft override.
+    **How rows get created:** your administrator initializes the bundled X12, EDIFACT, and HIPAA guides. Initialization adds missing guides without overwriting existing records. Built-ins are read-only: use "Create Partner Override" to copy one for a partner, edit the draft, then "Activate Guide".
+- key: table:edi_guide;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_guide;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_guide;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_guide;section:edi_guide_guide_id_edi_agreement_document
+  summary: Review the related agreement documents for this record.
+- key: table:edi_guide;section:edi_guide_guide_id_edi_guide_segment
+  summary: Review the related segments for this record.
+- key: table:edi_guide;section:edi_guide_guide_id_edi_guide_rule
+  summary: Review the related rules for this record.
+- key: table:edi_guide;section:edi_guide_guide_id_edi_transaction
+  summary: Review the related documents for this record.
+- key: table:edi_guide;field:name
+  summary: Your display name for this record.
+- key: table:edi_guide;field:revision
+  summary: The revision number assigned when the guide or map is activated.
+- key: table:edi_guide;field:status
+  summary: The current state of this record.
+- key: table:edi_guide;field:transactionSet
+  summary: The document type code, such as 850 for a purchase order.
+- key: table:edi_guide;field:version
+  summary: The document standard version used for validation or mapping.
+- key: table:edi_guide;field:standard
+  summary: The document standard used for this exchange.
+- key: table:edi_guide;field:partnerId
+  summary: The linked partner record.
+- key: table:edi_guide;field:source
+  summary: Where this configuration originated.
+- key: table:edi_guide;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_guide;field:description
+  summary: Your description of this record and its purpose.
+- key: table:edi_guide;field:modifiedBy
+  summary: The user recorded as making the latest change.
+- key: table:edi_guide;field:functionalIdCode
+  summary: The code identifying the document group type.
+- key: table:edi_guide;field:compiledChecksum
+  summary: The checksum recorded for the compiled implementation guide.
+- key: table:edi_guide;field:parentGuideId
+  summary: The linked parent guide record.
+- key: table:edi_guide;field:createDate
+  summary: When this record was created.
+- key: table:edi_guide;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_guide_segment;slot:help
+  summary: Define a segment and its repetition rules within an implementation guide.
+  content: |
+    **How rows get created:** automatically with the guide, when a built-in guide loads or a partner override is created. Edit them only on a draft override.
+- key: table:edi_guide_segment;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_guide_segment;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_guide_segment;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_guide_segment;section:edi_guide_segment_guide_segment_id_edi_guide_element
+  summary: Review the related elements for this record.
+- key: table:edi_guide_segment;section:edi_guide_segment_guide_segment_id_edi_guide_rule
+  summary: Review the related rules for this record.
+- key: table:edi_guide_segment;field:segmentId
+  summary: The code identifying an EDI segment.
+- key: table:edi_guide_segment;field:name
+  summary: Your display name for this record.
+- key: table:edi_guide_segment;field:position
+  summary: The position of this item within its parent structure.
+- key: table:edi_guide_segment;field:sequence
+  summary: The order in which this item is processed.
+- key: table:edi_guide_segment;field:usage
+  summary: Whether this item is required, conditional, or not used.
+- key: table:edi_guide_segment;field:loopId
+  summary: The identifier of the repeating segment group.
+- key: table:edi_guide_segment;field:guideId
+  summary: The linked guide record.
+- key: table:edi_guide_segment;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_guide_segment;field:modifiedBy
+  summary: The user recorded as making the latest change.
+- key: table:edi_guide_segment;field:maxUse
+  summary: The maximum permitted number of uses of this segment.
+- key: table:edi_guide_segment;field:minUse
+  summary: The minimum required number of uses of this segment.
+- key: table:edi_guide_segment;field:notes
+  summary: Your notes about this configuration.
+- key: table:edi_guide_segment;field:situationalRuleId
+  summary: The linked situational rule record.
+- key: table:edi_guide_segment;field:parentLoopId
+  summary: The identifier of the enclosing repeating segment group.
+- key: table:edi_guide_segment;field:loopMaxRepeat
+  summary: The maximum permitted repetitions of this segment group.
+- key: table:edi_guide_segment;field:createDate
+  summary: When this record was created.
+- key: table:edi_guide_segment;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_guide_element;slot:help
+  summary: Define the format, length, and allowed values of a document element.
+  content: |
+    **How rows get created:** automatically with the guide, when a built-in guide loads or a partner override is created. Edit them only on a draft override.
+- key: table:edi_guide_element;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_guide_element;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_guide_element;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_guide_element;field:name
+  summary: Your display name for this record.
+- key: table:edi_guide_element;field:elementId
+  summary: The standard's identifier for this data element.
+- key: table:edi_guide_element;field:position
+  summary: The position of this item within its parent structure.
+- key: table:edi_guide_element;field:componentPosition
+  summary: The position of the component within a composite data element.
+- key: table:edi_guide_element;field:usage
+  summary: Whether this item is required, conditional, or not used.
+- key: table:edi_guide_element;field:dataType
+  summary: The permitted format of the element's value.
+- key: table:edi_guide_element;field:guideSegmentId
+  summary: The linked guide segment record.
+- key: table:edi_guide_element;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_guide_element;field:modifiedBy
+  summary: The user recorded as making the latest change.
+- key: table:edi_guide_element;field:minLength
+  summary: The shortest permitted element value.
+- key: table:edi_guide_element;field:situationalRuleId
+  summary: The linked situational rule record.
+- key: table:edi_guide_element;field:fixedValue
+  summary: The exact value required for this element.
+- key: table:edi_guide_element;field:repeatMax
+  summary: The maximum permitted repetitions of this element.
+- key: table:edi_guide_element;field:codeListId
+  summary: The linked code list record.
+- key: table:edi_guide_element;field:maxLength
+  summary: The longest permitted element value.
+- key: table:edi_guide_element;field:createDate
+  summary: When this record was created.
+- key: table:edi_guide_element;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_guide_rule;slot:help
+  summary: Define validation conditions and the messages reported when they fail.
+  content: |
+    **How rows get created:** automatically with the guide, when a built-in guide loads or a partner override is created. Edit them only on a draft override.
+- key: table:edi_guide_rule;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_guide_rule;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_guide_rule;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_guide_rule;field:type
+  summary: The kind of validation condition evaluated by this rule.
+- key: table:edi_guide_rule;field:message
+  summary: The explanation shown when validation finds this issue.
+- key: table:edi_guide_rule;field:severity
+  summary: Whether the finding is an error or a warning.
+- key: table:edi_guide_rule;field:positions
+  summary: The element positions evaluated together by this rule.
+- key: table:edi_guide_rule;field:guideId
+  summary: The linked guide record.
+- key: table:edi_guide_rule;field:guideSegmentId
+  summary: The linked guide segment record.
+- key: table:edi_guide_rule;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_guide_rule;field:expression
+  summary: The condition evaluated by this validation rule.
+- key: table:edi_guide_rule;field:modifiedBy
+  summary: The user recorded as making the latest change.
+- key: table:edi_guide_rule;field:ak3Code
+  summary: The segment error code used in a 997 acknowledgement.
+- key: table:edi_guide_rule;field:ik4Code
+  summary: The element error code used in a 999 acknowledgement.
+- key: table:edi_guide_rule;field:ak4Code
+  summary: The element error code used in a 997 acknowledgement.
+- key: table:edi_guide_rule;field:ik3Code
+  summary: The segment error code used in a 999 acknowledgement.
+- key: table:edi_guide_rule;field:snipLevel
+  summary: The healthcare validation level recorded for these checks.
+- key: table:edi_guide_rule;field:createDate
+  summary: When this record was created.
+- key: table:edi_guide_rule;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_code_list;slot:help
+  summary: Group allowed codes used to validate document values.
+  content: |
+    Give the list a name and identify the data element whose allowed values it describes. Review Source and External Code Set when the values come from another specification. Maintain the individual values under Codes. Guide Elements can refer to the list so document validation uses the appropriate allowed values.
 
-  - key: table:edi_code_list;slot:help
-    summary: "Code lists that guide elements are validated against, such as qualifiers and status codes."
-    content: |
-      **How rows get created:** the qbit installs them with its built-in guides when the host starts. An administrator can add a list for a partner override with New.
+    **How rows get created:** the qbit installs them with its built-in guides when the host starts. You can add a list for a partner override with New.
+- key: table:edi_code_list;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_code_list;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_code_list;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_code_list;section:edi_code_list_code_list_id_edi_guide_element
+  summary: Review the related elements for this record.
+- key: table:edi_code_list;section:edi_code_list_code_list_id_edi_code_list_value
+  summary: Review the related codes for this record.
+- key: table:edi_code_list;field:name
+  summary: Your display name for this record.
+- key: table:edi_code_list;field:elementId
+  summary: The standard's identifier for this data element.
+- key: table:edi_code_list;field:source
+  summary: Where this configuration originated.
+- key: table:edi_code_list;field:externalCodeSet
+  summary: The external code set associated with this list.
+- key: table:edi_code_list;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_code_list;field:modifiedBy
+  summary: The user recorded as making the latest change.
+- key: table:edi_code_list;field:createDate
+  summary: When this record was created.
+- key: table:edi_code_list;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_code_list_value;slot:help
+  summary: Define an allowed code and its meaning within a code list.
+  content: |
+    **How rows get created:** the qbit installs them with its built-in guides when the host starts. You can add values to a list on a partner override with New.
+- key: table:edi_code_list_value;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_code_list_value;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_code_list_value;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_code_list_value;field:code
+  summary: The code that identifies this record.
+- key: table:edi_code_list_value;field:description
+  summary: Your description of this record and its purpose.
+- key: table:edi_code_list_value;field:isActive
+  summary: Whether this configuration is enabled for use.
+- key: table:edi_code_list_value;field:codeListId
+  summary: The linked code list record.
+- key: table:edi_code_list_value;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_code_list_value;field:modifiedBy
+  summary: The user recorded as making the latest change.
+- key: table:edi_code_list_value;field:createDate
+  summary: When this record was created.
+- key: table:edi_code_list_value;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_interchange;slot:help
+  summary: Review the envelope, processing status, and documents in an exchange.
+  content: |
+    Open an interchange to review the sender, receiver, control number, and processing status of an exchange. Functional Groups and Documents show the contents of the envelope; Events and Exceptions help explain processing outcomes. Download Raw Document requires the appropriate access. For incoming exchanges, Reprocess queues the original stored message for another attempt.
 
-  - key: table:edi_code_list_value;slot:help
-    summary: "The allowed values of a code list, with descriptions."
-    content: |
-      **How rows get created:** the qbit installs them with its built-in guides when the host starts. An administrator can add values to a list on a partner override with New.
+    **How rows get created:** automatically, when an inbound document is parsed and when an outbound document is enveloped. It starts empty; use "Reprocess", "Resend" or "Download Raw Document" on a row.
+- key: table:edi_interchange;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_interchange;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_interchange;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_interchange;section:edi_interchange_interchange_id_edi_functional_group
+  summary: Review the related functional groups for this record.
+- key: table:edi_interchange;section:edi_interchange_interchange_id_edi_transaction
+  summary: Review the related documents for this record.
+- key: table:edi_interchange;section:edi_interchange_interchange_id_edi_event
+  summary: Review the related events for this record.
+- key: table:edi_interchange;section:edi_interchange_interchange_id_edi_exception
+  summary: Review the related exceptions for this record.
+- key: table:edi_interchange;field:direction
+  summary: Whether documents are received or sent.
+- key: table:edi_interchange;field:partnerId
+  summary: The linked partner record.
+- key: table:edi_interchange;field:controlNumber
+  summary: The tracking number carried in the document or envelope.
+- key: table:edi_interchange;field:status
+  summary: The current state of this record.
+- key: table:edi_interchange;field:interchangeDate
+  summary: The date and time recorded in the interchange header.
+- key: table:edi_interchange;field:transportId
+  summary: The linked transport record.
+- key: table:edi_interchange;field:groupCount
+  summary: The number of document groups in the interchange.
+- key: table:edi_interchange;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_interchange;field:payloadSha256
+  summary: The SHA256 checksum identifying the stored document content.
+- key: table:edi_interchange;field:inboxId
+  summary: The linked inbound message record.
+- key: table:edi_interchange;field:interchangeVersion
+  summary: The version used for the interchange envelope.
+- key: table:edi_interchange;field:containsPhi
+  summary: Whether the documents contain protected health information.
+- key: table:edi_interchange;field:standard
+  summary: The document standard used for this exchange.
+- key: table:edi_interchange;field:usageIndicator
+  summary: Whether the exchange carries test or production documents.
+- key: table:edi_interchange;field:agreementId
+  summary: The linked agreement record.
+- key: table:edi_interchange;field:senderQualifier
+  summary: The code describing the sender's interchange identity type.
+- key: table:edi_interchange;field:senderId
+  summary: The sender identity carried in the envelope.
+- key: table:edi_interchange;field:receiverId
+  summary: The receiver identity carried in the envelope.
+- key: table:edi_interchange;field:sizeBytes
+  summary: The document content size in bytes.
+- key: table:edi_interchange;field:payloadRef
+  summary: The reference to the encrypted stored document content.
+- key: table:edi_interchange;field:ta1Status
+  summary: The status of the interchange acknowledgement.
+- key: table:edi_interchange;field:inboundPosition
+  summary: The item's original position in the incoming message.
+- key: table:edi_interchange;field:outboundMessageId
+  summary: The linked outbound message record.
+- key: table:edi_interchange;field:receiverQualifier
+  summary: The code describing the receiver's interchange identity type.
+- key: table:edi_interchange;field:originalInterchangeId
+  summary: The linked original interchange record.
+- key: table:edi_interchange;field:createDate
+  summary: When this record was created.
+- key: table:edi_interchange;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_functional_group;slot:help
+  summary: Review documents grouped together inside an interchange and their acknowledgements.
+  content: |
+    Review the group control number and acknowledgement status to follow a group within an interchange. Use the related documents to inspect its contents.
 
-  - key: table:edi_map;slot:help
-    summary: "A versioned map between a document and a QQQ table: which record each document becomes, or is built from."
-    content: |
-      **How rows get created:** run "Install sample maps" to add the bundled synthetic examples (one per built-in document and version, as drafts, bound to nothing), or add your own with New. Point the map at your own table, adjust its rules, use "Preview Map" with a synthetic sample, then "Activate Map" and select it on the agreement document. Never use real PHI in samples.
+    **How rows get created:** processing creates groups as it parses or builds an interchange. The EDI home lists groups whose expected acknowledgement is overdue.
+- key: table:edi_functional_group;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_functional_group;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_functional_group;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_functional_group;section:edi_functional_group_functional_group_id_edi_transaction
+  summary: Review the related documents for this record.
+- key: table:edi_functional_group;field:controlNumber
+  summary: The tracking number carried in the document or envelope.
+- key: table:edi_functional_group;field:functionalIdCode
+  summary: The code identifying the document group type.
+- key: table:edi_functional_group;field:version
+  summary: The document standard version used for validation or mapping.
+- key: table:edi_functional_group;field:transactionCount
+  summary: The number of documents contained in this group.
+- key: table:edi_functional_group;field:ackStatus
+  summary: The current acknowledgement status for these documents.
+- key: table:edi_functional_group;field:interchangeId
+  summary: The linked interchange record.
+- key: table:edi_functional_group;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_functional_group;field:senderId
+  summary: The sender identity carried in the envelope.
+- key: table:edi_functional_group;field:inboundPosition
+  summary: The item's original position in the incoming message.
+- key: table:edi_functional_group;field:ackTransactionId
+  summary: The linked ack document record.
+- key: table:edi_functional_group;field:createDate
+  summary: When this record was created.
+- key: table:edi_functional_group;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_functional_group;field:ackReceivedAt
+  summary: When the acknowledgement was received.
+- key: table:edi_functional_group;field:ackDueAt
+  summary: When the expected acknowledgement becomes overdue.
+- key: table:edi_transaction;slot:help
+  summary: Track an individual document from validation through mapping and acknowledgement.
+  content: |
+    Use Status, Ack Status, Error Count, and Warning Count to decide what needs attention. The related Validation Errors identify document locations that failed checks. Guide Revision and Map Revision record which definitions were used. Target Table Name and Target Record ID identify the business record associated with the processed document.
 
-  - key: table:edi_map_rule;slot:help
-    summary: "One field rule of a map: an EDI path, the QQQ field it fills, an optional transform and condition."
-    content: |
-      **How rows get created:** "Install sample maps" adds the rules of each sample, or an administrator adds them with New on a draft map. Active maps are read-only; make a new revision to change one.
+    **How rows get created:** automatically, as each document is validated and mapped (inbound) or built (outbound). It starts empty; "Reprocess" re-runs a document after a map or guide change.
+- key: table:edi_transaction;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_transaction;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_transaction;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_transaction;section:edi_transaction_transaction_id_edi_transaction_error
+  summary: Review the related validation errors for this record.
+- key: table:edi_transaction;section:edi_transaction_transaction_id_edi_event
+  summary: Review the related events for this record.
+- key: table:edi_transaction;section:edi_transaction_transaction_id_edi_exception
+  summary: Review the related exceptions for this record.
+- key: table:edi_transaction;field:transactionSet
+  summary: The document type code, such as 850 for a purchase order.
+- key: table:edi_transaction;field:businessKeyType
+  summary: The kind of business reference used to identify the document.
+- key: table:edi_transaction;field:businessKey
+  summary: The business reference extracted from the document, such as an order number.
+- key: table:edi_transaction;field:partnerId
+  summary: The linked partner record.
+- key: table:edi_transaction;field:direction
+  summary: Whether documents are received or sent.
+- key: table:edi_transaction;field:status
+  summary: The current state of this record.
+- key: table:edi_transaction;field:ackStatus
+  summary: The current acknowledgement status for these documents.
+- key: table:edi_transaction;field:version
+  summary: The document standard version used for validation or mapping.
+- key: table:edi_transaction;field:interchangeId
+  summary: The linked interchange record.
+- key: table:edi_transaction;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_transaction;field:mapId
+  summary: The linked map record.
+- key: table:edi_transaction;field:guideId
+  summary: The linked guide record.
+- key: table:edi_transaction;field:containsPhi
+  summary: Whether the documents contain protected health information.
+- key: table:edi_transaction;field:targetTableName
+  summary: The application table receiving records from incoming documents.
+- key: table:edi_transaction;field:controlNumber
+  summary: The tracking number carried in the document or envelope.
+- key: table:edi_transaction;field:targetRecordId
+  summary: The identifier of the business record created or updated by this document.
+- key: table:edi_transaction;field:errorCount
+  summary: The number of validation errors recorded for the document.
+- key: table:edi_transaction;field:secondaryKey
+  summary: An additional business reference extracted from the document.
+- key: table:edi_transaction;field:mapRevision
+  summary: The map revision used when processing this document.
+- key: table:edi_transaction;field:phiBusinessKey
+  summary: The protected business reference containing health information.
+- key: table:edi_transaction;field:inboundPosition
+  summary: The item's original position in the incoming message.
+- key: table:edi_transaction;field:warningCount
+  summary: The number of validation warnings recorded for the document.
+- key: table:edi_transaction;field:guideRevision
+  summary: The implementation guide revision used to validate this document.
+- key: table:edi_transaction;field:segmentCount
+  summary: The number of segments in the document.
+- key: table:edi_transaction;field:functionalGroupId
+  summary: The linked functional group record.
+- key: table:edi_transaction;field:agreementDocumentId
+  summary: The linked agreement document record.
+- key: table:edi_transaction;field:createDate
+  summary: When this record was created.
+- key: table:edi_transaction;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_transaction_error;slot:help
+  summary: Review validation errors and warnings with their locations in the document.
+  content: |
+    **How rows get created:** automatically, when validation against the guide finds a problem in a document. They feed the 997, 999 and CONTRL acknowledgements.
+- key: table:edi_transaction_error;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_transaction_error;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_transaction_error;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_transaction_error;field:severity
+  summary: Whether the finding is an error or a warning.
+- key: table:edi_transaction_error;field:message
+  summary: The explanation shown when validation finds this issue.
+- key: table:edi_transaction_error;field:segmentId
+  summary: The code identifying an EDI segment.
+- key: table:edi_transaction_error;field:segmentPosition
+  summary: The position of the segment containing the validation issue.
+- key: table:edi_transaction_error;field:elementPosition
+  summary: The position of the element containing the validation issue.
+- key: table:edi_transaction_error;field:transactionId
+  summary: The linked document record.
+- key: table:edi_transaction_error;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_transaction_error;field:loopId
+  summary: The identifier of the repeating segment group.
+- key: table:edi_transaction_error;field:ackCode
+  summary: The error code reported in the acknowledgement.
+- key: table:edi_transaction_error;field:componentPosition
+  summary: The position of the component within a composite data element.
+- key: table:edi_transaction_error;field:snipLevel
+  summary: The healthcare validation level recorded for these checks.
+- key: table:edi_transaction_error;field:valueExcerpt
+  summary: The recorded excerpt of the value associated with the validation issue.
+- key: table:edi_transaction_error;field:createDate
+  summary: When this record was created.
+- key: table:edi_transaction_error;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_event;slot:help
+  summary: Review recorded processing events for an incoming message, interchange, or document.
+  content: |
+    **How rows get created:** automatically, at each step of processing and when a raw document is downloaded. It is an append-only audit log shown on the interchange record, and is never edited.
+- key: table:edi_event;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_event;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_event;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_event;field:type
+  summary: The processing event recorded for the document.
+- key: table:edi_event;field:at
+  summary: When this event occurred.
+- key: table:edi_event;field:detail
+  summary: Additional information recorded about this event or exception.
+- key: table:edi_event;field:transactionId
+  summary: The linked document record.
+- key: table:edi_event;field:interchangeId
+  summary: The linked interchange record.
+- key: table:edi_event;field:inboxId
+  summary: The linked inbound message record.
+- key: table:edi_event;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_event;field:userName
+  summary: The user associated with this event.
+- key: table:edi_event;field:createDate
+  summary: When this record was created.
+- key: table:edi_event;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_exception;slot:help
+  summary: Investigate document processing issues and record who is handling them.
+  content: |
+    Review Type, Summary, and Detail, then follow the linked message, interchange, or document to investigate. Assign selects the user responsible and marks the exception in progress. Use Resolution to record what you did. Mark Resolved or Ignore records the handling outcome; Reprocess separately queues the original incoming message when another attempt is appropriate.
 
-  - key: table:edi_map_sample;slot:help
-    summary: "Synthetic documents used to preview a map and record the last preview result."
-    content: |
-      **How rows get created:** run "Preview Map" on a map and upload a synthetic sample document; the sample is saved here with its preview status. Never upload real PHI. It starts empty.
+    **How rows get created:** automatically, when processing fails or an acknowledgement is rejected or overdue. Work them from the home queue: "Assign", "Ignore" or "Mark Resolved". It starts empty, which is good.
+- key: table:edi_exception;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_exception;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_exception;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_exception;field:type
+  summary: The category of issue that needs investigation.
+- key: table:edi_exception;field:status
+  summary: The current state of this record.
+- key: table:edi_exception;field:summary
+  summary: The short explanation of the exception that needs attention.
+- key: table:edi_exception;field:partnerId
+  summary: The linked partner record.
+- key: table:edi_exception;field:transactionId
+  summary: The linked document record.
+- key: table:edi_exception;field:interchangeId
+  summary: The linked interchange record.
+- key: table:edi_exception;field:assignedToUserId
+  summary: The user responsible for investigating this exception.
+- key: table:edi_exception;field:occurrences
+  summary: The number of times this exception has been recorded.
+- key: table:edi_exception;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_exception;field:detail
+  summary: Additional information recorded about this event or exception.
+- key: table:edi_exception;field:modifiedBy
+  summary: The user recorded as making the latest change.
+- key: table:edi_exception;field:inboxId
+  summary: The linked inbound message record.
+- key: table:edi_exception;field:resolvedBy
+  summary: The user who marked this exception resolved or ignored.
+- key: table:edi_exception;field:resolution
+  summary: Your explanation of how the exception was handled.
+- key: table:edi_exception;field:outboundMessageId
+  summary: The linked outbound message record.
+- key: table:edi_exception;field:createDate
+  summary: When this record was created.
+- key: table:edi_exception;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_exception;field:resolvedAt
+  summary: When this exception was marked resolved or ignored.
+- key: table:edi_inbox;slot:help
+  summary: Review received messages, processing attempts, and stored document references.
+  content: |
+    Use Status, Attempts, Next Attempt At, and Last Error to understand incoming processing. The original document remains referenced by Payload Ref. Interchanges and Events show what processing produced. Reprocess queues the stored message again when it is not currently being processed. Download Raw Document provides the original content when your permissions allow it.
 
-  - key: table:edi_inbox;slot:help
-    summary: "Every inbound file or message received, before it is processed, with its status and raw document."
-    content: |
-      **How rows get created:** automatically, when a transport receives a document: the AS2, HTTPS or file-gateway endpoints, or an SFTP poll. A worker then parses it into interchanges. It starts empty and is never typed in; "Reprocess" re-runs a document.
+    **How rows get created:** automatically, when a transport receives a document: the AS2, HTTPS or file-gateway endpoints, or an SFTP poll. A worker then parses it into interchanges. It starts empty and is never typed in; "Reprocess" re-runs a document.
+- key: table:edi_inbox;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_inbox;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_inbox;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_inbox;section:edi_inbox_inbox_id_edi_interchange
+  summary: Review the related interchanges for this record.
+- key: table:edi_inbox;section:edi_inbox_inbox_id_edi_exception
+  summary: Review the related exceptions for this record.
+- key: table:edi_inbox;section:edi_inbox_inbox_id_edi_as2_mdn
+  summary: Review the related as2 mdns for this record.
+- key: table:edi_inbox;section:edi_inbox_inbox_id_edi_event
+  summary: Review the related events for this record.
+- key: table:edi_inbox;field:transportType
+  summary: The delivery method that received the message.
+- key: table:edi_inbox;field:externalId
+  summary: The message identifier supplied by the incoming delivery method.
+- key: table:edi_inbox;field:status
+  summary: The current state of this record.
+- key: table:edi_inbox;field:partnerId
+  summary: The linked partner record.
+- key: table:edi_inbox;field:transportId
+  summary: The linked transport record.
+- key: table:edi_inbox;field:receivedAt
+  summary: When the message or delivery receipt was received.
+- key: table:edi_inbox;field:attempts
+  summary: The number of processing or delivery attempts recorded so far.
+- key: table:edi_inbox;field:remoteAddress
+  summary: The network address recorded for the incoming connection.
+- key: table:edi_inbox;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_inbox;field:fileName
+  summary: The filename recorded for the incoming document.
+- key: table:edi_inbox;field:username
+  summary: The authenticated username recorded for the incoming upload.
+- key: table:edi_inbox;field:lastError
+  summary: The latest processing or delivery failure recorded for this message.
+- key: table:edi_inbox;field:payloadSha256
+  summary: The SHA256 checksum identifying the stored document content.
+- key: table:edi_inbox;field:sizeBytes
+  summary: The document content size in bytes.
+- key: table:edi_inbox;field:payloadRef
+  summary: The reference to the encrypted stored document content.
+- key: table:edi_inbox;field:gatewayUserId
+  summary: The gateway user identifier recorded for the upload.
+- key: table:edi_inbox;field:reprocess
+  summary: Whether the stored incoming message is queued for another processing attempt.
+- key: table:edi_inbox;field:useCurrentRevisions
+  summary: Whether reprocessing uses current guide and map revisions.
+- key: table:edi_inbox;field:nextAttemptAt
+  summary: When another processing or delivery attempt is due.
+- key: table:edi_inbox;field:processedAt
+  summary: When processing of the incoming message completed.
+- key: table:edi_inbox;field:claimedAt
+  summary: When a worker claimed this message for processing.
+- key: table:edi_inbox;field:createDate
+  summary: When this record was created.
+- key: table:edi_inbox;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_payload;slot:help
+  summary: Track encrypted document content and its size, checksum, and encryption key identifier.
+  content: |
+    Use these records to inspect encrypted document storage metadata, without editing the stored bytes.
 
-  - key: table:edi_payload;slot:help
-    summary: "Encrypted raw document bytes, used when payload storage is the database instead of object storage."
-    content: |
-      **How rows get created:** automatically, only when the host sets payload storage to DATABASE (demos and tests). Production hosts use object storage and this table stays empty.
+    **How rows get created:** documents are archived here when your administrator selects database payload storage. With object storage, document bytes are stored outside this table. The storage choice is configured by your host application.
+- key: table:edi_payload;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_payload;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_payload;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_payload;field:kind
+  summary: The category of encrypted document content stored here.
+- key: table:edi_payload;field:sizeBytes
+  summary: The document content size in bytes.
+- key: table:edi_payload;field:sha256
+  summary: The SHA256 checksum identifying the stored content.
+- key: table:edi_payload;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_payload;field:keyId
+  summary: The identifier of the encryption key protecting this content.
+- key: table:edi_payload;field:ciphertext
+  summary: The encrypted document bytes held in storage.
+- key: table:edi_payload;field:createDate
+  summary: When this record was created.
+- key: table:edi_payload;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_map;slot:help
+  summary: Define how document values correspond to your application records.
+  content: |
+    Choose the document type, direction, version, guide, and application table for the mapping. Add Map Rules to connect document values to record fields and define conversions. Use synthetic Samples with Preview Map to inspect the result. Activate Map validates field paths and assigns a revision before you use it in an Agreement Document.
 
-  - key: table:edi_interchange;slot:help
-    summary: "One interchange (ISA or UNB envelope) sent or received, with its status and the agreement it matched."
-    content: |
-      **How rows get created:** automatically, when an inbound document is parsed and when an outbound document is enveloped. It starts empty; use "Reprocess", "Resend" or "Download Raw Document" on a row.
+    **How rows get created:** run "Install sample maps" to add the bundled synthetic examples as drafts with their guides, but without a partner or agreement document, or add your own with New. Point the map at your own table, adjust its rules, use "Preview Map" with a synthetic sample, then "Activate Map" and select it on the agreement document. Never use real PHI in samples.
+- key: table:edi_map;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_map;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_map;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_map;section:edi_map_map_id_edi_map_rule
+  summary: Review the related map rules for this record.
+- key: table:edi_map;section:edi_map_map_id_edi_map_sample
+  summary: Review the related samples for this record.
+- key: table:edi_map;section:edi_map_map_id_edi_agreement_document
+  summary: Review the related agreement documents for this record.
+- key: table:edi_map;field:name
+  summary: Your display name for this record.
+- key: table:edi_map;field:revision
+  summary: The revision number assigned when the guide or map is activated.
+- key: table:edi_map;field:status
+  summary: The current state of this record.
+- key: table:edi_map;field:direction
+  summary: Whether documents are received or sent.
+- key: table:edi_map;field:transactionSet
+  summary: The document type code, such as 850 for a purchase order.
+- key: table:edi_map;field:version
+  summary: The document standard version used for validation or mapping.
+- key: table:edi_map;field:partnerId
+  summary: The linked partner record.
+- key: table:edi_map;field:guideId
+  summary: The linked guide record.
+- key: table:edi_map;field:tableName
+  summary: The application table connected to the map.
+- key: table:edi_map;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_map;field:description
+  summary: Your description of this record and its purpose.
+- key: table:edi_map;field:onMatch
+  summary: What to do when incoming data matches an existing business record.
+  content: |
+    Choose how the map handles an incoming document that matches an existing business record. Match Key Fields defines the comparison. UPDATE permits an update, SKIP leaves the matching record alone, and EXCEPTION reports the match as a problem. Preview your mapping with synthetic samples and review the matching fields before activation.
+- key: table:edi_map;field:standard
+  summary: The document standard used for this exchange.
+- key: table:edi_map;field:businessKeyType
+  summary: The kind of business reference used to identify the document.
+- key: table:edi_map;field:businessKeyPath
+  summary: The document path used to extract the primary business reference.
+- key: table:edi_map;field:matchKeyFields
+  summary: The business record fields used to find an existing matching record.
+- key: table:edi_map;field:parentMapId
+  summary: The linked parent map record.
+- key: table:edi_map;field:secondaryKeyPath
+  summary: The document path used to extract an additional business reference.
+- key: table:edi_map;field:createDate
+  summary: When this record was created.
+- key: table:edi_map;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_map_rule;slot:help
+  summary: Connect a document value to a record field with conversion and selection rules.
+  content: |
+    **How rows get created:** "Install sample maps" adds the rules of each sample, or you add them with New on a draft map. Active maps are read-only; make a new revision to change one.
+- key: table:edi_map_rule;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_map_rule;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_map_rule;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_map_rule;field:sequence
+  summary: The order in which this item is processed.
+- key: table:edi_map_rule;field:ediPath
+  summary: The location of the value in the EDI document.
+- key: table:edi_map_rule;field:qqqPath
+  summary: The application record field or child field connected to the document value.
+- key: table:edi_map_rule;field:transform
+  summary: The conversion applied between document and record values.
+- key: table:edi_map_rule;field:required
+  summary: Whether the mapping requires a value for this rule.
+- key: table:edi_map_rule;field:mapId
+  summary: The linked map record.
+- key: table:edi_map_rule;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_map_rule;field:defaultValue
+  summary: The fallback value configured for this mapping rule.
+- key: table:edi_map_rule;field:condition
+  summary: The condition that controls whether this mapping rule applies.
+- key: table:edi_map_rule;field:notes
+  summary: Your notes about this configuration.
+- key: table:edi_map_rule;field:transformArgs
+  summary: The settings supplied to the selected value conversion.
+- key: table:edi_map_rule;field:createDate
+  summary: When this record was created.
+- key: table:edi_map_rule;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_map_sample;slot:help
+  summary: Keep synthetic documents and expected results for checking your maps.
+  content: |
+    **How rows get created:** run "Preview Map" on a map and upload a synthetic sample document; the sample is saved here with its preview status. Never upload real PHI. It starts empty.
+- key: table:edi_map_sample;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_map_sample;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_map_sample;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_map_sample;field:name
+  summary: Your display name for this record.
+- key: table:edi_map_sample;field:mapId
+  summary: The linked map record.
+- key: table:edi_map_sample;field:lastPreviewStatus
+  summary: The result recorded by the latest map preview.
+- key: table:edi_map_sample;field:lastPreviewAt
+  summary: When this sample was last previewed.
+- key: table:edi_map_sample;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_map_sample;field:payloadRef
+  summary: The reference to the encrypted stored document content.
+- key: table:edi_map_sample;field:expectedResultJson
+  summary: The expected mapping result for this synthetic sample, expressed as JSON.
+- key: table:edi_map_sample;field:createDate
+  summary: When this record was created.
+- key: table:edi_map_sample;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_outbound_request;slot:help
+  summary: Track requests to turn business records into outgoing documents.
+  content: |
+    An outgoing request identifies the source business record and the Agreement Document used to turn it into an EDI document. Check Status and Attempts to follow preparation. Next Attempt At shows when another attempt is due, and Last Error helps you investigate failures before reviewing the resulting outbound delivery.
 
-  - key: table:edi_functional_group;slot:help
-    summary: "A functional group (GS) inside an interchange, with the acknowledgement it expects or sent."
-    content: |
-      **How rows get created:** automatically, with each interchange. The home shows groups whose expected acknowledgement is overdue.
+    **How rows get created:** automatically, when a record in a table the host lists for sending is created or changed, or when someone runs "Send As EDI" on a row. A worker builds the document and queues it as an outbound message.
+- key: table:edi_outbound_request;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_outbound_request;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_outbound_request;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_outbound_request;field:status
+  summary: The current state of this record.
+- key: table:edi_outbound_request;field:agreementDocumentId
+  summary: The linked agreement document record.
+- key: table:edi_outbound_request;field:sourceTableName
+  summary: The application table supplying records for outgoing documents.
+- key: table:edi_outbound_request;field:sourceRecordId
+  summary: The business record identifier used to build the outgoing document.
+- key: table:edi_outbound_request;field:attempts
+  summary: The number of processing or delivery attempts recorded so far.
+- key: table:edi_outbound_request;field:nextAttemptAt
+  summary: When another processing or delivery attempt is due.
+- key: table:edi_outbound_request;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_outbound_request;field:lastError
+  summary: The latest processing or delivery failure recorded for this message.
+- key: table:edi_outbound_request;field:eventId
+  summary: The originating event identifier used for the outgoing request.
+- key: table:edi_outbound_request;field:claimedAt
+  summary: When a worker claimed this message for processing.
+- key: table:edi_outbound_request;field:createDate
+  summary: When this record was created.
+- key: table:edi_outbound_request;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_outbound_message;slot:help
+  summary: Track assembled outgoing documents through delivery and retries.
+  content: |
+    Review Status, Attempts, Sent At, and Delivered At to follow delivery. Last Error and Next Attempt At explain retries. Resend queues the same stored content again; Resend As New creates another exchange with new envelope control numbers. Cancel is available only while a message is queued or waiting to retry.
 
-  - key: table:edi_transaction;slot:help
-    summary: "One document (ST or UNH) inside a group: its transaction set, status and the record it became."
-    content: |
-      **How rows get created:** automatically, as each document is validated and mapped (inbound) or built (outbound). It starts empty; "Reprocess" re-runs a document after a map or guide change.
+    **How rows get created:** automatically, when a document is built for sending. A worker sends it over the agreement's transport, retries on failure, and records the transport delivery result. AS2 receipts can update delivery status; document acknowledgements are tracked separately. Use "Resend" or "Cancel" on a row.
+- key: table:edi_outbound_message;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_outbound_message;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_outbound_message;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_outbound_message;section:edi_outbound_message_outbound_message_id_edi_interchange
+  summary: Review the related interchanges for this record.
+- key: table:edi_outbound_message;section:edi_outbound_message_outbound_message_id_edi_as2_mdn
+  summary: Review the related as2 mdns for this record.
+- key: table:edi_outbound_message;field:transportId
+  summary: The linked transport record.
+- key: table:edi_outbound_message;field:status
+  summary: The current state of this record.
+- key: table:edi_outbound_message;field:partnerId
+  summary: The linked partner record.
+- key: table:edi_outbound_message;field:agreementId
+  summary: The linked agreement record.
+- key: table:edi_outbound_message;field:attempts
+  summary: The number of processing or delivery attempts recorded so far.
+- key: table:edi_outbound_message;field:sentAt
+  summary: When the outgoing message was sent.
+- key: table:edi_outbound_message;field:deliveredAt
+  summary: When delivery was recorded as complete.
+- key: table:edi_outbound_message;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_outbound_message;field:lastError
+  summary: The latest processing or delivery failure recorded for this message.
+- key: table:edi_outbound_message;field:payloadSha256
+  summary: The SHA256 checksum identifying the stored document content.
+- key: table:edi_outbound_message;field:interchangeId
+  summary: The linked interchange record.
+- key: table:edi_outbound_message;field:sizeBytes
+  summary: The document content size in bytes.
+- key: table:edi_outbound_message;field:payloadRef
+  summary: The reference to the encrypted stored document content.
+- key: table:edi_outbound_message;field:transportMic
+  summary: The content integrity check recorded for AS2 delivery verification.
+- key: table:edi_outbound_message;field:ackForGroupId
+  summary: The linked ack for group record.
+- key: table:edi_outbound_message;field:outboundRequestId
+  summary: The linked outbound request record.
+- key: table:edi_outbound_message;field:transportMessageId
+  summary: The delivery method's identifier for the outgoing message.
+- key: table:edi_outbound_message;field:ackForInterchangeId
+  summary: The linked ack for interchange record.
+- key: table:edi_outbound_message;field:nextAttemptAt
+  summary: When another processing or delivery attempt is due.
+- key: table:edi_outbound_message;field:claimedAt
+  summary: When a worker claimed this message for processing.
+- key: table:edi_outbound_message;field:createDate
+  summary: When this record was created.
+- key: table:edi_outbound_message;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_as2_mdn;slot:help
+  summary: Review AS2 delivery receipts, signatures, and content integrity checks.
+  content: |
+    **How rows get created:** automatically, by the AS2 endpoint: one when an MDN arrives for a message you sent (it settles that message as delivered or failed) and one for each MDN you send. It is read-only and used to ignore duplicate receipts. It starts empty and only AS2 transports use it.
+- key: table:edi_as2_mdn;section:identity
+  summary: Review the key identifiers and status for this record.
+- key: table:edi_as2_mdn;section:details
+  summary: Review the additional settings and recorded details.
+- key: table:edi_as2_mdn;section:dates
+  summary: Review when this record was created, changed, or processed.
+- key: table:edi_as2_mdn;field:direction
+  summary: Whether documents are received or sent.
+- key: table:edi_as2_mdn;field:originalMessageId
+  summary: The identifier of the AS2 message acknowledged by this receipt.
+- key: table:edi_as2_mdn;field:disposition
+  summary: The processing outcome reported in the AS2 delivery receipt.
+- key: table:edi_as2_mdn;field:signed
+  summary: Whether the AS2 delivery receipt carries a digital signature.
+- key: table:edi_as2_mdn;field:signatureValid
+  summary: Whether verification of the receipt's digital signature succeeded.
+- key: table:edi_as2_mdn;field:partnerId
+  summary: The linked partner record.
+- key: table:edi_as2_mdn;field:transportId
+  summary: The linked transport record.
+- key: table:edi_as2_mdn;field:receivedAt
+  summary: When the message or delivery receipt was received.
+- key: table:edi_as2_mdn;field:id
+  summary: The unique identifier of this record.
+- key: table:edi_as2_mdn;field:inboxId
+  summary: The linked inbound message record.
+- key: table:edi_as2_mdn;field:payloadRef
+  summary: The reference to the encrypted stored document content.
+- key: table:edi_as2_mdn;field:messageId
+  summary: The identifier assigned to this AS2 receipt message.
+- key: table:edi_as2_mdn;field:micValue
+  summary: The content integrity check reported by the AS2 receipt.
+- key: table:edi_as2_mdn;field:micAlgorithm
+  summary: The method used to calculate the receipt's content integrity check.
+- key: table:edi_as2_mdn;field:deliveryStatus
+  summary: The current status of sending the AS2 receipt.
+- key: table:edi_as2_mdn;field:deliveryUrl
+  summary: The address receiving the separately sent AS2 receipt.
+- key: table:edi_as2_mdn;field:outboundMessageId
+  summary: The linked outbound message record.
+- key: table:edi_as2_mdn;field:deliveryAttempts
+  summary: The number of attempts to send this AS2 receipt.
+- key: table:edi_as2_mdn;field:deliveredAt
+  summary: When delivery was recorded as complete.
+- key: table:edi_as2_mdn;field:nextAttemptAt
+  summary: When another processing or delivery attempt is due.
+- key: table:edi_as2_mdn;field:createDate
+  summary: When this record was created.
+- key: table:edi_as2_mdn;field:modifyDate
+  summary: When this record was last changed.
+- key: table:edi_preview_download;slot:help
+  summary: Provide authorized access to encrypted EDI uploads and downloadable results.
+  content: |
+    Use the download offered in a preview or document action's Result. This storage endpoint serves authorized encrypted payloads; you do not create or edit records here.
+- key: table:edi_preview_download;field:id
+  summary: The unique identifier of this record.
+- key: process:edi_inbox_reprocess;slot:help
+  summary: Queue the original incoming message for another processing attempt.
+  content: |
+    Select the records you want to retry and review the selection before confirming. Reprocess finds the original stored incoming message and queues it again. A message already being processed cannot be reset. Leave Use current guide and map revisions off to retain the earlier definitions, or select it deliberately when testing corrected definitions.
+- key: process:edi_inbox_reprocess;field:useCurrentRevisions
+  summary: Choose whether to retry with current guide and map revisions instead of the earlier definitions.
+- key: process:edi_interchange_reprocess;slot:help
+  summary: Queue the original incoming message for another processing attempt.
+  content: |
+    Select the records you want to retry and review the selection before confirming. Reprocess finds the original stored incoming message and queues it again. A message already being processed cannot be reset. Leave Use current guide and map revisions off to retain the earlier definitions, or select it deliberately when testing corrected definitions.
+- key: process:edi_interchange_reprocess;field:useCurrentRevisions
+  summary: Choose whether to retry with current guide and map revisions instead of the earlier definitions.
+- key: process:edi_transaction_reprocess;slot:help
+  summary: Queue the original incoming message for another processing attempt.
+  content: |
+    Select the records you want to retry and review the selection before confirming. Reprocess finds the original stored incoming message and queues it again. A message already being processed cannot be reset. Leave Use current guide and map revisions off to retain the earlier definitions, or select it deliberately when testing corrected definitions.
+- key: process:edi_transaction_reprocess;field:useCurrentRevisions
+  summary: Choose whether to retry with current guide and map revisions instead of the earlier definitions.
+- key: process:edi_exception_reprocess;slot:help
+  summary: Queue the original incoming message for another processing attempt.
+  content: |
+    Select the records you want to retry and review the selection before confirming. Reprocess finds the original stored incoming message and queues it again. A message already being processed cannot be reset. Leave Use current guide and map revisions off to retain the earlier definitions, or select it deliberately when testing corrected definitions.
+- key: process:edi_exception_reprocess;field:useCurrentRevisions
+  summary: Choose whether to retry with current guide and map revisions instead of the earlier definitions.
+- key: process:edi_map_preview;slot:help
+  summary: Check a map against synthetic samples and download the preview results.
+  content: |
+    Select a Map or Map Sample, then review which synthetic samples to use. On a map, leave Sample blank to preview all saved samples or choose one sample. You can also upload a synthetic sample. Review the Result messages and download the preview output to investigate mapping problems before activation.
+- key: process:edi_map_preview;field:sampleId
+  summary: Choose one saved sample, or leave blank to preview all samples for the map.
+- key: process:edi_map_preview;field:sampleUpload
+  summary: Upload a synthetic document to use for this map preview.
+- key: process:edi_map_preview;field:downloadFileName
+  summary: The filename offered for your downloadable result.
+- key: process:edi_map_preview;field:storageTableName
+  summary: The storage location used to retrieve your downloadable result.
+- key: process:edi_map_preview;field:storageReference
+  summary: The authorized storage reference for the downloadable result.
+- key: process:edi_map_sample_preview;slot:help
+  summary: Check a map against synthetic samples and download the preview results.
+  content: |
+    Select a Map or Map Sample, then review which synthetic samples to use. On a map, leave Sample blank to preview all saved samples or choose one sample. You can also upload a synthetic sample. Review the Result messages and download the preview output to investigate mapping problems before activation.
+- key: process:edi_map_sample_preview;field:sampleUpload
+  summary: Upload a synthetic document to use for this map preview.
+- key: process:edi_map_sample_preview;field:downloadFileName
+  summary: The filename offered for your downloadable result.
+- key: process:edi_map_sample_preview;field:storageTableName
+  summary: The storage location used to retrieve your downloadable result.
+- key: process:edi_map_sample_preview;field:storageReference
+  summary: The authorized storage reference for the downloadable result.
+- key: process:edi_inbox_download;slot:help
+  summary: Download the original stored document when your access allows it.
+  content: |
+    Select one incoming message or interchange and choose Download Raw Document. Review the selection before confirming. The Result provides the document download through authorized storage access. Use the original content to investigate parsing or validation issues, and handle downloaded documents according to the sensitivity of their contents.
+- key: process:edi_inbox_download;field:downloadFileName
+  summary: The filename offered for your downloadable result.
+- key: process:edi_inbox_download;field:storageTableName
+  summary: The storage location used to retrieve your downloadable result.
+- key: process:edi_inbox_download;field:storageReference
+  summary: The authorized storage reference for the downloadable result.
+- key: process:edi_interchange_download;slot:help
+  summary: Download the original stored document when your access allows it.
+  content: |
+    Select one incoming message or interchange and choose Download Raw Document. Review the selection before confirming. The Result provides the document download through authorized storage access. Use the original content to investigate parsing or validation issues, and handle downloaded documents according to the sensitivity of their contents.
+- key: process:edi_interchange_download;field:downloadFileName
+  summary: The filename offered for your downloadable result.
+- key: process:edi_interchange_download;field:storageTableName
+  summary: The storage location used to retrieve your downloadable result.
+- key: process:edi_interchange_download;field:storageReference
+  summary: The authorized storage reference for the downloadable result.
+- key: process:edi_exception_assign;slot:help
+  summary: Assign an exception to a user and mark it in progress.
+  content: |
+    Select the exceptions you want someone to investigate and choose Assign. Enter the user identifier in Assign to user ID, review the selection, and confirm. The action records the assignee, changes the status to In progress, and sends an assignment notification. Review the Result for any records that could not be updated.
+- key: process:edi_exception_assign;field:assignedToUserId
+  summary: Enter the identifier of the user who will investigate the selected exceptions.
+- key: process:edi_exception_ignore;slot:help
+  summary: Mark selected exceptions ignored and record who handled them.
+  content: |
+    Review each exception and its related activity before choosing Ignore. After confirmation, the action changes the status to Ignored and records the handling user and time. Use Resolution to explain your decision. Ignoring an exception does not itself reprocess the original document or resend an outgoing message.
+- key: process:edi_exception_resolve;slot:help
+  summary: Mark selected exceptions resolved and record who handled them.
+  content: |
+    Investigate the exception and complete the necessary correction before choosing Mark Resolved. Review the selected records and confirm. The action changes their status to Resolved and records the handling user and time. Use Resolution to explain the correction; use Reprocess separately if the incoming document needs another attempt.
+- key: process:edi_guide_override;slot:help
+  summary: Create a draft implementation guide copy for a selected partner.
+  content: |
+    Select an Implementation Guide and choose Create Partner Override. Select the partner during Review and confirm the copy. The new draft includes the guide’s segments, elements, and rules, with references updated to the copied records. Review the partner-specific changes before activating the new guide for use.
+- key: process:edi_guide_override;field:partnerId
+  summary: Choose the trading partner for the new draft guide.
+- key: process:edi_guide_activate;slot:help
+  summary: Validate a draft and make it the active revision for its name and partner.
+  content: |
+    Select a draft and review the activation request before confirming. Activation validates the guide or map, assigns the next revision number, and retires the previous active revision with the same name and partner. Review the Result for validation failures, then check the Agreement Documents that use this definition.
+- key: process:edi_map_activate;slot:help
+  summary: Validate a draft and make it the active revision for its name and partner.
+  content: |
+    Select a draft and review the activation request before confirming. Activation validates the guide or map, assigns the next revision number, and retires the previous active revision with the same name and partner. Review the Result for validation failures, then check the Agreement Documents that use this definition.
+- key: process:edi_inbox_worker;slot:help
+  summary: Process queued incoming messages from encrypted storage.
+  content: |
+    Incoming messages are stored before this worker processes them. It picks up eligible messages and runs the incoming document flow. You can review progress in Inbound Messages, then follow Interchanges, Documents, Events, and Exceptions to understand the outcome. Check Attempts, Next Attempt At, and Last Error when processing needs attention.
+- key: process:edi_outbound_message_resend;slot:help
+  summary: Queue the same stored outgoing message for delivery again.
+  content: |
+    Select an outgoing message or its interchange and choose Resend. Review the selected records before confirming. The action queues the existing stored message again and resets its retry state. Check the Result and subsequent delivery status. Coordinate with your partner when repeat delivery could be treated as a duplicate.
+- key: process:edi_outbound_message_new;slot:help
+  summary: Create a new outgoing exchange with fresh envelope control numbers.
+  content: |
+    Choose Resend As New when you need another exchange based on the stored outgoing content. Review the selection carefully before confirming. The action creates a new interchange and outgoing message with fresh envelope control numbers. Check the resulting records and coordinate with your partner to avoid processing the same business document twice.
+- key: process:edi_outbound_message_cancel;slot:help
+  summary: Cancel an outgoing message that is queued or waiting to retry.
+  content: |
+    Select the outgoing message or its interchange and choose Cancel. Review the selection before confirming. Only queued messages and messages waiting to retry can be cancelled; the action rejects other states. Review the Result for records that could not be cancelled and check the current delivery status before taking further action.
+- key: process:edi_interchange_resend;slot:help
+  summary: Queue the same stored outgoing message for delivery again.
+  content: |
+    Select an outgoing message or its interchange and choose Resend. Review the selected records before confirming. The action queues the existing stored message again and resets its retry state. Check the Result and subsequent delivery status. Coordinate with your partner when repeat delivery could be treated as a duplicate.
+- key: process:edi_interchange_new;slot:help
+  summary: Create a new outgoing exchange with fresh envelope control numbers.
+  content: |
+    Choose Resend As New when you need another exchange based on the stored outgoing content. Review the selection carefully before confirming. The action creates a new interchange and outgoing message with fresh envelope control numbers. Check the resulting records and coordinate with your partner to avoid processing the same business document twice.
+- key: process:edi_interchange_cancel;slot:help
+  summary: Cancel an outgoing message that is queued or waiting to retry.
+  content: |
+    Select the outgoing message or its interchange and choose Cancel. Review the selection before confirming. Only queued messages and messages waiting to retry can be cancelled; the action rejects other states. Review the Result for records that could not be cancelled and check the current delivery status before taking further action.
+- key: process:edi_transport_test;slot:help
+  summary: Check the selected delivery connection using its configured method.
+  content: |
+    Select a Transport and choose Test Connection after reviewing the settings for its Type. Confirm the selection and read the Result for the connection check’s outcome. The check is performed by the selected delivery method, so use its reported details to correct the address, authentication references, certificates, or server verification settings.
+- key: process:edi_certificate_promote;slot:help
+  summary: Promote a certificate marked NEXT for active use.
+  content: |
+    Review the certificate’s identity, validity dates, and intended usage before choosing Promote Certificate. Only a certificate with status NEXT can be promoted. Confirm the selected record and review the Result. Check the related transport settings and coordinate the certificate change with your partner before relying on the new certificate.
+- key: process:edi_certificate_export;slot:help
+  summary: Download the selected public certificate in PEM format.
+  content: |
+    Select the certificate you need to share and choose Export Public Certificate. Review the selected record and confirm. The Result provides a PEM download containing the public certificate. Check Alias, Subject, Issuer, and validity dates so you send your partner the certificate intended for the relevant exchange.
+- key: process:edi_certificate_export;field:downloadFileName
+  summary: The filename offered for your downloadable result.
+- key: process:edi_certificate_export;field:storageTableName
+  summary: The storage location used to retrieve your downloadable result.
+- key: process:edi_certificate_export;field:storageReference
+  summary: The authorized storage reference for the downloadable result.
+- key: process:edi_outbound_worker;slot:help
+  summary: Build outgoing documents from eligible queued requests.
+  content: |
+    This worker turns eligible outgoing requests into documents using their agreement and mapping settings. You can follow the source record and Agreement Document from Outbound Request, then inspect the outgoing messages created for delivery. If preparation fails, review the request’s Status, Attempts, and Last Error before correcting the configuration.
+- key: process:edi_send_worker;slot:help
+  summary: Send eligible outgoing messages through their configured delivery method.
+  content: |
+    This worker attempts delivery of eligible outgoing messages through their configured Transport. You can follow Status, Attempts, Next Attempt At, and Last Error on Outbound Message. Sent At and Delivered At record delivery progress. Review the related interchange and receipts when you need to distinguish preparation, sending, and acknowledgement outcomes.
+- key: process:edi_as2_mdn_sender;slot:help
+  summary: Send pending asynchronous AS2 delivery receipts.
+  content: |
+    This worker sends AS2 receipts that require a separate delivery request. You can review the receipt’s Delivery URL, Delivery Status, Delivery Attempts, and Next Attempt At to follow progress. Original Message ID links the receipt to the acknowledged message. Check the configured delivery address when receipt delivery fails.
+- key: process:edi_ack_monitor;slot:help
+  summary: Find expected acknowledgements that have passed their due time.
+  content: |
+    This worker checks for acknowledgements that are still pending after their due time. You can use Overdue acknowledgements on the EDI home to identify groups needing attention and inspect Ack Due At and Ack Status. Review the associated exceptions and contact your partner when a document response is missing.
+- key: process:edi_outbound_enqueue;slot:help
+  summary: Create outgoing document requests from a supplied business record event.
+  content: |
+    This process accepts a source business record and its event identifier, then requests outgoing documents through the configured agreements. It is used by the application’s event integration. You can inspect Outbound Requests to see the selected Agreement Document, source record, processing status, and any errors before checking outgoing delivery.
+- key: widget:edi_partner_partner_id_edi_identity;slot:label
+  summary: View the related identities for the current record.
+- key: widget:edi_partner_partner_id_edi_agreement;slot:label
+  summary: View the related agreements for the current record.
+- key: widget:edi_identity_local_identity_id_edi_agreement;slot:label
+  summary: View the related local agreements for the current record.
+- key: widget:edi_identity_partner_identity_id_edi_agreement;slot:label
+  summary: View the related partner agreements for the current record.
+- key: widget:edi_transport_inbound_transport_id_edi_agreement;slot:label
+  summary: View the related inbound agreements for the current record.
+- key: widget:edi_transport_outbound_transport_id_edi_agreement;slot:label
+  summary: View the related outbound agreements for the current record.
+- key: widget:edi_agreement_agreement_id_edi_agreement_document;slot:label
+  summary: View the related agreement documents for the current record.
+- key: widget:edi_guide_guide_id_edi_agreement_document;slot:label
+  summary: View the related agreement documents for the current record.
+- key: widget:edi_agreement_agreement_id_edi_control_number;slot:label
+  summary: View the related control numbers for the current record.
+- key: widget:edi_identity_local_identity_id_edi_control_number;slot:label
+  summary: View the related control numbers for the current record.
+- key: widget:edi_partner_partner_id_edi_transport;slot:label
+  summary: View the related transports for the current record.
+- key: widget:edi_certificate_local_certificate_id_edi_transport;slot:label
+  summary: View the related local certificate transports for the current record.
+- key: widget:edi_certificate_partner_certificate_id_edi_transport;slot:label
+  summary: View the related partner certificate transports for the current record.
+- key: widget:edi_certificate_partner_tls_certificate_id_edi_transport;slot:label
+  summary: View the related partner tls transports for the current record.
+- key: widget:edi_partner_partner_id_edi_certificate;slot:label
+  summary: View the related certificates for the current record.
+- key: widget:edi_partner_partner_id_edi_guide;slot:label
+  summary: View the related guides for the current record.
+- key: widget:edi_guide_guide_id_edi_guide_segment;slot:label
+  summary: View the related segments for the current record.
+- key: widget:edi_guide_segment_guide_segment_id_edi_guide_element;slot:label
+  summary: View the related elements for the current record.
+- key: widget:edi_code_list_code_list_id_edi_guide_element;slot:label
+  summary: View the related elements for the current record.
+- key: widget:edi_guide_guide_id_edi_guide_rule;slot:label
+  summary: View the related rules for the current record.
+- key: widget:edi_guide_segment_guide_segment_id_edi_guide_rule;slot:label
+  summary: View the related rules for the current record.
+- key: widget:edi_code_list_code_list_id_edi_code_list_value;slot:label
+  summary: View the related codes for the current record.
+- key: widget:edi_partner_partner_id_edi_interchange;slot:label
+  summary: View the related interchanges for the current record.
+- key: widget:edi_agreement_agreement_id_edi_interchange;slot:label
+  summary: View the related interchanges for the current record.
+- key: widget:edi_transport_transport_id_edi_interchange;slot:label
+  summary: View the related interchanges for the current record.
+- key: widget:edi_inbox_inbox_id_edi_interchange;slot:label
+  summary: View the related interchanges for the current record.
+- key: widget:edi_interchange_interchange_id_edi_functional_group;slot:label
+  summary: View the related functional groups for the current record.
+- key: widget:edi_interchange_interchange_id_edi_transaction;slot:label
+  summary: View the related documents for the current record.
+- key: widget:edi_functional_group_functional_group_id_edi_transaction;slot:label
+  summary: View the related documents for the current record.
+- key: widget:edi_partner_partner_id_edi_transaction;slot:label
+  summary: View the related documents for the current record.
+- key: widget:edi_agreement_document_agreement_document_id_edi_transaction;slot:label
+  summary: View the related documents for the current record.
+- key: widget:edi_guide_guide_id_edi_transaction;slot:label
+  summary: View the related documents for the current record.
+- key: widget:edi_transaction_transaction_id_edi_transaction_error;slot:label
+  summary: View the related validation errors for the current record.
+- key: widget:edi_interchange_interchange_id_edi_event;slot:label
+  summary: View the related events for the current record.
+- key: widget:edi_transaction_transaction_id_edi_event;slot:label
+  summary: View the related events for the current record.
+- key: widget:edi_partner_partner_id_edi_exception;slot:label
+  summary: View the related exceptions for the current record.
+- key: widget:edi_inbox_inbox_id_edi_exception;slot:label
+  summary: View the related exceptions for the current record.
+- key: widget:edi_interchange_interchange_id_edi_exception;slot:label
+  summary: View the related exceptions for the current record.
+- key: widget:edi_transaction_transaction_id_edi_exception;slot:label
+  summary: View the related exceptions for the current record.
+- key: widget:edi_transport_transport_id_edi_inbox;slot:label
+  summary: View the related inbound messages for the current record.
+- key: widget:edi_partner_partner_id_edi_inbox;slot:label
+  summary: View the related inbound messages for the current record.
+- key: widget:edi_map_map_id_edi_map_rule;slot:label
+  summary: View the related map rules for the current record.
+- key: widget:edi_map_map_id_edi_map_sample;slot:label
+  summary: View the related samples for the current record.
+- key: widget:edi_partner_partner_id_edi_map;slot:label
+  summary: View the related maps for the current record.
+- key: widget:edi_map_map_id_edi_agreement_document;slot:label
+  summary: View the related agreement documents for the current record.
+- key: widget:edi_agreement_document_agreement_document_id_edi_outbound_request;slot:label
+  summary: View the related outbound requests for the current record.
+- key: widget:edi_agreement_agreement_id_edi_outbound_message;slot:label
+  summary: View the related outbound messages for the current record.
+- key: widget:edi_outbound_message_outbound_message_id_edi_interchange;slot:label
+  summary: View the related interchanges for the current record.
+- key: widget:edi_outbound_message_outbound_message_id_edi_as2_mdn;slot:label
+  summary: View the related as2 mdns for the current record.
+- key: widget:edi_inbox_inbox_id_edi_as2_mdn;slot:label
+  summary: View the related as2 mdns for the current record.
+- key: widget:edi_inbox_inbox_id_edi_event;slot:label
+  summary: View the related events for the current record.
+- key: widget:edi_home_in_today;slot:label
+  summary: Count incoming documents created today in UTC.
+- key: widget:edi_home_out_today;slot:label
+  summary: Count outgoing documents created today in UTC.
+- key: widget:edi_home_exceptions;slot:label
+  summary: Count exceptions that are open or in progress.
+- key: widget:edi_home_overdue;slot:label
+  summary: Count groups with pending acknowledgements past their due time.
+- key: widget:edi_home_dead;slot:label
+  summary: Count open or in-progress delivery and dead-letter exceptions.
+- key: widget:edi_home_certificates;slot:label
+  summary: Count active certificates expiring within 30 days or already expired.
+- key: widget:edi_home_queue;slot:label
+  summary: Review open exceptions and who is handling them.
+- key: widget:edi_home_acks;slot:label
+  summary: Review pending acknowledgements that are overdue.
+- key: widget:edi_home_errors;slot:label
+  summary: Review recent processing errors from the last 24 hours.
+- key: widget:edi_home_volume;slot:label
+  summary: Compare document volume by partner and document type over seven days.
+- key: widget:edi_home_system;slot:label
+  summary: Review the EDI system status and processing activity.
+- key: possibleValueSource:edi_standard;slot:help
+  summary: The available choices for standard.
+- key: possibleValueSource:edi_partner_status;slot:help
+  summary: The available choices for partner status.
+- key: possibleValueSource:edi_usage_indicator;slot:help
+  summary: The available choices for usage indicator.
+- key: possibleValueSource:edi_line_ending;slot:help
+  summary: The available choices for line ending.
+- key: possibleValueSource:edi_send_ta1;slot:help
+  summary: The available choices for send TA1.
+- key: possibleValueSource:edi_control_number_scope;slot:help
+  summary: The available choices for control number scope.
+- key: possibleValueSource:edi_on_duplicate;slot:help
+  summary: The available choices for on duplicate.
+- key: possibleValueSource:edi_direction;slot:help
+  summary: The available choices for direction.
+- key: possibleValueSource:edi_transport_direction;slot:help
+  summary: The available choices for transport direction.
+- key: possibleValueSource:edi_ack_expectation;slot:help
+  summary: The available choices for acknowledgement expectation.
+- key: possibleValueSource:edi_ack_level;slot:help
+  summary: The available choices for acknowledgement level.
+- key: possibleValueSource:edi_batch_mode;slot:help
+  summary: The available choices for batch mode.
+- key: possibleValueSource:edi_outbound_trigger;slot:help
+  summary: The available choices for outbound trigger.
+- key: possibleValueSource:edi_level;slot:help
+  summary: The available choices for level.
+- key: possibleValueSource:edi_transport_type;slot:help
+  summary: The available choices for transport type.
+- key: possibleValueSource:edi_sign_algorithm;slot:help
+  summary: The available choices for sign algorithm.
+- key: possibleValueSource:edi_encrypt_algorithm;slot:help
+  summary: The available choices for encrypt algorithm.
+- key: possibleValueSource:edi_mdn_mode;slot:help
+  summary: The available choices for AS2 receipt mode.
+- key: possibleValueSource:edi_sftp_after_pickup;slot:help
+  summary: The available choices for SFTP after pickup.
+- key: possibleValueSource:edi_https_auth_type;slot:help
+  summary: The available choices for HTTPS auth type.
+- key: possibleValueSource:edi_https_inbound_auth;slot:help
+  summary: The available choices for HTTPS inbound auth.
+- key: possibleValueSource:edi_certificate_status;slot:help
+  summary: The available choices for certificate status.
+- key: possibleValueSource:edi_certificate_usage;slot:help
+  summary: The available choices for certificate usage.
+- key: possibleValueSource:edi_guide_status;slot:help
+  summary: The available choices for guide status.
+- key: possibleValueSource:edi_guide_source;slot:help
+  summary: The available choices for guide source.
+- key: possibleValueSource:edi_usage;slot:help
+  summary: The available choices for usage.
+- key: possibleValueSource:edi_data_type;slot:help
+  summary: The available choices for data type.
+- key: possibleValueSource:edi_rule_type;slot:help
+  summary: The available choices for rule type.
+- key: possibleValueSource:edi_severity;slot:help
+  summary: The available choices for severity.
+- key: possibleValueSource:edi_code_list_source;slot:help
+  summary: The available choices for code list source.
+- key: possibleValueSource:edi_interchange_status;slot:help
+  summary: The available choices for interchange status.
+- key: possibleValueSource:edi_ack_status;slot:help
+  summary: The available choices for acknowledgement status.
+- key: possibleValueSource:edi_transaction_status;slot:help
+  summary: The available choices for transaction status.
+- key: possibleValueSource:edi_event_type;slot:help
+  summary: The available choices for event type.
+- key: possibleValueSource:edi_exception_type;slot:help
+  summary: The available choices for exception type.
+- key: possibleValueSource:edi_exception_status;slot:help
+  summary: The available choices for exception status.
+- key: possibleValueSource:edi_inbox_status;slot:help
+  summary: The available choices for inbox status.
+- key: possibleValueSource:edi_as2_mdn_delivery_status;slot:help
+  summary: The available choices for AS2 receipt delivery status.
+- key: possibleValueSource:edi_payload_kind;slot:help
+  summary: The available choices for payload kind.
+- key: possibleValueSource:edi_partner;slot:help
+  summary: Choose a linked trading partner record.
+- key: possibleValueSource:edi_identity;slot:help
+  summary: Choose a linked identity record.
+- key: possibleValueSource:edi_agreement;slot:help
+  summary: Choose a linked agreement record.
+- key: possibleValueSource:edi_agreement_document;slot:help
+  summary: Choose a linked agreement document record.
+- key: possibleValueSource:edi_control_number;slot:help
+  summary: Choose a linked control number record.
+- key: possibleValueSource:edi_transport;slot:help
+  summary: Choose a linked transport record.
+- key: possibleValueSource:edi_certificate;slot:help
+  summary: Choose a linked certificate record.
+- key: possibleValueSource:edi_guide;slot:help
+  summary: Choose a linked implementation guide record.
+- key: possibleValueSource:edi_guide_segment;slot:help
+  summary: Choose a linked guide segment record.
+- key: possibleValueSource:edi_guide_element;slot:help
+  summary: Choose a linked guide element record.
+- key: possibleValueSource:edi_guide_rule;slot:help
+  summary: Choose a linked guide rule record.
+- key: possibleValueSource:edi_code_list;slot:help
+  summary: Choose a linked code list record.
+- key: possibleValueSource:edi_code_list_value;slot:help
+  summary: Choose a linked code record.
+- key: possibleValueSource:edi_interchange;slot:help
+  summary: Choose a linked interchange record.
+- key: possibleValueSource:edi_functional_group;slot:help
+  summary: Choose a linked functional group record.
+- key: possibleValueSource:edi_transaction;slot:help
+  summary: Choose a linked document record.
+- key: possibleValueSource:edi_transaction_error;slot:help
+  summary: Choose a linked validation error record.
+- key: possibleValueSource:edi_event;slot:help
+  summary: Choose a linked event record.
+- key: possibleValueSource:edi_exception;slot:help
+  summary: Choose a linked exception record.
+- key: possibleValueSource:edi_inbox;slot:help
+  summary: Choose a linked inbound message record.
+- key: possibleValueSource:edi_payload;slot:help
+  summary: Choose a linked payload record.
+- key: possibleValueSource:edi_on_match;slot:help
+  summary: The available choices for on match.
+- key: possibleValueSource:edi_map;slot:help
+  summary: Choose a linked map record.
+- key: possibleValueSource:edi_map_rule;slot:help
+  summary: Choose a linked map rule record.
+- key: possibleValueSource:edi_map_sample;slot:help
+  summary: Choose a linked map sample record.
+- key: possibleValueSource:edi_outbound_request;slot:help
+  summary: Choose a linked outbound request record.
+- key: possibleValueSource:edi_outbound_message;slot:help
+  summary: Choose a linked outbound message record.
+- key: possibleValueSource:edi_as2_mdn;slot:help
+  summary: Choose a linked AS2 receipt record.
+- key: process:edi_map_installSamples;slot:help
+  summary: Add the bundled example maps as drafts without changing maps you already have.
+  content: |
+    Use **Install sample maps** on Maps; you do not need to select records. Review the missing samples before confirming. The action adds each map and its rules as a draft with a guide, without a partner or agreement document. Existing map names are skipped.
 
-  - key: table:edi_transaction_error;slot:help
-    summary: "A validation finding on a document: the segment, element, code and message."
-    content: |
-      **How rows get created:** automatically, when validation against the guide finds a problem in a document. They feed the 997, 999 and CONTRL acknowledgements.
-
-  - key: table:edi_exception;slot:help
-    summary: "Problems that need a person: failed parses, rejected acks, dead letters and transport failures."
-    content: |
-      **How rows get created:** automatically, when processing fails or an acknowledgement is rejected or overdue. Work them from the home queue: "Assign", "Ignore" or "Mark Resolved". It starts empty, which is good.
-
-  - key: table:edi_event;slot:help
-    summary: "Audit trail of what happened to a document: received, parsed, validated, sent, delivered and so on."
-    content: |
-      **How rows get created:** automatically, at each step of processing and when a raw document is downloaded. It is an append-only audit log shown on the interchange record, and is never edited.
-
-  - key: table:edi_as2_mdn;slot:help
-    summary: "AS2 delivery receipts (MDNs) sent and received, with the disposition and signature check."
-    content: |
-      **How rows get created:** automatically, by the AS2 endpoint: one when an MDN arrives for a message you sent (it settles that message as delivered or failed) and one for each MDN you send. It is read-only and used to ignore duplicate receipts. It starts empty and only AS2 transports use it.
-
-  - key: table:edi_outbound_request;slot:help
-    summary: "A request to send a host record as an EDI document, waiting to be built into an interchange."
-    content: |
-      **How rows get created:** automatically, when a record in a table the host lists for sending is created or changed, or when someone runs "Send As EDI" on a row. A worker builds the document and queues it as an outbound message.
-
-  - key: table:edi_outbound_message;slot:help
-    summary: "The outbound queue: each interchange waiting to send, its attempts, delivery status and MDN."
-    content: |
-      **How rows get created:** automatically, when a document is built for sending. A worker sends it over the agreement's transport, retries on failure, and marks it delivered when the acknowledgement or MDN arrives. Use "Resend" or "Cancel" on a row.
+    Review the Result, select your own target table, and adjust the rules. Use synthetic samples with **Preview Map** before activating a map and selecting it on an Agreement Document.
+- key: widget:edi_home_setup;slot:label
+  summary: Check your setup progress and the next configuration step.
