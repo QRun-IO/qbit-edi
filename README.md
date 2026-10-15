@@ -96,7 +96,7 @@ transports/guides and local certificates/identities.
 ## UI API
 
 With optional Javalin present, the producer registers the `edi` extension, version `1.1.0`,
-under `/qqq/v1/qbit/edi`, requiring QQQ 4.1.0-RC.14 (UI API 1.6.0). All routes are endpoint specs and pass strict UI-route auditing.
+under `/qqq/v1/qbit/edi`, requiring QQQ 4.1.0-RC.15 (UI API 1.6.0). All routes are endpoint specs and pass strict UI-route auditing.
 
 | Method | Path after `/qqq/v1/qbit/edi` | Result |
 |---|---|---|
