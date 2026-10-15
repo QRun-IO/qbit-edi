@@ -489,7 +489,7 @@ public final class EdiSchemas
       @Override
       public Schema toSchema()
       {
-         return (new Schema().withType(Type.OBJECT).withDescription("Core middleware error body.")
+         return (new Schema().withType(Type.OBJECT).withDescription("Deprecated since 1.1.0: errors use BasicErrorResponseV1.")
             .withProperties(new TreeMap<>(Map.ofEntries(
                Map.entry("error", new Schema().withType(Type.STRING).withNullable(true))))));
       }

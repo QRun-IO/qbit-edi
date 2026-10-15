@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class EdiApiContractTest
 {
    /*******************************************************************************
-    ** Use RC.6's real helper, including compatibility comparison against this first baseline.
+    ** Check the generated contract and compatibility against the committed baseline.
     *******************************************************************************/
    @Test
    void contract() throws Exception
@@ -53,15 +53,15 @@ class EdiApiContractTest
       assertThat(UiApiContract.check(generated, committed, committed, 1,
          "mvnw.cmd -B -Dtest=EdiApiContractTest -Dedi.openapi.update=true test")).isEmpty();
       var model = version.generateExtensionOpenAPIModel("qqq", extension);
-      assertThat(model.getComponents().getSchemas().keySet()).allMatch(n -> n.startsWith("Edi") && n.endsWith("V1"));
+      assertThat(model.getComponents().getSchemas().keySet()).allMatch(n -> (n.startsWith("Edi") && n.endsWith("V1")) || n.equals("BasicErrorResponseV1"));
       assertThat(model.getPaths()).hasSize(4);
       assertThat(model.getPaths().keySet()).allMatch(n -> n.startsWith("/qqq/v1/qbit/edi/"));
       assertThat(extension.getEffectivePathPrefix()).isEqualTo("/qbit/edi");
-      assertThat(extension.getSemanticVersion()).isEqualTo("1.0.0");
+      assertThat(extension.getSemanticVersion()).isEqualTo("1.1.0");
    }
 
    /*******************************************************************************
-    ** Producer registers the extension and all metadata validates with RC.6.
+    ** Producer registers the extension and all metadata validates with core middleware.
     *******************************************************************************/
    @Test
    void registration() throws Exception
