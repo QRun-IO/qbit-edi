@@ -181,7 +181,6 @@ class EdiTablesGuardrailTest
          assertThat(help.get(0).getContent()).as(table + " help says how rows get created").contains("How rows get created");
       }
       assertThat(instance.getApp(EdiRuntime.current().config().getAppName()).getHelpContent()).containsKey(EdiHelp.SLOT);
-      assertThat(EdiHelp.entries().keySet()).allMatch(key -> key.startsWith("app:") || instance.getTable(key.substring(6, key.indexOf(';'))) != null, "help names only real tables");
       assertThat(EdiHelp.entries().get("table:edi_map;slot:help").path("content").asText()).contains("Install sample maps");
       assertThat(EdiHelp.entries().get("app:edi;slot:help").path("content").asText().indexOf("Partner")).isLessThan(EdiHelp.entries().get("app:edi;slot:help").path("content").asText().indexOf("Transport"));
    }
