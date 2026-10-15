@@ -6,6 +6,8 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic
 
 ### Changed
 
+- Derive qbit metadata version from the Maven artifact version, keeping release metadata and help bundle versions in sync.
+
 - Require QQQ 4.1.0-RC.7 for core help-bundle registration and coverage validation.
 
 - X12 routing and sending honor identity `isActive`, matching EDIFACT.

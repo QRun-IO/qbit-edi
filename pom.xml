@@ -133,6 +133,7 @@
             <filtering>true</filtering>
             <includes>
                <include>help/*.yaml</include>
+               <include>qbit-edi.properties</include>
             </includes>
          </resource>
          <resource>
@@ -140,6 +141,7 @@
             <filtering>false</filtering>
             <excludes>
                <exclude>help/*.yaml</exclude>
+               <exclude>qbit-edi.properties</exclude>
             </excludes>
          </resource>
       </resources>
