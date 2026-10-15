@@ -95,8 +95,8 @@ transports/guides and local certificates/identities.
 
 ## UI API
 
-With optional Javalin present, the producer registers the `edi` extension, version `1.0.0`,
-under `/qqq/v1/qbit/edi`. All routes are endpoint specs and pass strict UI-route auditing.
+With optional Javalin present, the producer registers the `edi` extension, version `1.1.0`,
+under `/qqq/v1/qbit/edi`, requiring QQQ 4.1.0-RC.15 (UI API 1.6.0). All routes are endpoint specs and pass strict UI-route auditing.
 
 | Method | Path after `/qqq/v1/qbit/edi` | Result |
 |---|---|---|
@@ -133,15 +133,15 @@ The mapper saves `edi_map_rule` through the **core table API**, using its normal
 `edi.map_rule.insert|edit|delete` permissions and record locks. There are no custom rule-write routes.
 The Next mapper page is separate phase-f work.
 
-The generated contract is `src/main/resources/openapi/qqq-v1/edi.yaml`; all component names are
-`Edi...V1`. Regenerate intentionally with:
+The generated contract is `src/main/resources/openapi/qqq-v1/edi.yaml`; extension component names are
+`Edi...V1`, alongside core `BasicErrorResponseV1`. `EdiErrorV1` remains deprecated for compatibility. Regenerate with the locally installed migration build:
 
 ```powershell
-./mvnw.cmd -B '-Dtest=EdiApiContractTest' '-Dedi.openapi.update=true' test
+./mvnw.cmd -o -B '-Dqqq.snapshot.version=4.1.99-SNAPSHOT' '-Dtest=EdiApiContractTest' '-Dedi.openapi.update=true' test
 ```
 
-RC.6 provides `UiApiContract.check`, used to compare generated and checked-in YAML and run
-`OpenApiCompatibilityChecker` against this initial fragment baseline. The extension also appears
+Core provides `UiApiContract.check`, used to compare generated and checked-in YAML, validate
+operation IDs and references, and run `OpenApiCompatibilityChecker` against the committed fragment baseline. The extension also appears
 in the host's `/qqq/v1/openapi.yaml` and `/qqq/v1/version`.
 
 ## Inbound operation

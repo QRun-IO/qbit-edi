@@ -36,6 +36,7 @@ import com.kingsrook.qqq.middleware.javalin.specs.BasicResponse;
 import com.kingsrook.qqq.middleware.javalin.specs.extensions.AbstractJsonEndpointSpec;
 import com.kingsrook.qqq.middleware.javalin.specs.extensions.MiddlewareSpecExtension;
 import com.kingsrook.qqq.middleware.javalin.specs.extensions.MiddlewareSpecExtensionsMetaData;
+import com.kingsrook.qqq.middleware.javalin.specs.v1.responses.BasicErrorResponseV1;
 import com.kingsrook.qqq.openapi.model.HttpMethod;
 import com.kingsrook.qqq.openapi.model.In;
 import com.kingsrook.qqq.openapi.model.Parameter;
@@ -44,7 +45,7 @@ import com.kingsrook.qqq.openapi.model.Type;
 import io.javalin.http.HttpStatus;
 
 /*******************************************************************************
- ** The EDI 1.0.0 UI API: four spec'd operations in the default qbit namespace.
+ ** The EDI 1.1.0 UI API: four spec'd operations in the default qbit namespace.
  *******************************************************************************/
 public final class EdiApi
 {
@@ -68,7 +69,7 @@ public final class EdiApi
     *******************************************************************************/
    public static MiddlewareSpecExtension extension()
    {
-      return (new MiddlewareSpecExtension().withName("edi").withSemanticVersion("1.0.0")
+      return (new MiddlewareSpecExtension().withName("edi").withSemanticVersion("1.1.0")
          .withDescription("EDI sandbox and mapper, using the signed-in user's permissions.")
          .withSpec(GuideTreeSpec.class).withSpec(MapTargetSpec.class).withSpec(PreviewSpec.class).withSpec(ValidateSpec.class));
    }
@@ -148,11 +149,11 @@ public final class EdiApi
       @Override
       public List<BasicResponse> defineAdditionalBasicResponses()
       {
-         return (List.of(new BasicResponse(HttpStatus.BAD_REQUEST, "Invalid request or sample exceeds 5 MiB", "EdiErrorV1"),
-            new BasicResponse(HttpStatus.UNAUTHORIZED, "Sign in required", "EdiErrorV1"),
-            new BasicResponse(HttpStatus.FORBIDDEN, "Permission denied", "EdiErrorV1"),
-            new BasicResponse(HttpStatus.NOT_FOUND, "Missing or invisible record", "EdiErrorV1"),
-            new BasicResponse(HttpStatus.CONTENT_TOO_LARGE, "Host HTTP request size limit exceeded", "EdiErrorV1")));
+         return (List.of(new BasicResponse(HttpStatus.BAD_REQUEST, "Invalid request or sample exceeds 5 MiB", BasicErrorResponseV1.class.getSimpleName()),
+            new BasicResponse(HttpStatus.UNAUTHORIZED, "Sign in required", BasicErrorResponseV1.class.getSimpleName()),
+            new BasicResponse(HttpStatus.FORBIDDEN, "Permission denied", BasicErrorResponseV1.class.getSimpleName()),
+            new BasicResponse(HttpStatus.NOT_FOUND, "Missing or invisible record", BasicErrorResponseV1.class.getSimpleName()),
+            new BasicResponse(HttpStatus.CONTENT_TOO_LARGE, "Host HTTP request size limit exceeded", BasicErrorResponseV1.class.getSimpleName())));
       }
 
       /*******************************************************************************

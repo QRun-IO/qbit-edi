@@ -6,6 +6,8 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic
 
 ### Changed
 
+- UI API extension edi 1.1.0 (requires QQQ 4.1.0-RC.15, UI API 1.6.0): operationIds, standard error responses with BasicErrorResponseV1, extension tags, and retained deprecated EdiErrorV1 schema.
+
 - Derive qbit metadata version from the Maven artifact version, keeping release metadata and help bundle versions in sync.
 
 - Require QQQ 4.1.0-RC.7 for core help-bundle registration and coverage validation.
