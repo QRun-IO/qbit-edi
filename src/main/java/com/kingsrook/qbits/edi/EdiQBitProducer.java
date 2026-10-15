@@ -21,6 +21,9 @@
 package com.kingsrook.qbits.edi;
 
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
 import com.kingsrook.qqq.backend.core.exceptions.QException;
 import com.kingsrook.qqq.backend.core.model.metadata.MetaDataProducerMultiOutput;
 import com.kingsrook.qqq.backend.core.model.metadata.QInstance;
@@ -37,10 +40,38 @@ public class EdiQBitProducer implements QBitMetaDataProducer<EdiQBitConfig>
 {
    public static final String GROUP_ID    = "com.kingsrook.qbits";
    public static final String ARTIFACT_ID = "qbit-edi";
-   public static final String VERSION     = "0.1.0";
+   public static final String VERSION     = loadVersion();
 
    private EdiQBitConfig qBitConfig;
    private String        namespace;
+
+
+
+   /*******************************************************************************
+    ** Read the artifact version from the Maven-filtered resource.
+    *******************************************************************************/
+   private static String loadVersion()
+   {
+      try(InputStream inputStream = EdiQBitProducer.class.getClassLoader().getResourceAsStream("qbit-edi.properties"))
+      {
+         if(inputStream == null)
+         {
+            throw new IllegalStateException("Missing qbit-edi.properties; build with Maven to supply the artifact version");
+         }
+         Properties properties = new Properties();
+         properties.load(inputStream);
+         String version = properties.getProperty("version");
+         if(version == null || version.isBlank() || version.contains("${"))
+         {
+            throw new IllegalStateException("Missing or unfiltered version in qbit-edi.properties; build with Maven");
+         }
+         return (version);
+      }
+      catch(IOException e)
+      {
+         throw new IllegalStateException("Could not read the artifact version from qbit-edi.properties", e);
+      }
+   }
 
 
 

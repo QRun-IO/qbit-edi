@@ -65,6 +65,8 @@ class EdiQBitProducerTest
       assertThat(producer.getQBitConfig()).isSameAs(config);
       assertThat(producer.getNamespace()).isEqualTo("ns");
       assertThat(producer.getQBitMetaData().getArtifactId()).isEqualTo("qbit-edi");
+      assertThat(System.getProperty("qbit.artifactVersion")).isNotBlank();
+      assertThat(producer.getQBitMetaData().getVersion()).isEqualTo(System.getProperty("qbit.artifactVersion")).isEqualTo(EdiQBitProducer.VERSION);
       assertThat(producer.getPackageNameForFindingMetaDataProducers()).isEqualTo("com.kingsrook.qbits.edi.metadata");
       assertThat(config.getAppName()).isEqualTo("edi");
       assertThat(config.getAppLabel()).isEqualTo("EDI");

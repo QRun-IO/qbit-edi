@@ -49,7 +49,7 @@ class EdiHelpBundleTest
       assertThat(HelpBundles.of(instance).getBundles()).singleElement().satisfies(bundle ->
       {
          assertThat(bundle.getId()).isEqualTo("qbit-edi");
-         assertThat(bundle.getVersion()).as("the help bundle carries the artifact version").isEqualTo(System.getProperty("qbit.artifactVersion"));
+         assertThat(bundle.getVersion()).as("the help bundle carries the artifact version").isEqualTo(System.getProperty("qbit.artifactVersion")).isEqualTo(EdiQBitProducer.VERSION);
       });
       HelpBundles.syncOnStartup(instance);
       HelpBundleAssertions.forInstance(instance)
