@@ -169,8 +169,18 @@ class EdiApiHttpTest
    private HttpResponse<String> request(String method, String path, Object body, String role) throws Exception
    {
       String text = body == null ? "" : body instanceof String s ? s : JSON.writeValueAsString(body);
-      return (client.send(HttpRequest.newBuilder(URI.create(baseUrl + path)).header("Cookie", "sessionUUID=" + role + suffix)
-         .header("Content-Type", "application/json").method(method, HttpRequest.BodyPublishers.ofString(text)).build(), HttpResponse.BodyHandlers.ofString()));
+      var response = client.send(HttpRequest.newBuilder(URI.create(baseUrl + path)).header("Cookie", "sessionUUID=" + role + suffix)
+         .header("Content-Type", "application/json").method(method, HttpRequest.BodyPublishers.ofString(text)).build(), HttpResponse.BodyHandlers.ofString());
+      if(response.statusCode() >= 400)
+      {
+         JsonNode error = JSON.readTree(response.body());
+         for(String field : List.of("error", "code", "message", "traceId"))
+         {
+            assertThat(error.path(field).isTextual()).as(field + " in " + response.body()).isTrue();
+            assertThat(error.path(field).asText()).isNotBlank();
+         }
+      }
+      return (response);
    }
 
    /*******************************************************************************
