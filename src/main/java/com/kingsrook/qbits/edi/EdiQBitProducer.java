@@ -24,6 +24,7 @@ package com.kingsrook.qbits.edi;
 import com.kingsrook.qqq.backend.core.exceptions.QException;
 import com.kingsrook.qqq.backend.core.model.metadata.MetaDataProducerMultiOutput;
 import com.kingsrook.qqq.backend.core.model.metadata.QInstance;
+import com.kingsrook.qqq.backend.core.model.metadata.help.bundles.HelpBundles;
 import com.kingsrook.qqq.backend.core.model.metadata.qbits.QBitMetaData;
 import com.kingsrook.qqq.backend.core.model.metadata.qbits.QBitMetaDataProducer;
 
@@ -130,7 +131,16 @@ public class EdiQBitProducer implements QBitMetaDataProducer<EdiQBitConfig>
       MetaDataProducerMultiOutput output = QBitMetaDataProducer.super.produce(instance);
       output.addSelfToInstance(instance);
       EdiRuntime.install(instance, qBitConfig);
-      com.kingsrook.qbits.edi.metadata.EdiHelp.apply(instance, qBitConfig.getAppName());
+      // Registration is metadata-only; core startup sync skips hosts without helpContent.
+      HelpBundles.register(instance, "help/qbit-edi.yaml");
+      // The app name is configurable; its bundle key must follow the installed app.
+      HelpBundles.of(instance).getBundles().getLast().getEntries().stream()
+         .filter(entry -> "app:edi;slot:help".equals(entry.getKey()))
+         .forEach(entry -> entry.setKey("app:" + qBitConfig.getAppName() + ";slot:help"));
+      if(instance.getTable("helpContent") == null)
+      {
+         com.kingsrook.qbits.edi.metadata.EdiHelp.apply(instance, qBitConfig.getAppName());
+      }
       instance.withSupplementalMetaData(new com.kingsrook.qbits.edi.metadata.EdiRecordLabels());
       instance.withRecordChangeListener(new com.kingsrook.qqq.backend.core.model.metadata.code.QCodeReference(com.kingsrook.qbits.edi.flow.OutboundEnqueue.class));
       instance.withSupplementalMetaData(new com.kingsrook.qbits.edi.transport.EdiTransportPluginsMetaData()

@@ -6,11 +6,13 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic
 
 ### Changed
 
+- Require QQQ 4.1.0-RC.7 for core help-bundle registration and coverage validation.
+
 - X12 routing and sending honor identity `isActive`, matching EDIFACT.
 
 ### Added
 
-- Help bundle `help/qbit-edi.yaml` (stand-in for qqq#1198): every table and the app say what they are for and how rows get created, including the setup order, so an empty table explains itself.
+- Complete, host-neutral `help/qbit-edi.yaml` bundle registered with QQQ core: app, tables, fields, actions, widgets and possible-value sources, with a coverage gate and HOST overrides. Table/app fallback remains available without `helpContent`.
 - Setup status section on the EDI home (partner, identities, agreement, agreement documents, transport, certificates, guides, maps) with the next step; it counts only the active rows the runtime uses.
 - "Install sample maps" action on Maps: standard streamed ETL, insert-only by name, installs the 32 bundled synthetic maps as draft, unbound maps bound to the built-in guide.
 - `EdiTablesGuardrailTest`: every table is used at runtime, seeded or listed as starting empty, and has help.
