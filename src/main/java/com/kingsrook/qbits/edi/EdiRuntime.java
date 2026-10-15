@@ -64,6 +64,7 @@ public final class EdiRuntime
    private final Ack999Builder ack999 = new Ack999Builder();
    private final TA1Builder ta1 = new TA1Builder();
    private final InboundAckReader acknowledgements = new InboundAckReader();
+   private final com.kingsrook.qbits.edi.flow.OutboundSourceTables outboundSources = new com.kingsrook.qbits.edi.flow.OutboundSourceTables();
 
    /*******************************************************************************
     ** Construct services without resolving keys until content is stored or opened.
@@ -93,6 +94,22 @@ public final class EdiRuntime
    public static EdiRuntime current()
    {
       return (Objects.requireNonNull(INSTANCES.get(QContext.getQInstance()), "EDI runtime has not been installed"));
+   }
+
+   /*******************************************************************************
+    ** Services for the current QQQ context, or null when none are installed.
+    *******************************************************************************/
+   public static EdiRuntime find()
+   {
+      return (QContext.getQInstance() == null ? null : INSTANCES.get(QContext.getQInstance()));
+   }
+
+   /*******************************************************************************
+    ** Cached source tables that have active RECORD_CHANGE outbound definitions.
+    *******************************************************************************/
+   public com.kingsrook.qbits.edi.flow.OutboundSourceTables outboundSources()
+   {
+      return (outboundSources);
    }
 
    /*******************************************************************************
