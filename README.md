@@ -200,8 +200,9 @@ Everything else is host or runtime data, and every table explains itself when em
 4. Agreement documents: one per transaction set and direction, with the guide and optionally a map.
 5. Transport (AS2, SFTP, HTTPS), linked on the agreement. Certificates only for AS2 signing and encryption.
 
-The **Setup status** section on the home shows each step, whether it is done (counting only the
-active rows the runtime uses) and the next step.
+The **Setup status** widget (`edi_home_setup`, for the host's Admin home) shows each step, whether
+it is done (counting only the active rows the runtime uses) and the next step. A count that fails
+shows "Unavailable" and is logged.
 
 Maps start empty. The **Install sample maps** action on Maps adds the 32 bundled synthetic examples
 as draft maps with no partner and no agreement document, by name and never over an existing map. Point
@@ -229,7 +230,14 @@ Full table permissions include `edi.partner.read|insert|edit|delete`, `edi.map.*
 | Scheduled workers / ESB enqueue | `edi.admin` |
 
 Partner locks use `edi_partner` with `edi.admin` all-access. Home queries explicitly enforce
-the viewing user's permissions. Processes are table/record actions, never navigation entries.
+the viewing user's permissions.
+
+The EDI home shows business work only. Its widgets (`EdiHome.HOME_WIDGET_NAMES`) need
+`edi.hasAccess` and are hidden without it. "Inbound documents delayed" appears only when the oldest
+unprocessed inbound document is older than `inboundDelayedAfterMinutes` (default 60), with a link to
+those documents. System widgets (`EdiHome.ADMIN_WIDGET_NAMES`: System, Dead letters, Certificates
+expiring, Setup status) are not on the EDI home; they need `edi.admin.hasAccess`, are hidden without
+it, and a host places them on its Admin home. Processes are table/record actions, never navigation entries.
 
 ## Configuration
 

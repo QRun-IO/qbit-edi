@@ -77,8 +77,9 @@ class EdiSetupStatusTest
       items = EdiSetupStatus.items(new EdiSetupStatus.Counts(1, 1, 1, 2, 0, 1, 1, 1, 1, 0, 41, 20, 0, 0));
       assertThat(items.get(2).state()).as("agreements exist but none is active, so the runtime ignores them").isEqualTo(EdiSetupStatus.State.TODO);
 
-      items = EdiSetupStatus.items(new EdiSetupStatus.Counts(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1));
+      items = EdiSetupStatus.items(new EdiSetupStatus.Counts(null, null, null, null, null, null, null, null, null, null, null, null, null, null));
       assertThat(items).allSatisfy(item -> assertThat(item.state()).isEqualTo(EdiSetupStatus.State.UNKNOWN));
+      assertThat(EdiSetupStatus.State.UNKNOWN.label()).as("a failed count is never shown as a number").isEqualTo("Unavailable");
    }
 
    /*******************************************************************************
@@ -90,7 +91,8 @@ class EdiSetupStatusTest
       QInstance instance = H2Support.create();
       EdiRuntime.current().initialize();
       assertThat(instance.getWidget("edi_home_setup")).isNotNull();
-      assertThat(instance.getApp(EdiRuntime.current().config().getAppName()).getWidgets()).contains("edi_home_setup");
+      assertThat(instance.getApp(EdiRuntime.current().config().getAppName()).getWidgets()).as("setup is for the Admin home").doesNotContain("edi_home_setup");
+      assertThat(com.kingsrook.qbits.edi.app.EdiHome.ADMIN_WIDGET_NAMES).contains("edi_home_setup");
 
       Map<String, String> status = status(instance);
       assertThat(status).containsKeys("1. Partner", "5. Transport");

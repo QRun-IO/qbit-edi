@@ -40,6 +40,8 @@ import com.kingsrook.qqq.backend.core.actions.permissions.PermissionEnforcement;
 import com.kingsrook.qqq.backend.core.actions.tables.CountAction;
 import com.kingsrook.qqq.backend.core.actions.tables.QueryAction;
 import com.kingsrook.qqq.backend.core.exceptions.QException;
+import com.kingsrook.qqq.backend.core.exceptions.QPermissionDeniedException;
+import com.kingsrook.qqq.backend.core.logging.QLogger;
 import com.kingsrook.qqq.backend.core.model.actions.tables.count.CountInput;
 import com.kingsrook.qqq.backend.core.model.actions.tables.query.QCriteriaOperator;
 import com.kingsrook.qqq.backend.core.model.actions.tables.query.QFilterOrderBy;
@@ -47,6 +49,7 @@ import com.kingsrook.qqq.backend.core.model.actions.tables.query.QQueryFilter;
 import com.kingsrook.qqq.backend.core.model.actions.tables.query.QueryInput;
 import com.kingsrook.qqq.backend.core.model.actions.widgets.RenderWidgetInput;
 import com.kingsrook.qqq.backend.core.model.actions.widgets.RenderWidgetOutput;
+import com.kingsrook.qqq.backend.core.model.dashboard.widgets.AlertData;
 import com.kingsrook.qqq.backend.core.model.dashboard.widgets.StatisticsData;
 import com.kingsrook.qqq.backend.core.model.dashboard.widgets.TableData;
 import com.kingsrook.qqq.backend.core.model.dashboard.widgets.WidgetType;
@@ -56,9 +59,11 @@ import com.kingsrook.qqq.backend.core.model.metadata.dashboard.QWidgetMetaData;
 import com.kingsrook.qqq.backend.core.model.metadata.layout.QAppMetaData;
 import com.kingsrook.qqq.backend.core.model.metadata.layout.QAppSection;
 import com.kingsrook.qqq.backend.core.model.metadata.layout.QIcon;
+import com.kingsrook.qqq.backend.core.model.metadata.permissions.DenyBehavior;
 import com.kingsrook.qqq.backend.core.model.metadata.permissions.PermissionLevel;
 import com.kingsrook.qqq.backend.core.model.metadata.permissions.QPermissionRules;
 import com.kingsrook.qqq.backend.core.model.metadata.tables.QTableMetaData;
+import static com.kingsrook.qqq.backend.core.logging.LogUtils.logPair;
 
 /*******************************************************************************
  ** Typed EDI home. Every data query explicitly enforces the viewing user's access.
@@ -67,9 +72,31 @@ public class EdiHome extends AbstractWidgetRenderer
 {
    public static final List<String> ACTIVITY = List.of("edi_transaction", "edi_interchange", "edi_exception");
    public static final List<String> SETUP = List.of("edi_partner", "edi_agreement", "edi_transport", "edi_certificate", "edi_guide", "edi_code_list", "edi_map");
-   private static final Map<String, String> LABELS = new LinkedHashMap<>();
+
+   /*******************************************************************************
+    ** System-audience widgets (component and queue health, dead letters,
+    ** certificate expiry, setup and configuration). They are not on the EDI
+    ** business home: a host places them on its Admin home. Each is gated to
+    ** ADMIN_PERMISSION_BASE_NAME and hidden from everyone else.
+    *******************************************************************************/
+   public static final List<String> ADMIN_WIDGET_NAMES = List.of("edi_home_system", "edi_home_dead", "edi_home_certificates", "edi_home_setup");
+
+   /*******************************************************************************
+    ** Business widgets on the EDI home, in order. Each is gated to the EDI app
+    ** permission (edi.hasAccess) and hidden from everyone else.
+    *******************************************************************************/
+   public static final List<String> HOME_WIDGET_NAMES = List.of("edi_home_delayed", "edi_home_in_today", "edi_home_out_today", "edi_home_exceptions",
+      "edi_home_overdue", "edi_home_queue", "edi_home_acks", "edi_home_errors", "edi_home_volume");
+
+   /*******************************************************************************
+    ** The EDI administrator permission (edi.admin.hasAccess), as on the admin processes.
+    *******************************************************************************/
+   public static final String ADMIN_PERMISSION_BASE_NAME = EdiQBitConfig.PERMISSION_BASE_NAME + ".admin";
+
+   private static final QLogger             LOG            = QLogger.getLogger(EdiHome.class);
+   private static final Map<String, String> LABELS         = new LinkedHashMap<>();
    private static final Map<String, String> DOCUMENT_NAMES = new HashMap<>();
-   private static final List<String> TABLES = List.of("setup", "queue", "acks", "errors", "volume", "system");
+   private static final List<String>        TABLES         = List.of("setup", "queue", "acks", "errors", "volume", "system");
 
    static
    {
@@ -79,6 +106,7 @@ public class EdiHome extends AbstractWidgetRenderer
          Map.entry("835", "Remittance"), Map.entry("270", "Eligibility Inquiry"), Map.entry("271", "Eligibility Response"), Map.entry("276", "Claim Status Inquiry"),
          Map.entry("277", "Claim Status Response"), Map.entry("834", "Enrollment"), Map.entry("997", "Functional Ack"), Map.entry("999", "Implementation Ack"),
          Map.entry("TA1", "Interchange Ack")));
+      LABELS.put("delayed", "Inbound documents delayed");
       LABELS.put("in_today", "Inbound today");
       LABELS.put("out_today", "Outbound today");
       LABELS.put("exceptions", "Open exceptions");
@@ -99,7 +127,7 @@ public class EdiHome extends AbstractWidgetRenderer
    public static QAppMetaData app(EdiQBitConfig config, List<QTableMetaData> tables)
    {
       QAppMetaData app = new QAppMetaData().withName(config.getAppName()).withLabel(config.getAppLabel()).withIcon(new QIcon("swap_horiz"))
-         .withWidgets(LABELS.keySet().stream().map(n -> "edi_home_" + n).toList())
+         .withWidgets(HOME_WIDGET_NAMES)
          .withPermissionRules(new QPermissionRules().withLevel(PermissionLevel.NOT_PROTECTED))
          .withSection(new QAppSection().withName("activity").withLabel("Activity").withTables(ACTIVITY))
          .withSection(new QAppSection().withName("setup").withLabel("Setup").withTables(SETUP));
@@ -109,15 +137,23 @@ public class EdiHome extends AbstractWidgetRenderer
    }
 
    /*******************************************************************************
-    ** RC.5 typed statistics and tables; no raw markup in metadata or widget data.
+    ** RC.5 typed statistics, tables and one alert. Business widgets need the EDI
+    ** app permission; the ADMIN_WIDGET_NAMES need the EDI administrator
+    ** permission. Denied widgets are hidden, never shown as locked shells.
     *******************************************************************************/
    public static List<QWidgetMetaData> widgets()
    {
       List<QWidgetMetaData> widgets = new ArrayList<>();
-      LABELS.forEach((name, label) -> widgets.add(new QWidgetMetaData().withName("edi_home_" + name).withLabel(label)
-         .withType((TABLES.contains(name) ? WidgetType.TABLE : WidgetType.STATISTICS).getType())
-         .withGridColumns(TABLES.contains(name) ? 12 : 2).withCodeReference(new QCodeReference(EdiHome.class))
-         .withPermissionRules(new QPermissionRules().withLevel(PermissionLevel.NOT_PROTECTED))));
+      LABELS.forEach((name, label) ->
+      {
+         String  widgetName = "edi_home_" + name;
+         boolean admin      = ADMIN_WIDGET_NAMES.contains(widgetName);
+         String  type       = name.equals("delayed") ? WidgetType.ALERT.getType() : (TABLES.contains(name) ? WidgetType.TABLE : WidgetType.STATISTICS).getType();
+         widgets.add(new QWidgetMetaData().withName(widgetName).withLabel(label).withType(type)
+            .withGridColumns(TABLES.contains(name) || admin || name.equals("delayed") ? 12 : 2).withCodeReference(new QCodeReference(EdiHome.class))
+            .withPermissionRules(new QPermissionRules().withPermissionBaseName(admin ? ADMIN_PERMISSION_BASE_NAME : EdiQBitConfig.PERMISSION_BASE_NAME)
+               .withLevel(PermissionLevel.HAS_ACCESS_PERMISSION).withDenyBehavior(DenyBehavior.HIDDEN)));
+      });
       return (widgets);
    }
 
@@ -137,6 +173,7 @@ public class EdiHome extends AbstractWidgetRenderer
          case "exceptions" -> count("edi_exception", openExceptions());
          case "overdue" -> count("edi_functional_group", overdueAcks(now));
          case "dead" -> count("edi_exception", openExceptions().withCriteria("type", QCriteriaOperator.IN, "DEAD_LETTER", "TRANSPORT"));
+         case "delayed" -> delayed(now);
          case "certificates" -> count("edi_certificate", new QQueryFilter().withCriteria("notAfter", QCriteriaOperator.LESS_THAN_OR_EQUALS, now.plus(30, ChronoUnit.DAYS))
             .withCriteria("status", QCriteriaOperator.EQUALS, "ACTIVE"));
          case "setup" -> setup();
@@ -219,9 +256,10 @@ public class EdiHome extends AbstractWidgetRenderer
 
 
    /*******************************************************************************
-    ** A count the viewer may not be allowed to read: -1 instead of an error.
+    ** A count that may fail (for example a table the viewer cannot read): null,
+    ** shown as "Unavailable", and logged; never a made-up number.
     *******************************************************************************/
-   private static int safeCount(String table, QQueryFilter filter)
+   static Integer safeCount(String table, QQueryFilter filter)
    {
       try
       {
@@ -229,8 +267,54 @@ public class EdiHome extends AbstractWidgetRenderer
       }
       catch(QException | RuntimeException e)
       {
-         return (-1);
+         LOG.warn("EDI setup count unavailable", e, logPair("table", table));
+         return (null);
       }
+   }
+
+
+
+   /*******************************************************************************
+    ** The business face of a stalled inbound flow: when the oldest unprocessed
+    ** inbound document is older than the configured threshold, a warning with its
+    ** age that links to those documents. Hidden when nothing is delayed, or when
+    ** the viewer cannot read the inbound documents.
+    *******************************************************************************/
+   private static RenderWidgetOutput delayed(Instant now) throws QException
+   {
+      Integer       minutes = EdiRuntime.current().config().getInboundDelayedAfterMinutes();
+      Instant       cutoff  = now.minus(minutes, ChronoUnit.MINUTES);
+      List<QRecord> oldest  = List.of();
+      try
+      {
+         oldest = query("edi_inbox", delayedInbound(cutoff).withOrderBy(new QFilterOrderBy("receivedAt", true)).withLimit(1));
+      }
+      catch(QPermissionDeniedException e)
+      {
+         ///////////////////////////////////////////////////////////
+         // omitted, not locked: the viewer cannot open the inbox //
+         ///////////////////////////////////////////////////////////
+      }
+      if(oldest.isEmpty())
+      {
+         return (new RenderWidgetOutput(new AlertData().withHideWidget(true)));
+      }
+      int    count = countOf("edi_inbox", delayedInbound(cutoff));
+      String age   = humanize(Duration.between(oldest.getFirst().getValueInstant("receivedAt"), now));
+      String html  = "<strong>Inbound documents are delayed.</strong> " + count + (count == 1 ? " document has" : " documents have")
+         + " waited more than " + humanize(Duration.ofMinutes(minutes)) + " to be processed; the oldest has waited " + age + ". "
+         + "<a href=\"" + link("edi_inbox", delayedInbound(cutoff)) + "\">View delayed documents</a>";
+      return (new RenderWidgetOutput(new AlertData(AlertData.AlertType.WARNING, html)));
+   }
+
+
+
+   /*******************************************************************************
+    ** Unprocessed inbound documents received before the cutoff.
+    *******************************************************************************/
+   static QQueryFilter delayedInbound(Instant cutoff)
+   {
+      return (inboxBacklog().withCriteria("receivedAt", QCriteriaOperator.LESS_THAN, cutoff));
    }
 
 
