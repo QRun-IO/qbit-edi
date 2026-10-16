@@ -6,6 +6,8 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic
 
 ### Changed
 
+- EDI home is business-only: System, Dead letters, Certificates expiring and Setup status move to `EdiHome.ADMIN_WIDGET_NAMES` for the host's Admin home (gated to `edi.admin.hasAccess`, full width); every home widget now requires `edi.hasAccess` and is hidden without it. A new "Inbound documents are delayed" alert links to the delayed inbound documents once the oldest is older than `inboundDelayedAfterMinutes` (default 60). Setup counts that fail show "Unavailable" and are logged instead of -1.
+
 - UI API extension edi 1.1.0 (requires QQQ 4.1.0-RC.15, UI API 1.6.0): operationIds, standard error responses with BasicErrorResponseV1, extension tags, and retained deprecated EdiErrorV1 schema.
 
 - Derive qbit metadata version from the Maven artifact version, keeping release metadata and help bundle versions in sync.

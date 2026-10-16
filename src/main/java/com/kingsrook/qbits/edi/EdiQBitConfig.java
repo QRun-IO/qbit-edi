@@ -89,6 +89,7 @@ public class EdiQBitConfig implements QBitConfig
    private String appLabel = "EDI";
    private String parentAppName;
    private String publicBaseUrl;
+   private Integer inboundDelayedAfterMinutes = 60;
 
 
 
@@ -113,6 +114,10 @@ public class EdiQBitConfig implements QBitConfig
       if(secretsResolver == null || partnerLocks == null)
       {
          errors.add("secretsResolver and partnerLocks are required");
+      }
+      if(inboundDelayedAfterMinutes == null || inboundDelayedAfterMinutes < 1)
+      {
+         errors.add("inboundDelayedAfterMinutes must be at least 1");
       }
       if(appName == null || appName.isBlank())
       {
@@ -388,6 +393,24 @@ public class EdiQBitConfig implements QBitConfig
    public EdiQBitConfig withPublicBaseUrl(String value)
    {
       publicBaseUrl = value;
+      return (this);
+   }
+
+   /*******************************************************************************
+    ** How old (in minutes) the oldest unprocessed inbound document may get before
+    ** the EDI home says "Inbound documents are delayed". Default 60.
+    *******************************************************************************/
+   public Integer getInboundDelayedAfterMinutes()
+   {
+      return (inboundDelayedAfterMinutes);
+   }
+
+   /*******************************************************************************
+    ** Set the inbound delay threshold in minutes.
+    *******************************************************************************/
+   public EdiQBitConfig withInboundDelayedAfterMinutes(Integer value)
+   {
+      inboundDelayedAfterMinutes = value;
       return (this);
    }
 }

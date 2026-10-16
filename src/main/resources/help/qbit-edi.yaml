@@ -1693,6 +1693,8 @@ entries:
   summary: Compare document volume by partner and document type over seven days.
 - key: widget:edi_home_system;slot:label
   summary: Review the EDI system status and processing activity.
+- key: widget:edi_home_delayed;slot:label
+  summary: Warns when incoming documents have waited longer than expected to be processed.
 - key: possibleValueSource:edi_standard;slot:help
   summary: The available choices for standard.
 - key: possibleValueSource:edi_partner_status;slot:help

@@ -68,7 +68,7 @@ class EdiDemoServerTest
          Set<String> properties = new HashSet<>();
          new com.fasterxml.jackson.databind.ObjectMapper().readTree(json).fieldNames().forEachRemaining(properties::add);
          assertThat(properties).isSubsetOf("sendAsEdiTables", "defaultBackendNameForTables", "backendName", "appName", "appLabel", "parentAppName",
-            "schedulerName", "maxSegmentsPerTransaction", "partnerLocks", "payloadBucketAlias", "esbDestinationName");
+            "schedulerName", "maxSegmentsPerTransaction", "partnerLocks", "payloadBucketAlias", "esbDestinationName", "inboundDelayedAfterMinutes");
          assertThat(calls.get()).isZero();
       }
    }
