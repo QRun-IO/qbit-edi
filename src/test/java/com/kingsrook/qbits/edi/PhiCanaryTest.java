@@ -359,7 +359,7 @@ class PhiCanaryTest
       var enforcement = instance.getEnforcePermissionsInCoreActions();
       instance.setEnforcePermissionsInCoreActions(true);
       var fullSession = QContext.getQSession();
-      var viewer = new com.kingsrook.qqq.backend.core.model.session.QSession().withPermissions("edi.admin").withSecurityKeyValue("edi.admin", true).withSecurityKeyValue("edi.guide.loader", true);
+      var viewer = new com.kingsrook.qqq.backend.core.model.session.QSession().withPermissions("edi.admin", "edi.hasAccess", "edi.admin.hasAccess").withSecurityKeyValue("edi.admin", true).withSecurityKeyValue("edi.guide.loader", true);
       for(var table : instance.getTables().values())
       {
          if(!table.getName().startsWith("edi_") || table.getName().equals(PreviewDownloadBackend.TABLE))

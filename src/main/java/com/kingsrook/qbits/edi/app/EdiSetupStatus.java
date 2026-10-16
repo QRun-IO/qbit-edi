@@ -34,11 +34,12 @@ public final class EdiSetupStatus
 {
    /*******************************************************************************
     ** DONE: working. TODO: the exchange needs it. BUILT_IN: provided by the
-    ** qbit. OPTIONAL: only some setups need it. UNKNOWN: the viewer cannot see it.
+    ** qbit. OPTIONAL: only some setups need it. UNKNOWN: its count failed (for
+    ** example the viewer cannot read the table), shown as "Unavailable".
     *******************************************************************************/
    public enum State
    {
-      DONE("Set up"), TODO("Needs setup"), BUILT_IN("Built in"), OPTIONAL("Optional"), UNKNOWN("Not visible to you");
+      DONE("Set up"), TODO("Needs setup"), BUILT_IN("Built in"), OPTIONAL("Optional"), UNKNOWN("Unavailable");
 
       private final String label;
 
@@ -67,11 +68,13 @@ public final class EdiSetupStatus
    }
 
    /*******************************************************************************
-    ** The row counts the card is built from; -1 means the viewer cannot read it.
-    ** Active counts are rows with isActive true (what the runtime uses).
+    ** The row counts the card is built from; null means the count failed and the
+    ** step shows as unavailable. Active counts are rows with isActive true (what
+    ** the runtime uses).
     *******************************************************************************/
-   public record Counts(int partners, int ownIdentities, int partnerIdentities, int agreements, int activeAgreements, int agreementDocuments,
-                        int activeAgreementDocuments, int transports, int activeTransports, int certificates, int guides, int codeLists, int maps, int activeMaps)
+   public record Counts(Integer partners, Integer ownIdentities, Integer partnerIdentities, Integer agreements, Integer activeAgreements, Integer agreementDocuments,
+                        Integer activeAgreementDocuments, Integer transports, Integer activeTransports, Integer certificates, Integer guides, Integer codeLists,
+                        Integer maps, Integer activeMaps)
    {
    }
 
@@ -96,15 +99,15 @@ public final class EdiSetupStatus
          "Add one per transaction set and direction on Agreement Documents: pick the guide, and a map if it should become records. A document type with no row is not processed."));
       items.add(item("5. Transport", "edi_transport", c.transports(), c.activeTransports(), "transport",
          "Add the AS2, SFTP or HTTPS connection on Transports (secrets as variable names), link it on the agreement, then run Test Connection."));
-      items.add(c.certificates() < 0 ? new Item("Certificates", "edi_certificate", State.UNKNOWN, "", "")
+      items.add(c.certificates() == null ? new Item("Certificates", "edi_certificate", State.UNKNOWN, "", "")
          : c.certificates() == 0
             ? new Item("Certificates", "edi_certificate", State.OPTIONAL, "None.", "Needed only for AS2 signing and encryption: add yours and the partner's on Certificates.")
             : new Item("Certificates", "edi_certificate", State.DONE, c.certificates() + (c.certificates() == 1 ? " certificate." : " certificates."), ""));
-      items.add(c.guides() < 0 || c.codeLists() < 0 ? new Item("Guides and code lists", "edi_guide", State.UNKNOWN, "", "")
+      items.add(c.guides() == null || c.codeLists() == null ? new Item("Guides and code lists", "edi_guide", State.UNKNOWN, "", "")
          : c.guides() == 0 || c.codeLists() == 0
             ? new Item("Guides and code lists", "edi_guide", State.TODO, "The built-in guides are not loaded.", "The host must call EdiRuntime.initialize() at startup, after the schema exists.")
             : new Item("Guides and code lists", "edi_guide", State.BUILT_IN, c.guides() + " guides and " + c.codeLists() + " code lists.", ""));
-      items.add(c.maps() < 0 ? new Item("Maps", "edi_map", State.UNKNOWN, "", "")
+      items.add(c.maps() == null || c.activeMaps() == null ? new Item("Maps", "edi_map", State.UNKNOWN, "", "")
          : c.maps() == 0
             ? new Item("Maps", "edi_map", State.OPTIONAL, "None.", "Needed to turn documents into records. Run Install sample maps on Maps to start from an example.")
             : c.activeMaps() == 0
@@ -119,7 +122,7 @@ public final class EdiSetupStatus
    private static Item identities(Counts c)
    {
       String step = "2. Identities";
-      if(c.ownIdentities() < 0 || c.partnerIdentities() < 0)
+      if(c.ownIdentities() == null || c.partnerIdentities() == null)
       {
          return (new Item(step, "edi_identity", State.UNKNOWN, "", ""));
       }
@@ -137,9 +140,9 @@ public final class EdiSetupStatus
    /*******************************************************************************
     ** A step that needs at least one active row.
     *******************************************************************************/
-   private static Item item(String step, String table, int total, int active, String noun, String next)
+   private static Item item(String step, String table, Integer total, Integer active, String noun, String next)
    {
-      if(total < 0 || active < 0)
+      if(total == null || active == null)
       {
          return (new Item(step, table, State.UNKNOWN, "", ""));
       }
