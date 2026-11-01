@@ -1,0 +1,6 @@
+# QRun-IO/qbit-edi: historical Gitleaks baseline. Exactly two full fingerprints; no path, rule, regex or entropy ignores.
+# Both are `private-key` findings in AS2 test sources from commit a4dca904 ("feat: phase c - AS2 transport"),
+# authored 2026-10-14T08:07:52-05:00. That predates the 2026-10-29 migration and the current work; history is preserved, not rewritten.
+# Any new finding (other commit, file, line or rule) is not covered and still fails the scan.
+a4dca9046b56ff65f318c77445148b84ec338803:src/test/java/com/kingsrook/qbits/edi/As2Support.java:private-key:111
+a4dca9046b56ff65f318c77445148b84ec338803:src/test/java/com/kingsrook/qbits/edi/As2Test.java:private-key:958
